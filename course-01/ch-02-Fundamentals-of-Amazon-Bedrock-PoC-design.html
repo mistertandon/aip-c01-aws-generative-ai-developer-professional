@@ -1,0 +1,1540 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+  /* ---- Help icon + deep-dive popover ---- */
+  .q-inline{display:inline-flex;align-items:center;justify-content:center;width:1.15em;height:1.15em;border-radius:50%;font-weight:700;font-size:.85em;background:var(--accent-soft);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);vertical-align:middle}
+  .help-list{list-style:none;padding:0;margin:14px 0 4px;display:flex;flex-direction:column;gap:9px;max-width:78ch}
+  .help-list-item{display:flex;align-items:flex-start;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:12px 15px;box-shadow:var(--shadow)}
+  .help-list-item span{font-size:clamp(14.5px,1.4vw,17px);line-height:1.45;color:var(--text);font-weight:500;padding-top:2px}
+  .help-btn{appearance:none;flex:none;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-weight:700;font-size:15px;line-height:1;border-radius:50%;cursor:pointer;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:var(--accent-soft);color:var(--accent);transition:transform .15s,background .15s,color .15s}
+  .help-btn:hover,.help-btn:focus-visible{background:var(--accent);color:#fff;transform:scale(1.12);outline:none}
+  .help-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .help-popover{position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;background:var(--bg);border-top:4px solid var(--accent);animation:helpPop .28s cubic-bezier(.16,1,.3,1)}
+  .help-popover[hidden]{display:none}
+  @keyframes helpPop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.help-popover{animation:none}}
+  .help-popover-close{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:16px;z-index:81;width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:50%;cursor:pointer;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent-soft) 80%,var(--surface))}
+  .help-popover-close:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .help-popover-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:calc(64px + env(safe-area-inset-top,0px)) 24px calc(48px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center}
+  .help-popover-body .inner{margin:0}
+
+</style></head><body>
+<title>Amazon Bedrock PoC Design</title>
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#EAEEF2; --surface:#FFFFFF; --surface-2:#F3F5F8;
+    --text:#152230; --muted:#4C5A69; --faint:#7A8899;
+    --accent:#C2570B; --accent-soft:#F4E4D5; --accent2:#0E6E7D; --accent2-soft:#DDEEF0;
+    --border:#D4DBE3; --code-bg:#0E1620; --code-text:#E6EDF3;
+    --shadow:0 1px 3px rgba(20,34,48,.08),0 8px 30px rgba(20,34,48,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#0C131C; --surface:#141F2B; --surface-2:#101922;
+      --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+      --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+      --border:#243240; --code-bg:#0A121A; --code-text:#E6EDF3;
+      --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#0C131C; --surface:#141F2B; --surface-2:#101922;
+    --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+    --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+    --border:#243240; --code-bg:#0A121A; --code-text:#E6EDF3;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'IBM Plex Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  code,pre,.mono{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace}
+
+  #progress{position:fixed; top:0; left:0; height:3px; background:var(--accent); width:0; z-index:60; transition:width .25s ease}
+  @media (prefers-reduced-motion: reduce){#progress{transition:none}}
+
+  .topbar{
+    position:fixed; left:0; right:0; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 18px; padding-top:calc(10px + env(safe-area-inset-top,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex; align-items:center; gap:10px; min-width:0}
+  .brand .dot{width:12px;height:12px;border-radius:3px;background:var(--accent);flex:none}
+  .brand b{font-weight:600; font-size:14px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .brand span{color:var(--faint); font-size:13px; white-space:nowrap}
+  .tools{display:flex; align-items:center; gap:8px; flex:none}
+  .btn{
+    appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--text);
+    font:inherit; font-size:13px; font-weight:500; padding:7px 12px; border-radius:9px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; line-height:1;
+  }
+  .btn:hover{border-color:var(--accent)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .btn.icon{padding:7px 9px}
+
+  .deck{position:relative; height:100%}
+  .slide{
+    position:absolute; inset:0; overflow-y:auto; overflow-x:hidden;
+    padding:calc(64px + env(safe-area-inset-top,0px)) 24px calc(84px + env(safe-area-inset-bottom,0px));
+    display:flex; justify-content:center;
+  }
+  .slide:not([hidden]){animation:fade .3s ease both}
+  @media (prefers-reduced-motion: reduce){.slide:not([hidden]){animation:none}}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  .inner{width:100%; max-width:1000px; margin:auto 0; padding-block:8px}
+
+  .kicker{
+    font-size:12.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase;
+    color:var(--accent); margin:0 0 14px;
+  }
+  h1{font-size:clamp(30px,5vw,56px); line-height:1.05; font-weight:700; margin:0 0 18px; letter-spacing:-.02em; text-wrap:balance}
+  h2{font-size:clamp(23px,3.1vw,38px); line-height:1.12; font-weight:600; margin:0 0 16px; letter-spacing:-.01em; text-wrap:balance}
+  h3{font-size:clamp(16px,1.85vw,21px); font-weight:600; margin:22px 0 9px; color:var(--text)}
+  p{font-size:clamp(14.5px,1.45vw,17.5px); line-height:1.55; color:var(--muted); margin:0 0 12px; max-width:76ch}
+  p strong,li strong,td strong{color:var(--text); font-weight:600}
+  .lead{font-size:clamp(16px,1.85vw,21px); line-height:1.5; color:var(--text)}
+  ul,ol{margin:0 0 12px; padding-left:22px; max-width:78ch}
+  li{font-size:clamp(14.5px,1.4vw,17px); line-height:1.5; color:var(--muted); margin:0 0 7px}
+  em{font-style:italic}
+  hr.div{border:none; border-top:1px solid var(--border); margin:20px 0}
+
+  code:not(pre code){
+    background:var(--surface-2); border:1px solid var(--border); border-radius:6px;
+    padding:.08em .4em; font-size:.85em; color:var(--text); word-break:break-word;
+  }
+  pre{
+    background:var(--code-bg); color:var(--code-text); border-radius:12px; margin:6px 0 16px;
+    padding:16px 18px; overflow-x:auto; border:1px solid rgba(255,255,255,.06);
+    font-size:clamp(11.5px,1.2vw,13.5px); line-height:1.55;
+  }
+  pre code{color:inherit; white-space:pre}
+
+  .tbl{overflow-x:auto; margin:8px 0 16px; border:1px solid var(--border); border-radius:12px}
+  table{border-collapse:collapse; width:100%; font-size:clamp(13px,1.25vw,15px)}
+  th,td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:9px 12px; text-align:left; vertical-align:top; color:var(--muted)}
+  th{background:var(--surface-2); color:var(--text); font-weight:600; white-space:nowrap}
+  tr td:last-child,tr th:last-child{border-right:none}
+  tbody tr:last-child td{border-bottom:none}
+
+  .note{
+    background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--accent2);
+    border-radius:12px; padding:16px 18px; margin:10px 0 14px; box-shadow:var(--shadow);
+  }
+  .note .tag{display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent2); margin-bottom:6px}
+  .note p:last-child{margin-bottom:0}
+  .note.tip{border-left-color:var(--accent)}
+  .note.tip .tag{color:var(--accent)}
+  .quote{
+    border-left:3px solid var(--accent2); padding:4px 0 4px 18px; margin:0 0 12px;
+    color:var(--text); font-size:clamp(14px,1.45vw,17px); line-height:1.5;
+  }
+  .badge{display:inline-block; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; background:var(--accent2-soft); color:var(--accent2); margin-bottom:12px}
+
+  #cover .inner{max-width:1000px}
+  #cover .meta{font-size:13px; color:var(--faint); letter-spacing:2px; text-transform:uppercase; margin-top:16px}
+  .divider{background:
+     radial-gradient(1100px 560px at 12% -5%, color-mix(in srgb,var(--accent) 12%,transparent), transparent 60%),
+     var(--bg);}
+  .divider .num{font-size:13px; font-weight:700; letter-spacing:3px; color:var(--accent); text-transform:uppercase; margin-bottom:14px}
+
+  .navbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    padding:12px 18px; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-top:1px solid var(--border);
+  }
+  .counter{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; min-width:64px; text-align:center}
+  .counter b{color:var(--text); font-weight:600}
+
+  .menu{
+    position:fixed; inset:0; z-index:70; background:color-mix(in srgb,var(--bg) 92%,transparent);
+    backdrop-filter:blur(6px); padding:calc(70px + env(safe-area-inset-top,0px)) 18px 30px; overflow-y:auto;
+  }
+  .menu .mwrap{max-width:860px; margin:0 auto}
+  .menu h2{font-size:20px; margin-bottom:16px}
+  .mlist{list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:2px}
+  .mitem{
+    width:100%; text-align:left; display:flex; gap:12px; align-items:baseline;
+    background:none; border:none; border-radius:9px; color:var(--text); font:inherit; padding:9px 12px; cursor:pointer;
+  }
+  .mitem:hover{background:var(--surface)}
+  .mitem .mn{color:var(--faint); font-size:12.5px; font-variant-numeric:tabular-nums; min-width:26px}
+  .mitem.sec{font-weight:600; margin-top:6px}
+  .mitem.sec .mn{color:var(--accent)}
+  .mitem.cur{background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--border)}
+  .hint{position:fixed; bottom:70px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--faint); z-index:40; pointer-events:none; transition:opacity .5s}
+  @media (max-width:600px){.hint{display:none}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<div id="progress"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <b>Fundamentals of Amazon Bedrock PoC Design</b>
+    <span>· AWS Generative AI · Ch.02</span>
+  </div>
+  <div class="tools">
+    <button class="btn" id="menuBtn" aria-haspopup="true">☰ Contents</button>
+    <button class="btn icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+  </div>
+</header>
+
+<main class="deck" id="deck">
+
+  <!-- Cover -->
+  <section class="slide divider" id="cover" data-title="Fundamentals of Amazon Bedrock PoC Design" data-section="true">
+    <div class="inner">
+      <p class="num">Course 01 · Chapter 02</p>
+      <h1>Fundamentals of Amazon Bedrock PoC Design</h1>
+      <p class="lead">Capabilities and foundation models, API integration, prompt engineering, PoC scoping, technical validation, model selection, security, performance, token &amp; cost optimization, and the business case.</p>
+      <p class="meta">← → or Space to navigate · Press C for contents · T for theme</p>
+    </div>
+  </section>
+
+  <!-- ===== PART 1: CAPABILITIES & FMs ===== -->
+  <section class="slide divider" id="cap-overview" data-title="1. Amazon Bedrock Capabilities Overview" data-section="true">
+    <div class="inner">
+      <p class="num">Part 01 · Amazon Bedrock Capabilities &amp; Foundation Models</p>
+      <h2>1. Amazon Bedrock Capabilities Overview</h2>
+      <p>Think of Amazon Bedrock as a fully managed platform to build and scale Generative AI applications without managing infrastructure.</p>
+      <p>Instead of hosting models yourself, Bedrock gives you a single API - the <strong>Converse API</strong> - to access diverse <strong>Foundation Models (FMs)</strong>. On top of that, it provides higher-level building blocks to go from a model to a production application:</p>
+      <ul>
+        <li><strong>Foundation Models Access:</strong> On-demand access to models from Anthropic, Meta, Mistral, Cohere, AI21, and Amazon.</li>
+        <li><strong>Knowledge Bases for RAG:</strong> Connect your private data (in Amazon S3, OpenSearch, Aurora, etc.) to models for <strong>Retrieval Augmented Generation (RAG)</strong> without building your own vector pipeline.</li>
+        <li><strong>Agents:</strong> Build autonomous agents that can reason and take actions via API calls to your enterprise systems.</li>
+        <li><strong>Guardrails:</strong> Implement responsible AI by filtering harmful content, blocking sensitive topics, and redacting PII.</li>
+      </ul>
+      <div class="note tip"><span class="tag">Architect's Tip for PoC</span><p>Don't start by fine-tuning. For 80% of PoCs, the pattern is: Select a good base FM + Use Knowledge Bases for your data + Add Guardrails. This is faster and cheaper.</p></div>
+    </div>
+  </section>
+
+  <section class="slide" id="choose-fm" data-title="2. Available Foundation Models — How to Choose">
+    <div class="inner">
+      <p class="kicker">Part 01 · Capabilities &amp; Foundation Models</p>
+      <h2>2. Available Foundation Models — How to Choose</h2>
+      <p>Not all foundation models are the same. They differ in 4 key dimensions you must evaluate for your PoC:</p>
+      <ol>
+        <li><strong>Modality:</strong> What input/output does it support? Text-only vs. Text+Image.</li>
+        <li><strong>Context Window:</strong> How much text it can remember at once? e.g., 200K tokens = ~150,000 words.</li>
+        <li><strong>Performance vs. Latency vs. Cost:</strong> More powerful models cost more and are slower.</li>
+        <li><strong>Specialization:</strong> Some models are tuned for chat, reasoning, coding, or embeddings.</li>
+      </ol>
+      <p>Bedrock offers two pricing modes: <strong>On-Demand</strong> (pay per token, best for PoC) and <strong>Provisioned Throughput</strong> (pay per hour for guaranteed throughput, best for production).</p>
+    </div>
+  </section>
+
+  <section class="slide" id="cat-overview" data-title="3. The Five Model Categories Deep Dive">
+    <div class="inner">
+      <p class="kicker">Part 01 · Capabilities &amp; Foundation Models</p>
+      <h2>3. The Five Model Categories Deep Dive</h2>
+      <p>Bedrock's foundation models fall into five categories. Tap the <span class="q-inline">?</span> beside any category to open its full deep dive — examples, code, and guidance — right here, without leaving this slide.</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cat-text" aria-label="Open deep dive: A. Text Generation Models">?</button><span>A. Text Generation Models</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cat-multimodal" aria-label="Open deep dive: B. Multimodal Models">?</button><span>B. Multimodal Models</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cat-embedding" aria-label="Open deep dive: C. Embedding Models">?</button><span>C. Embedding Models</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cat-code" aria-label="Open deep dive: D. Code Generation Models">?</button><span>D. Code Generation Models</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cat-nova" aria-label="Open deep dive: E. Amazon Nova Models — The Tiered Strategy">?</button><span>E. Amazon Nova Models — The Tiered Strategy</span></li>
+      </ul>
+    </div>
+  </section>
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  <!-- ===== PART 2: API INTEGRATION ===== -->
+  <section class="slide divider" id="api-inference" data-title="API Integration · 1. Inference API" data-section="true">
+    <div class="inner">
+      <p class="num">Part 02 · API Integration Options</p>
+      <p>Think of Bedrock integrations as a maturity ladder. You don't have to start complex.</p>
+      <ul>
+        <li><strong>Level 1: Inference API</strong> -&gt; Call a model directly.</li>
+        <li><strong>Level 2: Knowledge Bases</strong> -&gt; Give the model your private data [RAG].</li>
+        <li><strong>Level 3: Agents</strong> -&gt; Let the model take actions and run multi-step workflows.</li>
+        <li><strong>Level 4: Model Evaluation</strong> -&gt; Systematically prove which model is best for you.</li>
+      </ul>
+      <p>You choose the level based on your PoC requirement, not the other way around.</p>
+      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="api-inference-lead" aria-label="Open deep dive: 1. Inference API — The Direct Foundation Model Call">?</button><span>1. Inference API — The Direct Foundation Model Call</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="api-kb" aria-label="Open deep dive: 2. Knowledge Bases — Managed RAG Without Undifferentiated Heavy Lifting">?</button><span>2. Knowledge Bases — Managed RAG Without Undifferentiated Heavy Lifting</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="api-agents" aria-label="Open deep dive: 3. Agents — From Chat to Doing">?</button><span>3. Agents — From Chat to Doing</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="api-eval" aria-label="Open deep dive: 4. Model Evaluation — Stop Guessing, Start Measuring">?</button><span>4. Model Evaluation — Stop Guessing, Start Measuring</span></li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  
+
+  
+
+  <!-- ===== PART 3: PROMPT ENGINEERING ===== -->
+  <section class="slide divider" id="pe-costar" data-title="Prompt Engineering · 1. COSTAR" data-section="true">
+    <div class="inner">
+      <p class="num">Part 03 · Prompt Engineering Fundamentals</p>
+      <p><strong>The Core Idea:</strong> You don't need to fine-tune a model to improve it. For 80% of PoCs, better prompting gives you 90% of the improvement at 0% of the training cost. Prompt engineering is how you control a Foundation Model's behavior during <strong>inference</strong>. Think of the model as a very smart but very literal intern. If you give vague instructions, you get vague results.</p>
+      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="pe-costar-lead" aria-label="Open deep dive: 1. Prompt Structure: The Anatomy of a Good Prompt">?</button><span>1. Prompt Structure: The Anatomy of a Good Prompt</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="pe-shots" aria-label="Open deep dive: 2. Prompting Techniques: Zero-Shot, One-Shot, Few-Shot">?</button><span>2. Prompting Techniques: Zero-Shot, One-Shot, Few-Shot</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="pe-cot" aria-label="Open deep dive: 3. Chain-of-Thought Prompting: For Reasoning Tasks [CoT]">?</button><span>3. Chain-of-Thought Prompting: For Reasoning Tasks [CoT]</span></li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  
+
+  <!-- ===== PART 4: PoC SCOPING ===== -->
+  <section class="slide divider" id="scope-p1" data-title="PoC Scoping · Phase 1" data-section="true">
+    <div class="inner">
+      <p class="num">Part 04 · PoC Scoping Methodology</p>
+      <p><strong>Core Principle:</strong> A PoC should not prove that Generative AI works. It should prove that it solves <em>your</em> business problem with measurable ROI, within your guardrails. Systematic scoping prevents the #1 failure I see: building a cool demo that no one can put into production.</p>
+      <p class="quote"><strong>Running Example PoC:</strong> Automate summarization and categorization of 5,000 daily customer support tickets.</p>
+      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="scope-p1-lead" aria-label="Open deep dive: Phase 1: Define Business Problems Suitable for Generative AI">?</button><span>Phase 1: Define Business Problems Suitable for Generative AI</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="scope-p2" aria-label="Open deep dive: Phase 2: Assess Data Requirements and Availability">?</button><span>Phase 2: Assess Data Requirements and Availability</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="scope-p3" aria-label="Open deep dive: Phase 3: Set Clear Success Metrics — Your Go/No-Go Criteria">?</button><span>Phase 3: Set Clear Success Metrics — Your Go/No-Go Criteria</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="scope-p4" aria-label="Open deep dive: Phase 4: Address Responsible AI and Compliance Risks">?</button><span>Phase 4: Address Responsible AI and Compliance Risks</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="scope-p5" aria-label="Open deep dive: Phase 5: Time-Box Development Efforts — The 4-Week Sprint">?</button><span>Phase 5: Time-Box Development Efforts — The 4-Week Sprint</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="scope-p6" aria-label="Open deep dive: Phase 6: Identify Key Stakeholders and Decision Makers">?</button><span>Phase 6: Identify Key Stakeholders and Decision Makers</span></li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  <!-- ===== PART 5: TECHNICAL VALIDATION ===== -->
+  <section class="slide divider" id="val-model" data-title="Technical Validation · 1. Model Selection" data-section="true">
+    <div class="inner">
+      <p class="num">Part 05 · Technical Validation Approaches</p>
+      <p>A PoC demo is easy. A production-ready PoC is hard. Technical validation is how you prove your solution is not just cool, but also <strong>accurate, scalable, and secure</strong>. Before stakeholder sign-off, validate 3 areas systematically:</p>
+      <ol>
+        <li><strong>Model Selection:</strong> Did we pick the right brain for the job?</li>
+        <li><strong>Implementation Patterns:</strong> Did we build it the right way using AWS best practices?</li>
+        <li><strong>Authentication &amp; Security:</strong> Is our data protected and ready for enterprise standards?</li>
+      </ol>
+      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="val-model-lead" aria-label="Open deep dive: 1. Systematic Model Selection">?</button><span>1. Systematic Model Selection</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="val-code" aria-label="Open deep dive: 2. Proven Code Implementation Patterns">?</button><span>2. Proven Code Implementation Patterns</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="val-security" aria-label="Open deep dive: 3. Robust Authentication and Security">?</button><span>3. Robust Authentication and Security</span></li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  
+
+  <!-- ===== PART 6: MODEL SELECTION METHODOLOGY ===== -->
+  <section class="slide divider" id="ms-step1" data-title="Model Selection · Step 1" data-section="true">
+    <div class="inner">
+      <p class="num">Part 06 · Model Selection Methodology</p>
+      <p>There is no single "best" foundation model. There is only the best model <em>for your specific use case, with your latency and cost constraints</em>. We use a systematic 3-step process to prove it with data, not opinions: <strong>Define -&gt; Compare -&gt; Stress Test.</strong></p>
+      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ms-step1-lead" aria-label="Open deep dive: Step 1: Requirements Analysis — Define What &quot;Good&quot; Means Before You Test">?</button><span>Step 1: Requirements Analysis — Define What "Good" Means Before You Test</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ms-step2" aria-label="Open deep dive: Step 2: Comparative Evaluation — Let Your Data Decide, Not Benchmarks">?</button><span>Step 2: Comparative Evaluation — Let Your Data Decide, Not Benchmarks</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ms-step3" aria-label="Open deep dive: Step 3: Iterative Testing — Start Simple, Then Break It">?</button><span>Step 3: Iterative Testing — Start Simple, Then Break It</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ms-step4" aria-label="Open deep dive: Step 4: Model Evaluation for Generative AI Quality">?</button><span>Step 4: Model Evaluation for Generative AI Quality</span></li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  
+
+  
+
+  <!-- ===== PART 7: AUTH & SECURITY ===== -->
+  <section class="slide divider" id="sec-iam" data-title="Auth &amp; Security · 1. IAM Roles" data-section="true">
+    <div class="inner">
+      <p class="num">Part 07 · Authentication and Security Considerations</p>
+      <p>Security is not an add-on for later. With Bedrock, security is enabled by default, but you must configure it correctly to prove to your CISO that your PoC is enterprise-ready. Think of it in 3 layers: 1) Who can access Bedrock? -&gt; IAM Roles; 2) Is my data protected? -&gt; Encryption; 3) Can I prove who did what? -&gt; Access Logging. AWS Bedrock never uses your prompts, completions, or private data to train its foundation models.</p>
+      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-iam-lead" aria-label="Open deep dive: 1. IAM Role Configuration — Principle of Least Privilege">?</button><span>1. IAM Role Configuration — Principle of Least Privilege</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-encrypt" aria-label="Open deep dive: 2. Data Encryption — In Transit and At Rest">?</button><span>2. Data Encryption — In Transit and At Rest</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-logging" aria-label="Open deep dive: 3. Access Logging — Who Did What, When">?</button><span>3. Access Logging — Who Did What, When</span></li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  
+
+  <!-- ===== PART 8: PERFORMANCE TESTING ===== -->
+  <section class="slide divider" id="perf-latency" data-title="Performance · 1. Latency" data-section="true">
+    <div class="inner">
+      <p class="num">Part 08 · Performance Testing Framework</p>
+      <p>A model can be accurate but too slow or too expensive to use. Performance testing answers three business questions: 1) Speed: How fast will my user get an answer? 2) Scale: How many users can I handle at once before it breaks? 3) Cost: What will it cost me per transaction at scale? Test this now in PoC, not after launch.</p>
+      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="perf-latency-lead" aria-label="Open deep dive: 1. Response Time Benchmarking — Latency Measurement">?</button><span>1. Response Time Benchmarking — Latency Measurement</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="perf-throughput" aria-label="Open deep dive: 2. Throughput Testing — Finding the Breaking Point">?</button><span>2. Throughput Testing — Finding the Breaking Point</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="perf-geo" aria-label="Open deep dive: 3. Geographic Performance — Where You Deploy Matters">?</button><span>3. Geographic Performance — Where You Deploy Matters</span></li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  
+
+  <!-- ===== PART 9: TOKEN OPTIMIZATION ===== -->
+  <section class="slide divider" id="tok-count" data-title="Token Optimization · 1. Counting" data-section="true">
+    <div class="inner">
+      <p class="num">Part 09 · Input/Output Token Optimization</p>
+      <p>Think of tokens as the currency of Generative AI. 1 token is roughly 4 characters or ~75% of a word. <strong>You pay for what you send [Input Tokens] + what you get back [Output Tokens]. Output tokens cost 3-5x more than input tokens and directly increase latency.</strong> Token optimization is not about being cheap - it's about removing waste while keeping quality high.</p>
+      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="tok-count-lead" aria-label="Open deep dive: 1. Token Counting — You Can't Optimize What You Don't Measure">?</button><span>1. Token Counting — You Can't Optimize What You Don't Measure</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="tok-prompt" aria-label="Open deep dive: 2. Prompt Optimization — Shorter is Often Smarter">?</button><span>2. Prompt Optimization — Shorter is Often Smarter</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="tok-response" aria-label="Open deep dive: 3. Response Length Management — Control Output Tokens">?</button><span>3. Response Length Management — Control Output Tokens</span></li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  
+
+  <!-- ===== PART 10: COST ESTIMATION ===== -->
+  <section class="slide divider" id="cost-visibility" data-title="Cost Estimation · 1. Real-time Visibility" data-section="true">
+    <div class="inner">
+      <p class="num">Part 10 · Cost Estimation Methods</p>
+      <p>Traditional apps cost $X per month for servers. Generative AI apps cost $Y per <em>transaction</em>, and Y changes with every prompt. You need two lenses to control cost: 1) <strong>Financial Lens</strong> (How much am I spending? -&gt; AWS Cost Explorer); 2) <strong>Technical Lens</strong> (Why am I spending that much? -&gt; Amazon CloudWatch).</p>
+      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cost-visibility-lead" aria-label="Open deep dive: 1. Real-time Visibility is Crucial for GenAI Costs">?</button><span>1. Real-time Visibility is Crucial for GenAI Costs</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cost-usage" aria-label="Open deep dive: 2. Usage Pattern Analysis — Project Before You Build">?</button><span>2. Usage Pattern Analysis — Project Before You Build</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cost-monitor" aria-label="Open deep dive: 3. Cost Monitoring Implementation — The Two-Lens Setup">?</button><span>3. Cost Monitoring Implementation — The Two-Lens Setup</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cost-scaling" aria-label="Open deep dive: 4. Scaling Cost Projections — From PoC to Production">?</button><span>4. Scaling Cost Projections — From PoC to Production</span></li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  
+
+  
+
+  <!-- ===== PART 11: VALUE CALCULATION ===== -->
+  <section class="slide divider" id="val2-tco" data-title="Value Calculation · 1. TCO" data-section="true">
+    <div class="inner">
+      <p class="num">Part 11 · Value Calculation Techniques</p>
+      <p>Leadership doesn't approve technology, they approve business value. You must prove value in dollars. Value calculation has 3 layers: 1) Cost Comparison [TCO, Cost per Transaction, Break-Even]; 2) Process Automation Benefits; 3) Business Impact Assessment. For PoC approval, start with Layer 1.</p>
+      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="val2-tco-lead" aria-label="Open deep dive: 1. Total Cost of Ownership [TCO] — The Complete Picture">?</button><span>1. Total Cost of Ownership [TCO] — The Complete Picture</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="val2-cpt" aria-label="Open deep dive: 2. Cost per Transaction — The Apples-to-Apples Metric">?</button><span>2. Cost per Transaction — The Apples-to-Apples Metric</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="val2-breakeven" aria-label="Open deep dive: 3. Break-Even Analysis — When Does PoC Pay for Itself?">?</button><span>3. Break-Even Analysis — When Does PoC Pay for Itself?</span></li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  
+
+  <!-- ===== PART 12: PROCESS AUTOMATION ===== -->
+  <section class="slide divider" id="auto-time" data-title="Process Automation · 1. Time Savings" data-section="true">
+    <div class="inner">
+      <p class="num">Part 12 · Process Automation Benefits</p>
+      <p>Cost reduction tells you "we spend less". Process automation tells you "we do more, faster, and better with the same team". This is often the most compelling justification for leadership. We quantify it in 3 measurable dimensions.</p>
+      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="auto-time-lead" aria-label="Open deep dive: 1. Time Savings Quantification — From Minutes to Seconds">?</button><span>1. Time Savings Quantification — From Minutes to Seconds</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="auto-quality" aria-label="Open deep dive: 2. Quality Improvements — Consistency at Scale">?</button><span>2. Quality Improvements — Consistency at Scale</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="auto-scale" aria-label="Open deep dive: 3. Scalability Advantages — Handle Peaks Without Hiring">?</button><span>3. Scalability Advantages — Handle Peaks Without Hiring</span></li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  
+
+  <!-- ===== PART 13: BUSINESS IMPACT ===== -->
+  <section class="slide divider" id="impact-revenue" data-title="Business Impact · 1. Revenue" data-section="true">
+    <div class="inner">
+      <p class="num">Part 13 · Business Impact Assessment</p>
+      <p>Cost savings and time savings are easy to measure. But the biggest value of Generative AI is often strategic - it makes you money, reduces risk, and makes you more competitive. We assess this in 3 categories that leadership cares about.</p>
+      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="impact-revenue-lead" aria-label="Open deep dive: 1. Revenue Impact — How Does This Make Us More Money?">?</button><span>1. Revenue Impact — How Does This Make Us More Money?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="impact-risk" aria-label="Open deep dive: 2. Risk Reduction — How Does This Make Us Safer?">?</button><span>2. Risk Reduction — How Does This Make Us Safer?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="impact-strategic" aria-label="Open deep dive: 3. Strategic Value — How Does This Make Us More Competitive Long-Term?">?</button><span>3. Strategic Value — How Does This Make Us More Competitive Long-Term?</span></li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  
+
+</main>
+
+<!-- Help popover (fills the viewport; content injected from templates) -->
+<div class="help-popover" id="helpPop" hidden>
+  <button class="help-popover-close" id="helpClose" type="button" aria-label="Close deep dive">&times;</button>
+  <div class="help-popover-body" id="helpBody"></div>
+</div>
+
+<!-- Deep-dive content (verbatim copies of former detail slides) -->
+  <template id="help-cat-text">
+<div class="inner">
+      <h2>A. Text Generation Models</h2>
+      <p>The workhorse for most PoCs. These models take text as input and generate text as output. Best for summarization, chatbots, content generation, and reasoning.</p>
+      <p>Bedrock offers industry-leading models like <strong>Anthropic Claude 3.5 Sonnet / Haiku</strong>, <strong>Meta Llama 3</strong>, <strong>Mistral Large</strong>, <strong>Cohere Command R+</strong>, and <strong>Amazon Titan Text</strong>.</p>
+      <div class="note"><span class="tag">Technical Example — Intelligent Customer Support Summarization</span>
+        <p><strong>Use Case:</strong> Summarize a long customer chat transcript and extract sentiment.</p>
+        <p class="quote">System: You are a support analyst. Summarize the conversation and output JSON with keys: summary, sentiment, next_action.<br>Transcript: [ 2000 words of chat history... ]</p>
+<pre><code>import boto3
+client = boto3.client("bedrock-runtime", region_name="us-east-1")
+
+response = client.converse(
+    modelId="anthropic.claude-3-5-sonnet-20240620-v1:0",
+    messages=[{"role": "user", "content": [{"text": transcript_prompt}]}],
+    inferenceConfig={"temperature": 0.2, "maxTokens": 1000}
+)
+print(response['output']['message']['content'][0]['text'])
+# Output: {"summary": "Customer unable to reset password...", "sentiment": "frustrated", "next_action": "Escalate to L2"}</code></pre>
+      </div>
+    </div>
+  </template>
+  <template id="help-cat-multimodal">
+<div class="inner">
+      <h2>B. Multimodal Models</h2>
+      <p>These models understand more than just text. They can process images, documents, and text together in a single request.</p>
+      <p><strong>Amazon Nova Premier / Pro and Claude 3.5 Sonnet</strong> are leaders here.</p>
+      <div class="note"><span class="tag">Technical Example — Automated Insurance Claim Processing</span>
+        <p><strong>Use Case:</strong> User uploads a photo of a damaged car + text description.</p>
+        <p><strong>Prompt Structure:</strong> You send both modalities in one API call.</p>
+<pre><code>message = {
+  "role": "user",
+  "content": [
+    {"text": "Analyze this car damage image. Based on the image and this description: 'Front bumper hit a pole', estimate severity and list damaged parts."},
+    {"image": {"format": "jpeg", "source": {"bytes": image_bytes}}}
+  ]
+}
+# Model will return: "Severity: Moderate. Parts: Front bumper dented, license plate bent, fog light cracked."</code></pre>
+        <p>This avoids building two separate pipelines for vision and text.</p>
+      </div>
+    </div>
+  </template>
+  <template id="help-cat-embedding">
+<div class="inner">
+      <h2>C. Embedding Models</h2>
+      <p>Embedding models don't generate text. They convert text into <strong>vector embeddings</strong> - a list of floating-point numbers [0.23, -0.91, 0.45...] that captures semantic meaning. Similar meanings have closer vectors in space.</p>
+      <p>This is the foundation for semantic search and RAG.</p>
+      <div class="note"><span class="tag">Technical Example — Semantic Search for Internal Knowledge Base</span>
+        <p><strong>Use Case:</strong> User asks "How to reset VPN?" but your document says "Guide to re-establishing secure tunnel connection". Keyword search fails, semantic search works.</p>
+        <p><strong>Workflow:</strong></p>
+        <ol>
+          <li><strong>Ingest:</strong> <code>Amazon Titan Embeddings V2</code> converts all your documents into vectors and stores them in <strong>Amazon OpenSearch Serverless (Vector Database)</strong>.</li>
+          <li><strong>Query:</strong> Convert user query "How to reset VPN?" to a vector.</li>
+          <li><strong>Search:</strong> Find documents with the smallest <strong>cosine distance</strong> to the query vector.</li>
+        </ol>
+<pre><code># Step 1 & 2: Generate embedding
+response = client.invoke_model(
+    modelId="amazon.titan-embed-text-v2:0",
+    body='{"inputText": "How to reset VPN?"}'
+)
+query_vector = response['embedding']
+
+# Step 2 returns doc: "Guide to re-establishing secure tunnel..." even though no keyword matched.</code></pre>
+      </div>
+    </div>
+  </template>
+  <template id="help-cat-code">
+<div class="inner">
+      <h2>D. Code Generation Models</h2>
+      <p>These are FMs pre-trained on massive code repositories. They understand programming languages, APIs, and documentation patterns.</p>
+      <p>Use them for code completion, bug fixing, code explanation, and converting natural language to SQL/Python.</p>
+      <div class="note"><span class="tag">Technical Example — Natural Language to Code &amp; Documentation</span>
+        <p><strong>Use Case 1: Generate Function</strong></p>
+        <p class="quote">Prompt: "Write a Python function using boto3 to upload a file to S3 with server-side encryption enabled."<br>Model Output: Generates correct <code>s3.put_object(..., ServerSideEncryption='AES256')</code> code.</p>
+        <p><strong>Use Case 2: Explain Legacy Code</strong></p>
+        <p class="quote">Prompt: "Explain what this 100-line legacy function does and generate a docstring for it. \n [paste code]"</p>
+        <p>This accelerates your developer productivity and is the engine behind <strong>Amazon Q Developer</strong>.</p>
+      </div>
+    </div>
+  </template>
+  <template id="help-cat-nova">
+<div class="inner">
+      <h2>E. Amazon Nova Models — The Tiered Strategy</h2>
+      <p>Amazon Nova is Amazon's own family of FMs designed to offer the best price-performance on Bedrock. Think of it as choosing the right EC2 instance type.</p>
+      <p><strong>Refined Tiers for your PoC:</strong></p>
+      <div class="tbl"><table>
+        <tr><th>Model Tier</th><th>Best For</th><th>Analogy</th></tr>
+        <tr><td><strong>Nova 2 Micro / Lite</strong></td><td>High-volume, low-latency tasks like classification, real-time chat, summarization</td><td>t3.micro - Cost-optimized</td></tr>
+        <tr><td><strong>Nova 2 Pro</strong></td><td>Complex reasoning, multi-step agents, strong accuracy required</td><td>m5.xlarge - Balanced</td></tr>
+        <tr><td><strong>Nova 2 Sonic</strong></td><td>Real-time, low-latency voice-to-voice conversations</td><td>g5 - For streaming</td></tr>
+        <tr><td><strong>Nova 2 Omni / Premier</strong></td><td>Most complex tasks needing text, image, video understanding</td><td>p4d - Most capable</td></tr>
+      </table></div>
+    </div>
+  </template>
+  <template id="help-api-kb">
+<div class="inner">
+      <h2>2. Knowledge Bases — Managed RAG Without Undifferentiated Heavy Lifting</h2>
+      <p><strong>What it is:</strong> <strong>Retrieval Augmented Generation (RAG)</strong>. It solves the biggest problem of FMs - they don't know your private data.</p>
+      <p>Without Knowledge Bases, you have to build: S3 ingestion -&gt; Text Chunking -&gt; Embedding Model -&gt; Vector Database [OpenSearch Serverless / Aurora / Pinecone] -&gt; Retriever -&gt; Prompt Orchestration.</p>
+      <p><strong>Bedrock Knowledge Bases automates this entire pipeline.</strong> You just point it to your data source in <strong>Amazon S3</strong>, it handles chunking strategy, embedding using <strong>Titan Embed Text v2</strong>, stores it in a vector DB, and exposes a single <code>RetrieveAndGenerate</code> API.</p>
+      <p><strong>When to use for PoC:</strong> Q&amp;A over internal docs, HR policies, product manuals, support knowledge base.</p>
+      <div class="note"><span class="tag">Technical Example — Enterprise Policy Q&amp;A</span>
+        <p><strong>Setup [No code, in console]:</strong> Data Source: <code>s3://my-company-policies/</code> · Chunking Strategy: <code>Default - 300 tokens with 20% overlap</code> · Embedding Model: <code>amazon.titan-embed-text-v2:0</code> · Vector Store: <code>Amazon OpenSearch Serverless</code></p>
+<pre><code>bedrock_agent_runtime = boto3.client("bedrock-agent-runtime")
+
+response = bedrock_agent_runtime.retrieve_and_generate(
+    input={"text": "What is our remote work reimbursement policy?"},
+    retrieveAndGenerateConfiguration={
+        "type": "KNOWLEDGE_BASE",
+        "knowledgeBaseConfiguration": {
+            "knowledgeBaseId": "KB123456",
+            "modelArn": "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-sonnet-20240620-v1:0"
+        }
+    }
+)
+
+print(response['output']['text'])
+# Output: "As per policy doc HR-2024.pdf, reimbursement is up to $500..."
+# You also get citations: response['citations'][0]['retrievedReferences'][0]['location']['s3Location']</code></pre>
+        <p>Result: Grounded, hallucination-free answer with S3 citations.</p>
+      </div>
+    </div>
+  </template>
+  <template id="help-api-agents">
+<div class="inner">
+      <h2>3. Agents — From Chat to Doing</h2>
+      <p><strong>What it is:</strong> If Inference API is about <em>answering</em> and Knowledge Bases is about <em>knowing</em>, <strong>Agents</strong> are about <em>doing</em>.</p>
+      <p>An Agent orchestrates complex, multi-step tasks. It uses a foundation model as its reasoning engine [ReAct - Reason and Act] to break a user request into steps, and then calls tools you define to execute them. In Bedrock, those tools are <strong>Action Groups</strong>, backed by <strong>AWS Lambda functions</strong>.</p>
+      <p><strong>When to use for PoC:</strong> Any workflow: "Book a replacement for my delayed order", "Create a Jira ticket from this customer complaint", "Query my database and email the report".</p>
+      <div class="note"><span class="tag">Technical Example — Auto-Insurance Claim Agent</span>
+        <p><strong>User Request:</strong> "I had an accident on May 1st, my policy is P123." <strong>How Agent Executes:</strong></p>
+        <ol>
+          <li><strong>Reason:</strong> Model thinks: "I need to validate policy P123 first, then check coverage."</li>
+          <li><strong>Action 1:</strong> Calls Action Group <code>getPolicyDetails</code> -&gt; Lambda queries DynamoDB</li>
+          <li><strong>Reason:</strong> "Policy is valid. Now I need to create a claim."</li>
+          <li><strong>Action 2:</strong> Calls Action Group <code>createClaim</code> -&gt; Lambda calls insurance system API</li>
+          <li><strong>Final Response:</strong> "Your claim C-8891 has been created."</li>
+        </ol>
+<pre><code>{
+  "openApiSchema": {
+    "paths": {
+      "/getPolicyDetails": {
+        "get": {
+          "parameters": [{"name": "policyId", "in": "path", "required": true, "schema": {"type": "string"}}]
+        }
+      }
+    }
+  }
+}</code></pre>
+        <p>You don't write the orchestration logic. Bedrock Agent handles the chain-of-thought, memory, and prompting.</p>
+      </div>
+    </div>
+  </template>
+  <template id="help-api-eval">
+<div class="inner">
+      <h2>4. Model Evaluation — Stop Guessing, Start Measuring</h2>
+      <p><strong>What it is:</strong> Don't choose a model based on a demo. Choose it based on <em>your data</em>. Model Evaluation lets you run systematic benchmarks of multiple models against your own dataset.</p>
+      <p><strong>Two modes:</strong></p>
+      <ul>
+        <li><strong>A. Automatic Evaluation:</strong> Bedrock runs metrics like <strong>ROUGE [for summarization], BERTScore [for semantic similarity], Accuracy</strong> on your dataset. No humans needed.</li>
+        <li><strong>B. Human Evaluation:</strong> For subjective tasks like tone, friendliness, or helpfulness - Bedrock creates a rating workflow for your team in the console.</li>
+      </ul>
+      <p><strong>When to use for PoC:</strong> The final day of your PoC, before you recommend a model to leadership.</p>
+      <div class="note"><span class="tag">Technical Example — Comparing 2 Models for Summarization</span>
+        <p><strong>Your Evaluation Dataset [JSONL in S3]:</strong></p>
+<pre><code>{"prompt": "Summarize: [long article 1]", "referenceResponse": "Gold standard summary by human"}
+{"prompt": "Summarize: [long article 2]", "referenceResponse": "Gold standard summary by human"}</code></pre>
+        <p><strong>In Console:</strong> Create Evaluation Job -&gt; Select Task Type: Summarization -&gt; Select Models: <code>Nova Pro vs Claude 3 Haiku</code> -&gt; Select Metric: <code>ROUGE, BERTScore</code> -&gt; Point to S3 dataset.</p>
+        <div class="tbl"><table>
+          <tr><th>Model</th><th>ROUGE-1</th><th>BERTScore</th><th>Avg Latency</th><th>Cost per 1000 queries</th></tr>
+          <tr><td>Nova Pro</td><td>0.71</td><td>0.88</td><td>1.2s</td><td>$4.2</td></tr>
+          <tr><td>Claude Haiku</td><td>0.68</td><td>0.86</td><td>0.6s</td><td>$1.8</td></tr>
+        </table></div>
+      </div>
+    </div>
+  </template>
+  <template id="help-pe-shots">
+<div class="inner">
+      <h2>2. Prompting Techniques: Zero-Shot, One-Shot, Few-Shot</h2>
+      <p>This is about how many examples you give the model to learn the <em>pattern</em> at inference time, without any model training.</p>
+      <div class="tbl"><table>
+        <tr><th>Technique</th><th>What it means</th><th>When to use for PoC</th><th>Cost</th></tr>
+        <tr><td><strong>Zero-Shot</strong></td><td>No examples. You rely purely on the model's pre-trained knowledge.</td><td>Simple, common tasks: sentiment, summarization, Q&amp;A</td><td>Lowest token cost</td></tr>
+        <tr><td><strong>One-Shot</strong></td><td>You give 1 example of Input -&gt; Output</td><td>When you need a specific format or tone</td><td>Low cost</td></tr>
+        <tr><td><strong>Few-Shot</strong></td><td>You give 2-5 examples. This is the sweet spot for most PoCs.</td><td>Complex extraction, classification with custom labels, nuanced formatting</td><td>Higher cost but much higher accuracy</td></tr>
+      </table></div>
+      <div class="note"><span class="tag">Technical Example — Extracting Product Entities</span>
+        <p><strong>Zero-Shot - Will often fail on custom formats:</strong> Prompt: "Extract product name and issue from: 'My iPhone 15 Pro Max battery drains fast'" &rarr; Output: Might be inconsistent.</p>
+        <p><strong>Few-Shot - Highly reliable for PoC:</strong></p>
+<pre><code>Extract product and issue in JSON format.
+
+Example 1:
+Input: "My Galaxy S24 overheats while charging"
+Output: {"product": "Galaxy S24", "issue": "overheating while charging"}
+
+Example 2:
+Input: "Macbook Air M2 keyboard not working"
+Output: {"product": "Macbook Air M2", "issue": "keyboard not working"}
+
+Now do the same for:
+Input: "My iPhone 15 Pro Max battery drains fast"
+Output:</code></pre>
+        <p>With 2 examples, the model locks onto your exact JSON schema. No fine-tuning needed. For PoC, if zero-shot accuracy is &lt;80%, move to few-shot before you consider fine-tuning.</p>
+      </div>
+    </div>
+  </template>
+  <template id="help-pe-cot">
+<div class="inner">
+      <h2>3. Chain-of-Thought Prompting: For Reasoning Tasks [CoT]</h2>
+      <p>For complex tasks like math, logic, or multi-step analysis, don't ask for the final answer directly. Ask the model to <strong>show its reasoning step-by-step</strong>. This is called Chain-of-Thought. It significantly increases accuracy and gives you transparency for debugging.</p>
+      <div class="note"><span class="tag">Technical Example — PoC ROI Calculation</span>
+        <p><strong>Without CoT - Often hallucinates the math:</strong> Prompt: "A PoC costs $5000. If it saves 20 hours/week at $50/hour, what is ROI in 3 months?" &rarr; Output: Might give a wrong number directly.</p>
+        <p><strong>With CoT - Accurate and auditable:</strong> add "Think step-by-step before giving final answer." Or even better: "Let's think step-by-step."</p>
+        <p class="quote"><strong>Model Output:</strong><br>Step 1: Savings per week = 20 * $50 = $1000<br>Step 2: Savings in 3 months [12 weeks] = $1000 * 12 = $12000<br>Step 3: ROI = [(Gain - Cost) / Cost] * 100 = [(12000-5000)/5000]*100 = 140%<br>Final Answer: 140% ROI</p>
+        <p>In Bedrock, you can enforce this by adding to your system prompt: <code>You must always explain your reasoning inside &lt;thinking&gt; tags before giving the final answer.</code></p>
+      </div>
+      <div class="note tip"><span class="tag">Final Architect's Recommendation for PoC</span>
+        <p>1. Start with <strong>Zero-Shot + clear COSTAR structure</strong>. Set <code>temperature=0.1</code> for deterministic tasks.<br>2. If output format is inconsistent, add <strong>1-3 few-shot examples</strong>.<br>3. If the model gets logic wrong, add <strong>"Think step-by-step"</strong> to enable Chain-of-Thought.</p>
+        <p>Only if all three fail, consider Knowledge Bases or fine-tuning. Prompt engineering will solve 90% of your PoC quality issues.</p>
+      </div>
+    </div>
+  </template>
+  <template id="help-scope-p2">
+<div class="inner">
+      <h2>Phase 2: Assess Data Requirements and Availability</h2>
+      <p>GenAI needs two types of data. Identify both early.</p>
+      <ol>
+        <li><strong>Context Data for RAG / Inference:</strong> The data the model will read at runtime to give grounded answers.</li>
+        <li><strong>Evaluation Data:</strong> A small, high-quality, labeled dataset to measure if your PoC actually works.</li>
+      </ol>
+      <p>Check for 3 things: Quality [Is it clean?], Quantity [Do we have at least 50-100 good examples for evaluation?], and Access [Can we get it from S3, Zendesk, Confluence? Is PII involved?].</p>
+      <div class="note"><span class="tag">Technical Example for Our Ticket PoC</span>
+        <ul>
+          <li><strong>Data Needed:</strong> Last 6 months of tickets from Zendesk -&gt; Export to <code>s3://poc-data/support-tickets/</code></li>
+          <li><strong>Quality Check:</strong> We found 30% tickets have PII like emails. We must enable <strong>Amazon Comprehend PII redaction</strong> or <strong>Bedrock Guardrails PII filter</strong> before indexing.</li>
+          <li><strong>Evaluation Set:</strong> We manually label 100 tickets: <code>{"ticket_text": "...", "gold_summary": "...", "gold_category": "Billing"}</code>. This <code>golden dataset</code> is stored in <code>s3://poc-data/eval/golden.jsonl</code> and will be used later in Phase 3.</li>
+        </ul>
+        <p>If you can't assemble 100 good evaluation examples, stop. You can't prove success.</p>
+      </div>
+    </div>
+  </template>
+  <template id="help-scope-p3">
+<div class="inner">
+      <h2>Phase 3: Set Clear Success Metrics — Your Go/No-Go Criteria</h2>
+      <p>Define quantitative metrics before you write a single line of code. A PoC without metrics is just a demo. Split into 4 categories:</p>
+      <div class="tbl"><table>
+        <tr><th>Metric Type</th><th>Metric</th><th>Target for Go Decision</th><th>How to Measure</th></tr>
+        <tr><td><strong>Accuracy</strong></td><td>Category Accuracy</td><td>&gt;85% vs golden dataset</td><td>Bedrock Model Evaluation</td></tr>
+        <tr><td><strong>Quality</strong></td><td>Summary Relevance</td><td>&gt;0.80</td><td>Automatic evaluation [BERTScore]</td></tr>
+        <tr><td><strong>Performance</strong></td><td>p95 Inference Latency</td><td>&lt;2 seconds per ticket</td><td>CloudWatch metrics from Bedrock</td></tr>
+        <tr><td><strong>Business</strong></td><td>Cost &amp; User Satisfaction</td><td>Cost &lt; $0.01/ticket AND Agent CSAT &gt; 4/5</td><td>Bedrock cost + human rating</td></tr>
+      </table></div>
+      <div class="note tip"><span class="tag">Architect's Tip</span><p>Define your <strong>No-Go</strong> criteria too. Example: "If hallucination rate &gt;5% on policy questions, it's a No-Go even if accuracy is high."</p></div>
+    </div>
+  </template>
+  <template id="help-scope-p4">
+<div class="inner">
+      <h2>Phase 4: Address Responsible AI and Compliance Risks</h2>
+      <p>Move Responsible AI from an afterthought to a design requirement. For every PoC, document risks and the control you will implement in Bedrock.</p>
+      <ul>
+        <li><strong>Risk 1: PII Leakage</strong> - Agent summaries might contain customer emails. <strong>Control:</strong> Implement <strong>Amazon Bedrock Guardrails</strong> with PII filter enabled to block Email, Phone. Add human-in-the-loop: Agent sees summary, but must approve before sending to customer.</li>
+        <li><strong>Risk 2: Hallucination</strong> - Model invents a refund policy. <strong>Control:</strong> Use <strong>Knowledge Bases with RAG</strong> and enable <strong>Guardrails Contextual Grounding Check</strong> to ensure every answer is grounded in your policy docs in S3. If grounding score &lt; 0.7, return "I don't know".</li>
+        <li><strong>Risk 3: Bias</strong> - Model categorizes tickets from certain regions as more negative. <strong>Control:</strong> In your evaluation dataset, ensure balanced representation. Measure sentiment across regions.</li>
+      </ul>
+      <p>Document this in a simple Risk Matrix. This is mandatory for any enterprise review.</p>
+    </div>
+  </template>
+  <template id="help-scope-p5">
+<div class="inner">
+      <h2>Phase 5: Time-Box Development Efforts — The 4-Week Sprint</h2>
+      <p>A PoC must be time-boxed to 2-8 weeks to prevent scope creep. Constraint breeds focus. Build only the happy path.</p>
+      <h3>Technical Example: 4-Week Plan for Ticket PoC</h3>
+      <ul>
+        <li><strong>Week 1: Data &amp; Baseline</strong> — Deliverable: S3 data landed, 100-row golden dataset ready, Zero-shot baseline with Claude 3.5 Sonnet via Inference API.</li>
+        <li><strong>Week 2: Core RAG</strong> — Deliverable: Bedrock Knowledge Base created from policy docs. <code>RetrieveAndGenerate</code> API working for summarization.</li>
+        <li><strong>Week 3: Agent &amp; Guardrails</strong> — Deliverable: Bedrock Agent with Action Group <code>createTicketCategory</code> + Guardrails for PII enabled.</li>
+        <li><strong>Week 4: Evaluation &amp; Decision</strong> — Deliverable: Run Bedrock Model Evaluation job comparing Nova Pro vs Claude Sonnet on your golden dataset. Present Go/No-Go deck to stakeholders with metrics from Phase 3.</li>
+      </ul>
+      <p>If you miss Week 2 deliverable, you descope Week 3. You don't extend time.</p>
+    </div>
+  </template>
+  <template id="help-scope-p6">
+<div class="inner">
+      <h2>Phase 6: Identify Key Stakeholders and Decision Makers</h2>
+      <p>Engage three groups on Day 1, not Week 4.</p>
+      <ol>
+        <li><strong>Business Sponsor:</strong> Owns the budget and defines business value [e.g., Head of Customer Support].</li>
+        <li><strong>Technical Owner:</strong> Owns data access and production path [e.g., Data Engineering, Security].</li>
+        <li><strong>Risk/Compliance Owner:</strong> Approves Responsible AI controls [e.g., Legal, Privacy].</li>
+      </ol>
+      <div class="note"><span class="tag">Technical Example</span>
+        <p>For our ticket PoC, without the Security owner approving S3 access and PII handling on Day 1, you will be blocked in Week 2. My standard RACI:</p>
+        <p><strong>Sponsor:</strong> VP Support - Approves success metrics.<br><strong>Technical:</strong> You + Data Engineer - Provides Zendesk export.<br><strong>Compliance:</strong> Legal - Signs off on Guardrails config.</p>
+        <p>Schedule a 30-min weekly checkpoint. No stakeholder surprises at the final review.</p>
+      </div>
+      <p class="lead"><strong>Final Summary:</strong> Effective scoping = Right Problem + Grounded Data + Measurable Metrics + Responsible AI Controls + Time-box + Aligned Stakeholders. If you have these 6, your PoC will produce a decision, not just a demo.</p>
+    </div>
+  </template>
+  <template id="help-val-code">
+<div class="inner">
+      <h2>2. Proven Code Implementation Patterns</h2>
+      <p>Don't write raw HTTP calls. Use proven AWS patterns that handle retries, streaming, and scalability from day one. This saves you 2 weeks of rework when moving to production.</p>
+      <ul>
+        <li><strong>a. Use Converse API [Unified API]:</strong> One API for all models.</li>
+        <li><strong>b. Implement Streaming:</strong> For chatbot PoCs, stream tokens so user sees response as it's generated, not after 5 seconds.</li>
+        <li><strong>c. Implement Retries with Exponential Backoff:</strong> Bedrock can throttle you.</li>
+      </ul>
+<pre><code>import boto3
+from botocore.config import Config
+
+# Pattern 1: Add retries and timeouts
+config = Config(retries={'max_attempts': 3, 'mode': 'adaptive'}, read_timeout=300)
+bedrock_runtime = boto3.client("bedrock-runtime", config=config)
+
+# Pattern 2: Use Streaming for better UX
+response = bedrock_runtime.converse_stream(
+    modelId="amazon.nova-pro-v1:0",
+    messages=[{"role": "user", "content": [{"text": "Summarize this 10-page policy doc..."}]}],
+    inferenceConfig={"temperature": 0.2}
+)
+
+# Stream tokens as they arrive
+for chunk in response['stream']:
+    if 'contentBlockDelta' in chunk:
+        print(chunk['contentBlockDelta']['delta']['text'], end="", flush=True)
+
+# Pattern 3: Knowledge Base integration is just one more API call, not custom vector DB code
+# bedrock_agent_runtime.retrieve_and_generate(...)</code></pre>
+      <p>This pattern is secure, scalable, and ready for Lambda or ECS. You validate that your PoC can handle real user load, not just 1 request at a time.</p>
+    </div>
+  </template>
+  <template id="help-val-security">
+<div class="inner">
+      <h2>3. Robust Authentication and Security</h2>
+      <p>Bedrock is secure by design, but you must configure it correctly. Validation here means proving that your PoC meets enterprise security standards from Day 1. You need to validate 3 layers:</p>
+      <p><strong>Layer A: Authentication &amp; Authorization [Who can call Bedrock?]</strong> Don't use hardcoded AWS keys. Use IAM roles. Your app on <strong>AWS Lambda / EC2</strong> assumes an <strong>IAM Role</strong> with least privilege:</p>
+<pre><code>{
+  "Effect": "Allow",
+  "Action": ["bedrock:InvokeModel", "bedrock:RetrieveAndGenerate"],
+  "Resource": ["arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-sonnet-*"],
+  "Condition": {"StringEquals": {"aws:RequestedRegion": "us-east-1"}}
+}</code></pre>
+      <p><strong>Layer B: Data Protection [Is my data private?]</strong></p>
+      <ol>
+        <li>Create a <strong>VPC Endpoint for Bedrock Runtime</strong> - Now your traffic from Lambda to Bedrock never goes over the internet.</li>
+        <li>Enable <strong>Encryption at Rest</strong> with <strong>AWS KMS</strong> Customer Managed Key for your Knowledge Base vector store [OpenSearch Serverless].</li>
+        <li>Bedrock does NOT use your data to train models. This is validated by AWS compliance.</li>
+      </ol>
+      <p><strong>Layer C: Responsible AI Controls [Is output safe?]</strong> Enable <strong>Amazon Bedrock Guardrails</strong> in your <code>converse</code> call:</p>
+<pre><code>response = bedrock_runtime.converse(
+    modelId="...",
+    guardrailConfig={
+        "guardrailIdentifier": "arn:aws:bedrock:...:guardrail/my-guardrail",
+        "guardrailVersion": "1",
+        "trace": "enabled"
+    },
+    messages=[...]
+)</code></pre>
+      <div class="note tip"><span class="tag">Final Validation Gate</span><p>Before you call PoC complete: "Can I show this architecture diagram to CISO and explain IAM, VPC, KMS, and Guardrails?" If yes, you are production-ready.</p></div>
+    </div>
+  </template>
+  <template id="help-ms-step2">
+<div class="inner">
+      <h2>Step 2: Comparative Evaluation — Let Your Data Decide, Not Benchmarks</h2>
+      <p>Published benchmarks are generic. <strong>Amazon Bedrock Model Evaluation</strong> lets you compare models using <em>your actual prompts and your golden dataset</em>. This gives you objective, apples-to-apples data.</p>
+      <p><strong>You have:</strong> 100 labeled tickets in S3: <code>s3://poc-data/eval/golden.jsonl</code></p>
+<pre><code>{"prompt": "Classify ticket: 'My payment failed but money debited' into [Billing, Technical, Shipping]", "referenceResponse": "Billing"}</code></pre>
+      <p><strong>In Bedrock Console: Create Evaluation Job</strong></p>
+      <ol>
+        <li><strong>Task Type:</strong> Classification</li>
+        <li><strong>Models to Compare:</strong> <code>amazon.nova-pro-v1:0</code> vs <code>anthropic.claude-3-5-haiku-20240307-v1:0</code> vs <code>anthropic.claude-3-5-sonnet-20240620-v1:0</code></li>
+        <li><strong>Dataset:</strong> Your S3 JSONL</li>
+        <li><strong>Metrics:</strong> Accuracy, Latency, Cost</li>
+      </ol>
+      <p><strong>Result you get:</strong> Instead of guessing, you get a table: "Nova Pro achieved 88% accuracy at $2.10/1k requests and 1.3s latency. Haiku achieved 82% accuracy at $0.80 and 0.6s." Now you can make a business decision, not a technical guess. This is far more reliable than public benchmarks.</p>
+    </div>
+  </template>
+  <template id="help-ms-step3">
+<div class="inner">
+      <h2>Step 3: Iterative Testing — Start Simple, Then Break It</h2>
+      <p>Don't test edge cases on day one. Test in increasing complexity to understand where the model breaks.</p>
+      <ul>
+        <li><strong>Level 1 - Baseline:</strong> Simple, clean inputs. "Does it work at all?"</li>
+        <li><strong>Level 2 - Realistic:</strong> Messy, real-world inputs with typos, long text, mixed languages.</li>
+        <li><strong>Level 3 - Adversarial / Edge Cases:</strong> Confusing inputs, prompt injections, contradictory instructions.</li>
+      </ul>
+      <div class="note"><span class="tag">Technical Example — Iterative Testing for Ticket Classification</span>
+        <ul>
+          <li><strong>Level 1 - Straightforward:</strong> Input: "My order didn't arrive." -&gt; Expected: Shipping. All models pass.</li>
+          <li><strong>Level 2 - Realistic / Noisy:</strong> Input: "Hi!!! My ORDERR #1234 didnt arrrive its been 10 days plz help urgent!!!" Check: Does accuracy drop? This tests robustness.</li>
+          <li><strong>Level 3 - Edge Case:</strong> Input: "My payment failed, but also the tracking page shows delivered and the product is broken." This is multi-label. Does the model hallucinate or ask for clarification? This is where you define your <strong>Guardrail</strong> - if confidence &lt; 0.7, route to human.</li>
+        </ul>
+        <p>By testing this way, you know the exact limitations to document for production.</p>
+      </div>
+    </div>
+  </template>
+  <template id="help-ms-step4">
+<div class="inner">
+      <h2>Step 4: Model Evaluation for Generative AI Quality</h2>
+      <p>Initial selection gets you a model. Continuous evaluation ensures quality stays high in production. AWS Bedrock Evaluations provides 5 evaluation types:</p>
+      <ol>
+        <li><strong>Metrics-Based Evaluation [Automatic &amp; Fast]:</strong> Quantitative scores, no humans. <em>Metrics:</em> ROUGE for summarization, BERTScore for semantic similarity, Accuracy/F1 for classification. <em>Example:</em> every prompt change, run automatic eval on your 100-row dataset. If BERTScore drops from 0.88 to 0.80, your new prompt is worse.</li>
+        <li><strong>Model-Based Evaluation [LLM-as-a-Judge]:</strong> Use a powerful FM like Claude 3.5 Sonnet to evaluate the outputs of a cheaper model like Nova Lite for helpfulness, faithfulness, coherence. This is 80% as good as human eval at 10% of the cost.</li>
+        <li><strong>Human Evaluation [Gold Standard for Subjective Tasks]:</strong> Direct feedback from your own SMEs via a Bedrock-managed rating workflow - e.g. tone and empathy. They rate 50 outputs as Thumbs Up/Down.</li>
+        <li><strong>Custom Evaluation [For Your Business Logic]:</strong> e.g. "Every summary MUST contain Order ID and MUST be valid JSON." Write a custom Python evaluator that checks <code>json.loads(output)</code> and <code>if "Order ID" in output</code>. If it fails, score = 0.</li>
+        <li><strong>Batch Evaluation [For Large-Scale Assessment]:</strong> Run any of the above on thousands of records overnight - e.g. before go-live, run batch eval on last 10,000 historical tickets to measure cost, latency, and failure rate at scale.</li>
+      </ol>
+      <div class="note tip"><span class="tag">Final Recommendation for PoC</span><p>Week 1: Requirements Analysis + scorecard. Week 2: Metrics-based + Model-based comparative evaluation for 2 models. Week 3: Iterative testing with Level 2 and 3 cases + Human evaluation for 30 edge cases. Result: "We recommend Nova Pro because it meets all 5 requirements at the lowest cost, with 88% accuracy on our data."</p></div>
+    </div>
+  </template>
+  <template id="help-sec-encrypt">
+<div class="inner">
+      <h2>2. Data Encryption — In Transit and At Rest</h2>
+      <p><strong>A. Encryption in Transit.</strong> By default Bedrock does this for you: <strong>TLS 1.2+</strong> (all API calls HTTPS), <strong>SigV4 Authentication</strong> (every request signed with your IAM role credentials), and Network Path Protection (traffic between AWS services stays on the AWS private network). <strong>Extra Control:</strong> use <strong>AWS PrivateLink - VPC Endpoint for Bedrock Runtime</strong> so prompts never traverse the public internet.</p>
+      <p>Your Lambda is in a private VPC with no internet access. Without a VPC Endpoint, <code>bedrock-runtime.converse()</code> will fail. Solution:</p>
+<pre><code>VPC Console -> Endpoints -> Create Endpoint -> Service: com.amazonaws.vpce.us-east-1.bedrock-runtime -> Attach to your private subnets.</code></pre>
+      <p><strong>B. Encryption at Rest.</strong> Bedrock service data (prompts/completions) is transient and not stored by default. Your S3 bucket and the Vector Database [OpenSearch Serverless] <em>are</em> encrypted at rest. Two options:</p>
+      <div class="tbl"><table>
+        <tr><th>Key Type</th><th>Who Manages Key</th><th>When to use</th></tr>
+        <tr><td><strong>AWS-owned key</strong></td><td>AWS</td><td>Default for PoC. Zero setup, automatic rotation.</td></tr>
+        <tr><td><strong>Customer-managed KMS key [CMK]</strong></td><td>You</td><td>For production / regulated industries needing audit and key revocation control.</td></tr>
+      </table></div>
+      <p>When you create your Knowledge Base vector store in OpenSearch Serverless, specify <code>Encryption: Use my KMS key arn:aws:kms:us-east-1:123456789012:key/abcd-1234</code>. Now you can audit key usage in CloudTrail and revoke access instantly by disabling the KMS key.</p>
+    </div>
+  </template>
+  <template id="help-sec-logging">
+<div class="inner">
+      <h2>3. Access Logging — Who Did What, When</h2>
+      <p>You must be able to answer: "Who called which model, when, and was it denied?" This is mandatory for compliance. Implement 2 types of logging.</p>
+      <p><strong>A. AWS CloudTrail — For Security Auditing [Control Plane].</strong> CloudTrail automatically logs every API call to Bedrock.</p>
+<pre><code>{
+  "eventName": "InvokeModel",
+  "userIdentity": {"arn": "arn:aws:sts::123...:assumed-role/PoC-App-Role/Lambda"},
+  "requestParameters": {"modelId": "anthropic.claude-3-opus"},
+  "errorCode": "AccessDeniedException",
+  "sourceIPAddress": "10.0.1.15" // Private IP via VPC Endpoint
+}</code></pre>
+      <p>You can query all Bedrock calls using <strong>Amazon Athena</strong> to create a security audit report.</p>
+      <p><strong>B. Amazon CloudWatch + Model Invocation Logging — For Performance Monitoring [Data Plane].</strong> In Bedrock Console -&gt; Settings -&gt; Enable logging to S3/CloudWatch. This logs <code>inputText</code>, <code>outputText</code> [optional, maskable], <code>latency</code>, <code>tokenCount</code>, <code>modelId</code>. Then create a CloudWatch Dashboard to track p95 latency per model, total tokens per day [cost control], and Throttling errors.</p>
+      <div class="note tip"><span class="tag">Final Security Gate for PoC</span>
+        <p>&#9744; No hardcoded AWS keys, only IAM Role with least privilege?<br>&#9744; Bedrock calls go via VPC Endpoint, not public internet?<br>&#9744; S3 and vector DB encrypted with KMS?<br>&#9744; CloudTrail and Model Invocation Logging enabled?<br>&#9744; Bedrock Guardrails enabled to block PII leakage?</p>
+        <p>If yes, your PoC is secure-by-design and will pass enterprise security review without rework.</p>
+      </div>
+    </div>
+  </template>
+  <template id="help-perf-throughput">
+<div class="inner">
+      <h2>2. Throughput Testing — Finding the Breaking Point</h2>
+      <p>Bedrock On-Demand has account-level quotas [e.g., 10 requests per second per model]. Throughput testing tells you when you will get throttled and whether you need <strong>Provisioned Throughput</strong>. Test by gradually increasing <strong>concurrent requests</strong> until you see <code>ThrottlingException</code> or latency spikes.</p>
+<pre><code>from concurrent.futures import ThreadPoolExecutor
+import boto3
+
+def call_bedrock(i):
+    try:
+        client.converse(modelId="amazon.nova-pro-v1:0", messages=[...])
+        return "success"
+    except client.exceptions.ThrottlingException:
+        return "throttled"
+
+# Test with 10, 25, 50 concurrent users
+for concurrency in [10, 25, 50]:
+    with ThreadPoolExecutor(max_workers=concurrency) as executor:
+        results = list(executor.map(call_bedrock, range(concurrency)))
+
+    throttled = results.count("throttled")
+    print(f"Concurrency {concurrency}: Success {len(results)-throttled}, Throttled {throttled}")</code></pre>
+      <p><strong>Result Interpretation:</strong> At 10 concurrent: 0 throttled, p95 latency 1.5s -&gt; OK for PoC. At 50 concurrent: 15 throttled, p95 latency jumps to 6s -&gt; You hit On-Demand quota.</p>
+      <p><strong>Architect's Action:</strong> 1) Request a quota increase in Service Quotas console. 2) For production with steady traffic, switch to <strong>Provisioned Throughput</strong> - reserve model capacity per hour for consistent latency and no throttling. Also enable <strong>Model Invocation Logging to CloudWatch</strong> to monitor <code>InvocationLatencies</code> and <code>Invocations</code> in real-time.</p>
+    </div>
+  </template>
+  <template id="help-perf-geo">
+<div class="inner">
+      <h2>3. Geographic Performance — Where You Deploy Matters</h2>
+      <p>Bedrock is a regional service. If your users are in Mumbai and your Bedrock endpoint is in <code>us-east-1</code> [Virginia], you add ~200ms network round-trip to every call. Plus data residency concerns. Measure the same prompt from different Bedrock regions.</p>
+<pre><code>Mumbai EC2 -> ap-south-1 Bedrock [Nova Pro]: e2e 1.4s
+Mumbai EC2 -> us-east-1 Bedrock [Nova Pro]: e2e 1.7s + 0.25s network = 1.95s</code></pre>
+      <p><strong>Decision:</strong> If low latency for India users is critical, deploy your app and Bedrock in <code>ap-south-1</code>. Note: Not all models are available in all regions. For global app, use <strong>Cross-Region Inference</strong> with inference profiles <code>us-east-1</code> + <code>ap-south-1</code> behind an <strong>Application Load Balancer + Route 53 Geolocation routing</strong>.</p>
+      <p>Also test <strong>Prompt Optimization</strong> as part of performance: reducing a prompt from 6000 tokens to 2000 tokens by trimming few-shot examples can cut latency by 30% and cost by 66%.</p>
+      <div class="note tip"><span class="tag">Final Validation Gate for PoC</span><p><strong>Latency:</strong> p95 &lt; 2s for 2K input token prompt? Yes - 1.6s on Nova Pro. <strong>Throughput:</strong> handle 25 concurrent users on On-Demand without throttling? Yes. <strong>Cost:</strong> per transaction = [Input + Output Tokens] * Price = $0.008. At 5k tickets/day = $40/day. <strong>Geography:</strong> deployed in ap-south-1 for data residency, meets &lt;2s SLA for Indian users.</p></div>
+    </div>
+  </template>
+  <template id="help-tok-prompt">
+<div class="inner">
+      <h2>2. Prompt Optimization — Shorter is Often Smarter</h2>
+      <p>The goal is not the shortest prompt, but the <em>shortest prompt that still achieves your target accuracy</em>.</p>
+      <p><strong>Bad Prompt [850 tokens, vague, repetitive]:</strong> "You are a helpful assistant. Your job is to read the customer ticket which I will give you below and then you need to summarize it. Please make sure to summarize it well and don't miss important details. Also extract the category... [repeats instructions]... Here is the ticket: [...] Please output JSON."</p>
+      <p><strong>Optimized Prompt [280 tokens, structured, using XML tags]:</strong></p>
+      <p class="quote">System: "You are a support analyst. Classify and summarize tickets. Output JSON: {category, summary}"<br>User: "&lt;ticket&gt;{{ticket_text}}&lt;/ticket&gt;&lt;categories&gt;Billing|Technical|Shipping&lt;/categories&gt; Summarize in 2 bullets."</p>
+      <p><strong>Why this works:</strong> 1) <strong>Use XML Tags</strong> <code>&lt;ticket&gt;&lt;/ticket&gt;</code> helps Claude and Nova understand boundaries. 2) <strong>Remove Redundancy.</strong> 3) <strong>Move Static Instructions to System Prompt + Use Prompt Caching:</strong> if your system prompt + few-shot examples are 2000 tokens and never change, enable caching. Bedrock caches it for 5 minutes, you pay once and save 90% on subsequent calls.</p>
+      <div class="tbl"><table>
+        <tr><th>Prompt Version</th><th>Avg Input Tokens</th><th>Accuracy</th><th>Cost per 1k tickets</th></tr>
+        <tr><td>V1 - Verbose</td><td>850</td><td>86%</td><td>$8.20</td></tr>
+        <tr><td>V2 - Optimized with XML + Cached System</td><td>290</td><td>88%</td><td>$2.90</td></tr>
+      </table></div>
+      <p>Result: You improved accuracy <em>and</em> cut cost by 65%. This is a typical PoC win.</p>
+    </div>
+  </template>
+  <template id="help-tok-response">
+<div class="inner">
+      <h2>3. Response Length Management — Control Output Tokens</h2>
+      <p>Output tokens hurt you twice: they cost 3-5x more AND increase latency linearly. Implement 3 controls: <strong>A. Instructional Control</strong> (tell the model exactly how long to be), <strong>B. API Control</strong> (<code>maxTokens</code> and <code>stopSequences</code>), <strong>C. Use Case-Based Truncation</strong>.</p>
+      <p><strong>Scenario:</strong> Your PoC app shows ticket summary in a UI card that only fits 50 words. Without control the model returns 180 tokens [~135 words] - UI breaks, costs $0.004, latency 2.5s.</p>
+<pre><code>response = client.converse(
+    modelId="amazon.nova-pro-v1:0",
+    # Control A: In prompt
+    messages=[{"role": "user", "content": [{"text": "Summarize ticket: [...] in MAX 2 bullet points, MAX 25 words total."}]}],
+    # Control B: At API level
+    inferenceConfig={
+        "maxTokens": 100, # Hard stop: Never generate more than 100 tokens, even if model tries
+        "temperature": 0.2,
+        "stopSequences": ["\n\n"] # Stop if model starts new paragraph
+    }
+)
+
+print(f"Output Tokens: {response['usage']['outputTokens']}") # Now: 35 tokens instead of 180</code></pre>
+      <p><strong>Result:</strong> Output tokens 180 -&gt; 35 [81% reduction] · Latency 2.5s -&gt; 0.9s · Cost per call $0.004 -&gt; $0.0008 · UI fits perfectly.</p>
+      <div class="note tip"><span class="tag">Final Architect's Checklist for PoC</span><p>1. <strong>Measure First:</strong> log <code>inputTokens</code>/<code>outputTokens</code> from day one. 2. <strong>Optimize Input:</strong> system prompt &gt;1000 tokens? Use XML tags, remove repetition, enable Prompt Caching. 3. <strong>Optimize Output:</strong> ask for "2 bullets, &lt;30 words" and set <code>maxTokens: 150</code>. 4. <strong>Calculate Business Cost</strong> per transaction.</p></div>
+    </div>
+  </template>
+  <template id="help-cost-usage">
+<div class="inner">
+      <h2>2. Usage Pattern Analysis — Project Before You Build</h2>
+      <p>Before you write code, estimate cost using expected usage patterns. Let's project our PoC: 5,000 tickets/day, each ticket needs summarization.</p>
+      <p><strong>Step 1: Measure Average Tokens from a Sample:</strong> Average Input = System prompt [300] + Ticket [1800] = <strong>2,100 input tokens</strong>; Average Output = 2-bullet summary = <strong>90 output tokens</strong>.</p>
+      <p><strong>Step 2: Calculate Cost Per Transaction</strong> — <code>Cost = [Input Tokens / 1M * Input Price] + [Output Tokens / 1M * Output Price]</code></p>
+      <p>For <code>Amazon Nova Pro</code>: $0.80 / 1M input, $3.20 / 1M output &rarr; Cost per ticket = [2100/1M * $0.80] + [90/1M * $3.20] = <strong>$0.0019</strong><br>For <code>Claude 3.5 Sonnet</code>: $3.00 / 1M input, $15.00 / 1M output &rarr; Cost per ticket = <strong>$0.0076</strong></p>
+      <p><strong>Step 3: Project Operational Cost</strong> — Nova Pro: 5,000 * $0.0019 = <strong>$9.5/day = $285/month</strong>; Sonnet: 5,000 * $0.0076 = <strong>$38/day = $1,140/month</strong>. You now have a data-backed model choice.</p>
+    </div>
+  </template>
+  <template id="help-cost-monitor">
+<div class="inner">
+      <h2>3. Cost Monitoring Implementation — The Two-Lens Setup</h2>
+      <p><strong>Lens A: AWS Cost Explorer — The Financial View [How much?]</strong> 1) Filter by Service: <code>Amazon Bedrock</code>. 2) Group by <code>Usage Type</code> - you see <code>Bedrock-Inference-Input-Tokens</code> and <code>Bedrock-Inference-Output-Tokens</code> broken down by <code>modelId</code>. 3) You instantly see: "70% of our cost is from Claude Sonnet output tokens in us-east-1."</p>
+      <p><strong>Lens B: CloudWatch Custom Metrics — The Technical View [Why?]</strong> Publish token usage from your Lambda on every call:</p>
+<pre><code>import boto3
+bedrock = boto3.client("bedrock-runtime")
+cloudwatch = boto3.client("cloudwatch")
+
+response = bedrock.converse(modelId="amazon.nova-pro-v1:0", messages=[...])
+usage = response['usage']
+
+# Push custom metrics
+cloudwatch.put_metric_data(
+    Namespace='GenAI/PoC',
+    MetricData=[
+        {'MetricName': 'InputTokens', 'Value': usage['inputTokens'], 'Unit': 'Count', 'Dimensions': [{'Name': 'ModelId', 'Value': 'nova-pro'}]},
+        {'MetricName': 'OutputTokens', 'Value': usage['outputTokens'], 'Unit': 'Count'},
+        {'MetricName': 'EstimatedCost', 'Value': (usage['inputTokens']/1e6*0.8 + usage['outputTokens']/1e6*3.2), 'Unit': 'None'}
+    ]
+)</code></pre>
+      <p>Now you can correlate: CloudWatch "Average output tokens increased from 90 to 250 yesterday" -&gt; Cost Explorer "Cost increased 60% yesterday" -&gt; <strong>Root Cause:</strong> someone changed prompt from "2 bullets" to "detailed summary". Also set up <strong>AWS Budgets Alert</strong>: "Alert me if Bedrock cost &gt; $50 in a day during PoC."</p>
+    </div>
+  </template>
+  <template id="help-cost-scaling">
+<div class="inner">
+      <h2>4. Scaling Cost Projections — From PoC to Production</h2>
+      <p>Project costs at 3 scales: PoC, Pilot, and Production. Include both direct model costs AND supporting infrastructure (S3 storage, OpenSearch Serverless, Lambda invocations).</p>
+      <div class="tbl"><table>
+        <tr><th>Scale</th><th>Volume / day</th><th>Model Cost / month</th><th>Supporting Infra</th><th>Total / month</th><th>Optimization Needed?</th></tr>
+        <tr><td><strong>PoC</strong></td><td>500 tickets</td><td>$28</td><td>$50 [On-Demand OpenSearch]</td><td>$78</td><td>No, use On-Demand</td></tr>
+        <tr><td><strong>Pilot</strong></td><td>5,000 tickets</td><td>$285</td><td>$150</td><td>$435</td><td>Enable Prompt Caching, saves 30%</td></tr>
+        <tr><td><strong>Production</strong></td><td>50,000 tickets</td><td>$2,850</td><td>$400</td><td>$3,250</td><td>Move to Provisioned Throughput for 40% discount + stable latency</td></tr>
+      </table></div>
+      <p><strong>Key Insight:</strong> Before: prompt with 5 few-shot examples = 2,100 input tokens, Accuracy 88%. After: 2 few-shot examples + cached system prompt = 800 input tokens, Accuracy 87.5%. You saved 62% on input cost with 0.5% quality drop.</p>
+      <div class="note tip"><span class="tag">Final Architect's Checklist for PoC Cost Control</span><p>1. <strong>Project</strong> cost per transaction before building. 2. <strong>Monitor:</strong> Cost Explorer daily + push InputTokens/OutputTokens/EstimatedCost to CloudWatch. 3. <strong>Alert:</strong> create AWS Budget for $X/day. 4. <strong>Optimize Levers:</strong> reduce output tokens with <code>maxTokens</code>? reduce input with prompt optimization/caching? use Nova Lite for 60% of requests?</p></div>
+    </div>
+  </template>
+  <template id="help-val2-cpt">
+<div class="inner">
+      <h2>2. Cost per Transaction — The Apples-to-Apples Metric</h2>
+      <p>TCO is for finance. Cost per Transaction is for operations. It must include ALL system components, not just the model.</p>
+      <p><strong>Bad Calculation:</strong> Cost per transaction = Bedrock inference only = $0.0019. This is misleading and will be challenged.</p>
+<pre><code>True Cost per Transaction = [Model Cost + Infra Cost + Maintenance] / Total Transactions
+
+For our PoC:
+= [$285 + $175 + $300] / 150,000 tickets per month
+= $760 / 150,000
+= $0.005 per ticket</code></pre>
+      <p>Now compare: Manual Cost per Transaction: <strong>$3.33</strong> · GenAI Cost per Transaction: <strong>$0.005</strong> · <strong>Saving per Transaction: $3.325 [99.8% cheaper]</strong>.</p>
+      <p>This metric is powerful because even if volume scales 10x to 50,000 tickets/day, your Cost per Transaction stays ~$0.005 with On-Demand, and drops to ~$0.003 with <strong>Provisioned Throughput</strong> and <strong>Prompt Caching</strong>. Manual cost per transaction <em>always</em> stays $3.33.</p>
+    </div>
+  </template>
+  <template id="help-val2-breakeven">
+<div class="inner">
+      <h2>3. Break-Even Analysis — When Does PoC Pay for Itself?</h2>
+      <p><code>Break-Even Volume = One-time Development Cost / [Manual Cost per Transaction - GenAI Cost per Transaction]</code></p>
+      <p>One-time Dev Cost: $20,000 · Saving per Transaction: $3.33 - $0.005 = $3.325 &rarr; Break-Even Volume = $20,000 / $3.325 = <strong>6,015 tickets</strong>.</p>
+      <p><strong>Interpretation for Leadership:</strong> "We process 5,000 tickets per day. Our PoC investment of $20k will be paid back in <strong>1.2 days</strong> of operation after go-live. From Day 3 onwards, we save ~$16,625 per day."</p>
+      <p>With human-in-the-loop where agent still spends 2 mins to review: New Manual Cost = 2/60 * $25 = $0.83; Saving per Transaction = $0.825; Break-Even = $20,000 / $0.825 = 24,242 tickets = <strong>~5 days</strong>. Still an easy approval.</p>
+      <p><strong>Process Automation Benefits:</strong> AHT Reduced 8 mins -&gt; 2 mins = 6 mins saved per ticket = 500 hours saved per day for 5k tickets. <strong>Business Impact:</strong> CSAT improves from 3.8 to 4.5 -&gt; higher retention; Guardrails PII filtering reduces compliance risk.</p>
+      <div class="note tip"><span class="tag">Final Gate for PoC Approval</span><p><strong>TCO:</strong> $2.4k/month vs $499k/month manual. <strong>Cost per Transaction:</strong> $0.005 vs $3.33. <strong>Break-Even:</strong> 5 days. <strong>Efficiency Gain:</strong> 500 agent-hours saved per day. Show this with real token usage metrics from Cost Explorer and CloudWatch.</p></div>
+    </div>
+  </template>
+  <template id="help-auto-quality">
+<div class="inner">
+      <h2>2. Quality Improvements — Consistency at Scale</h2>
+      <p>Humans get tired, make typos, and are inconsistent. FMs don't. Quantify quality through 3 metrics: Reduced Errors, Increased Consistency, Enhanced Output Quality. We ran <strong>Bedrock Model Evaluation</strong> comparing human agents vs Nova Pro on 100 tickets.</p>
+      <div class="tbl"><table>
+        <tr><th>Quality Dimension</th><th>Manual Agent Baseline</th><th>GenAI with Bedrock + Guardrails</th><th>How We Measured</th></tr>
+        <tr><td><strong>Error Rate</strong></td><td>12% tickets had wrong category or missed Order ID</td><td>2% error rate [with human review]</td><td>Human Evaluation in Bedrock Console</td></tr>
+        <tr><td><strong>Consistency</strong></td><td>Summaries varied: 1-5 bullets, different tones</td><td>100% consistent: Always 2 bullets, JSON format</td><td>Metrics-based Eval - JSON validation pass rate</td></tr>
+        <tr><td><strong>Output Quality</strong></td><td>Avg CSAT on ticket response: 3.9/5</td><td>Avg CSAT: 4.4/5. Summary includes policy link from KB</td><td>Business metric from Zendesk CSAT</td></tr>
+      </table></div>
+      <p><strong>Value Translation:</strong> 10% reduction in mis-categorized tickets = 500 fewer tickets routed to wrong team per day = <strong>~150 hours saved in re-routing per day</strong>. Consistent JSON output means downstream automation [auto-routing via EventBridge] never breaks. With <strong>Bedrock Guardrails Contextual Grounding Check</strong>: "95% of summaries have grounding score &gt;0.8, meaning they are fully grounded, not hallucinated."</p>
+    </div>
+  </template>
+  <template id="help-auto-scale">
+<div class="inner">
+      <h2>3. Scalability Advantages — Handle Peaks Without Hiring</h2>
+      <p>A human team scales linearly - 2x tickets needs 2x agents. A Bedrock implementation scales elastically - 2x tickets needs same architecture, just higher TPS quota.</p>
+      <p><strong>Peak Load Scenario — Big Billion Days Sale:</strong> Normal day 5,000 tickets; Sale day 40,000 tickets [8x spike] for 3 days.</p>
+      <p><strong>Manual Scaling:</strong> Hire 800 temp agents for 3 days = 800 * $25/hr * 8hr * 3 days = <strong>$480,000</strong> + 2 weeks training. CSAT drops due to untrained temps.</p>
+      <p><strong>GenAI Automated Approach on AWS:</strong> API Gateway -&gt; Lambda [auto-scales to 1000 concurrency] -&gt; Bedrock Runtime. For 40k tickets need ~100 TPS: request Service Quota increase or enable <strong>Provisioned Throughput</strong>. Model cost scales linearly: $0.0019 * 40k = $76/day vs $480k for temp agents. <strong>No hiring, no training, consistent quality during peak.</strong></p>
+      <div class="note tip"><span class="tag">Final Architect's Framework for Your PoC Deck</span><p>1. <strong>Time:</strong> "We saved 833 hours/day [10 mins per ticket] = 104 FTE capacity unlocked." 2. <strong>Quality:</strong> "Reduced categorization errors from 12% to 2% and improved CSAT from 3.9 to 4.4 with 100% consistent JSON output." 3. <strong>Scale:</strong> "Handle 8x peak load without hiring temp staff, saving ~$480k per peak event."</p></div>
+    </div>
+  </template>
+  <template id="help-impact-risk">
+<div class="inner">
+      <h2>2. Risk Reduction — How Does This Make Us Safer?</h2>
+      <p>Human processes are risky - humans make errors, forget policies, leak PII, and apply rules inconsistently. GenAI with proper controls reduces these risks measurably. Quantify as: Improved Compliance + Reduced Human Error + Enhanced Security.</p>
+      <p><strong>Claims Processing PoC for Insurance.</strong> Risk today: adjuster manually reads 100-page policy and decides coverage - misses exclusion clause, approves ineligible $10k claim, or pastes SSN in email. GenAI Solution with Built-in Risk Controls:</p>
+      <ul>
+        <li><strong>Consistent Policy Application:</strong> Use <strong>Bedrock Knowledge Bases with RAG</strong>. Enable <strong>Contextual Grounding Check</strong>. If grounding score &lt; 0.7, return "I don't know, escalate to human" instead of hallucinating.</li>
+        <li><strong>PII Protection:</strong> Enable <strong>Bedrock Guardrails PII Filter</strong> - automatically detects and blocks SSN, Credit Card, Email before output goes to customer.</li>
+        <li><strong>Auditability:</strong> Enable <strong>Model Invocation Logging</strong> to S3. Every decision has a full trace: Input, Retrieved chunks, Model output, Guardrail intervention.</li>
+      </ul>
+      <p><strong>Quantified Risk Reduction:</strong> Compliance - Before: 8 PII leak incidents per quarter; After: 0 (Guardrails blocked 23 attempts). Human Error - Before: 5% claims approved incorrectly [$50k loss/quarter]; After: 0.8% -&gt; <strong>$42k loss avoided per quarter</strong>. Security - Guardrails Prompt Attack filter blocked 100% of adversarial prompts.</p>
+    </div>
+  </template>
+  <template id="help-impact-strategic">
+<div class="inner">
+      <h2>3. Strategic Value — How Does This Make Us More Competitive Long-Term?</h2>
+      <p>This is the value that doesn't have an immediate dollar amount but builds a long-term moat: Competitive advantage, Innovation capability, and Organizational Learning.</p>
+      <ul>
+        <li><strong>A. Competitive Advantage - Speed of Innovation:</strong> PoC 1 (Support Ticket Summarization) took 4 weeks to build the RAG pipeline. PoC 2 (Internal HR Policy Q&amp;A Bot) reused the same architecture, just changed the S3 data source - built in <strong>5 days</strong>. You now have a reusable <strong>Infrastructure as Code [CDK] template</strong>. This is IP.</li>
+        <li><strong>B. Innovation Capability:</strong> "We couldn't offer a 24/7 personalized shopping assistant in 10 languages with an old intent-based chatbot. With <strong>Bedrock Agents with multilingual models</strong>, we can launch in Japan and Germany without hiring native support teams."</li>
+        <li><strong>C. Organizational Learning:</strong> Before PoC: 0 engineers knew prompt engineering, RAG, evaluation. After: 5 engineers certified on Bedrock, built an evaluation harness using <strong>Bedrock Model Evaluation [LLM-as-a-Judge]</strong>.</li>
+      </ul>
+      <div class="tbl"><table>
+        <tr><th>Strategic Metric</th><th>Before PoC</th><th>After PoC</th></tr>
+        <tr><td>Time to build next GenAI use case</td><td>12 weeks</td><td>2 weeks [proven reusable pattern]</td></tr>
+        <tr><td>Number of teams able to use GenAI</td><td>0</td><td>2 teams [Support + HR]</td></tr>
+        <tr><td>Innovation Pipeline</td><td>0 ideas validated</td><td>3 new ideas identified during PoC</td></tr>
+      </table></div>
+      <div class="note tip"><span class="tag">Final Architect's Framework — "Beyond Cost &amp; Time Savings"</span><p>1. <strong>Revenue:</strong> this pattern can unlock $189k/month extra revenue by increasing catalog coverage 10x. 2. <strong>Risk:</strong> reduces PII leak risk to zero and avoids $42k/quarter in incorrect approvals. 3. <strong>Strategic:</strong> a reusable Bedrock RAG template in CDK that reduces the next PoC from 4 weeks to 5 days, and upskilled 5 engineers. This is a capability investment, not just a tool.</p></div>
+    </div>
+  </template>
+  <template id="help-api-inference-lead">
+    <div class="inner">
+<h2>1. Inference API — The Direct Foundation Model Call</h2>
+      <p><strong>What it is:</strong> This is the core <strong>Amazon Bedrock Runtime</strong> - a fully managed REST API endpoint. Your application sends a prompt and gets a completion back. Powered by the unified <strong>Converse API</strong>, so you can switch models by just changing the <code>modelId</code> without rewriting code. It's stateless, serverless, and ideal for rapid prototyping.</p>
+      <p><strong>When to use for PoC:</strong> Chatbots, summarization, content generation, classification - where you don't need your private data.</p>
+<pre><code>import boto3
+# Bedrock Runtime is the data plane for inference
+bedrock_runtime = boto3.client("bedrock-runtime", region_name="us-east-1")
+
+response = bedrock_runtime.converse(
+    modelId="amazon.nova-pro-v1:0", # Change this to claude, llama etc.
+    messages=[
+        {"role": "user", "content": [{"text": "Summarize this customer feedback in 2 bullet points: [feedback text]"}]}
+    ],
+    inferenceConfig={
+        "temperature": 0.3, # Lower = more deterministic
+        "maxTokens": 500,
+        "topP": 0.9
+    }
+)
+
+print(response['output']['message']['content'][0]['text'])
+print(f"Tokens used: {response['usage']}")</code></pre>
+      <div class="note tip"><span class="tag">Architect's Tip</span><p>For PoC, always start here. Use On-Demand throughput. Only move to Knowledge Bases if you see the model hallucinating on your company-specific questions.</p></div>
+    </div>
+  </template>
+  <template id="help-pe-costar-lead">
+    <div class="inner">
+<h2>1. Prompt Structure: The Anatomy of a Good Prompt</h2>
+      <p>Every effective prompt has 4 parts. Don't just write a question.</p>
+      <ul>
+        <li><strong>A. Instruction:</strong> What you want the model to DO.</li>
+        <li><strong>B. Context:</strong> Background information the model needs to know.</li>
+        <li><strong>C. Input Data:</strong> The actual data to process.</li>
+        <li><strong>D. Output Indicator:</strong> The exact format you want back.</li>
+      </ul>
+      <p>To remember this, we use the <strong>COSTAR framework</strong> in AWS workshops:</p>
+      <p class="quote"><strong>C</strong>ontext, <strong>O</strong>bjective, <strong>S</strong>pecifics, <strong>T</strong>ask, <strong>A</strong>ction, <strong>R</strong>esult</p>
+      <div class="note"><span class="tag">Technical Example — COSTAR in Action</span>
+        <p><strong>Bad Prompt:</strong> "Summarize this ticket." <strong>Good Prompt using COSTAR:</strong></p>
+<pre><code>Context: You are a Senior Support Analyst for an e-commerce platform.
+Objective: Analyze the customer support ticket below.
+Specifics: The ticket is in the Input Data section. Customer is a Prime member.
+Task: Identify the root cause and sentiment.
+Action: Summarize in 3 bullet points.
+Result: Output MUST be valid JSON with keys: "sentiment", "root_cause", "summary".
+
+Input Data: [Ticket: "Order #123 didn't arrive even after 5 days..."]
+
+In Bedrock Converse API, you split this:
+System Prompt = Context + Objective
+User Message = Specifics + Task + Action + Result + Input Data</code></pre>
+<pre><code>response = bedrock_runtime.converse(
+    modelId="anthropic.claude-3-5-sonnet-20240620-v1:0",
+    system=[{"text": "You are a Senior Support Analyst..."}],
+    messages=[{"role": "user", "content": [{"text": "Task: Identify root cause... Input Data: [...]"}]}]
+)</code></pre>
+        <p>This structure improves consistency and reduces token waste.</p>
+      </div>
+    </div>
+  </template>
+  <template id="help-scope-p1-lead">
+    <div class="inner">
+<h2>Phase 1: Define Business Problems Suitable for Generative AI</h2>
+      <p>Not every problem needs Generative AI. Pick problems where language is the bottleneck.</p>
+      <p><strong>Good Fit for GenAI:</strong> Content creation, summarization, semantic search over unstructured data, conversational Q&amp;A, code generation, data extraction from documents.</p>
+      <p><strong>Bad Fit for PoC:</strong> Real-time decisions with safety consequences [e.g., auto-braking], tasks requiring 100% deterministic accuracy with zero human oversight [e.g., final financial reporting], or simple classification that a smaller ML model can do cheaper.</p>
+      <p><strong>Bad Problem Statement:</strong> "Use GenAI to improve customer service." <strong>Good Problem Statement:</strong> "Reduce Average Handle Time [AHT] for L1 support agents by 40% by auto-generating a 3-bullet summary and predicting category for every incoming support ticket." [Billing][Technical][Shipping]</p>
+      <div class="note tip"><span class="tag">Architect's Filter</span><p>Ask: "Can a human do this task in 5-10 minutes by reading and writing?" If yes, it's a great GenAI candidate.</p></div>
+    </div>
+  </template>
+  <template id="help-val-model-lead">
+    <div class="inner">
+<h2>1. Systematic Model Selection</h2>
+      <p>Don't pick a model based on hype or a blog post. Pick it based on <em>your</em> data and <em>your</em> constraints. Create a small <strong>Golden Dataset</strong> [50-100 examples], then run it against 2-3 models using <strong>Amazon Bedrock Model Evaluation</strong>.</p>
+<pre><code>{"prompt": "Summarize: Customer says my order #123 never arrived...", "referenceResponse": "Order #123 delayed, customer requesting refund"}</code></pre>
+      <p>Task Type: Summarization -&gt; Metrics: <strong>ROUGE, BERTScore, Latency, Cost</strong></p>
+      <div class="tbl"><table>
+        <tr><th>Model</th><th>BERTScore</th><th>p95 Latency</th><th>Cost / 1k requests</th><th>Verdict</th></tr>
+        <tr><td>Haiku</td><td>0.84</td><td>0.8s</td><td>$0.80</td><td>Good if speed is critical</td></tr>
+        <tr><td>Nova Pro</td><td>0.88</td><td>1.3s</td><td>$2.10</td><td><strong>Best balance for PoC</strong></td></tr>
+        <tr><td>Sonnet</td><td>0.91</td><td>2.5s</td><td>$6.00</td><td>Best quality, but expensive</td></tr>
+      </table></div>
+      <div class="note tip"><span class="tag">Architect's Tip</span><p>For PoC, start with 2 models - one from Nova family and one from Anthropic. Use the same <strong>Converse API</strong>, just change the <code>modelId</code>. This gives you data-backed evidence for leadership.</p></div>
+    </div>
+  </template>
+  <template id="help-ms-step1-lead">
+    <div class="inner">
+<h2>Step 1: Requirements Analysis — Define What "Good" Means Before You Test</h2>
+      <p>Don't start by testing models. Start by documenting your non-negotiable requirements. This becomes your scorecard. Document these 5 dimensions:</p>
+      <div class="tbl"><table>
+        <tr><th>Dimension</th><th>Your Requirement</th><th>Why It Matters</th></tr>
+        <tr><td><strong>Modality</strong></td><td>Input: Text [5000 words]. Output: Text [JSON]</td><td>Need text-to-text. No need for multimodal.</td></tr>
+        <tr><td><strong>Accuracy</strong></td><td>Category accuracy &gt;85%, Hallucination rate &lt;2%</td><td>Business needs reliability</td></tr>
+        <tr><td><strong>Latency</strong></td><td>p95 latency &lt; 2 seconds per ticket</td><td>Agents can't wait 10s</td></tr>
+        <tr><td><strong>Cost</strong></td><td>&lt; $0.01 per ticket</td><td>At 5k tickets/day, cost must scale</td></tr>
+        <tr><td><strong>Context Window</strong></td><td>Must support 8K tokens</td><td>Tickets + 3 examples in few-shot = ~6K tokens</td></tr>
+      </table></div>
+      <div class="note tip"><span class="tag">Architect's Rule</span><p>If you don't write this down, you will pick the most powerful and most expensive model by default. This is your filter - any model that doesn't support 8K context or costs $0.05/ticket is out on Day 1.</p></div>
+    </div>
+  </template>
+  <template id="help-sec-iam-lead">
+    <div class="inner">
+<h2>1. IAM Role Configuration — Principle of Least Privilege</h2>
+      <p>Don't use an IAM User with <code>AdministratorAccess</code> and hardcoded Access Keys. Use an IAM Role that your application assumes, and grant it only the minimum permissions it needs. Your PoC app on Lambda needs to call Nova Pro and use one Knowledge Base:</p>
+<pre><code>{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["bedrock:InvokeModel", "bedrock:Converse", "bedrock:ConverseStream"],
+      "Resource": [
+        "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-pro-v1:0",
+        "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-sonnet-*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["bedrock:RetrieveAndGenerate"],
+      "Resource": ["arn:aws:bedrock:us-east-1:123456789012:knowledge-base/ABCD1234"]
+    }
+  ]
+}</code></pre>
+      <p><strong>What this prevents:</strong> Even if this Lambda is compromised, the attacker cannot call expensive models like Claude 3 Opus, cannot delete your Knowledge Base, and cannot access other AWS services. No hardcoded credentials in code.</p>
+      <div class="note tip"><span class="tag">Architect's Rule</span><p>For Bedrock Agents, create a separate <strong>Agent Execution Role</strong> that allows the agent to invoke only the specific Lambda functions defined in your Action Groups.</p></div>
+    </div>
+  </template>
+  <template id="help-perf-latency-lead">
+    <div class="inner">
+<h2>1. Response Time Benchmarking — Latency Measurement</h2>
+      <p>Measure end-to-end latency under different conditions. Measure 3 key metrics: <strong>Time to First Token [TTFT]</strong> (critical for chatbots with streaming), <strong>End-to-End Latency</strong> (always look at p95, not average), <strong>Tokens Per Second [TPS]</strong> (generation speed). Test with Short [200], Medium [2000], Long [8000] token prompts.</p>
+<pre><code>import boto3, time, statistics
+client = boto3.client("bedrock-runtime", region_name="us-east-1")
+
+def measure_latency(prompt, model_id="amazon.nova-pro-v1:0"):
+    start = time.time()
+    first_token_time = None
+
+    response = client.converse_stream(
+        modelId=model_id,
+        messages=[{"role": "user", "content": [{"text": prompt}]}]
+    )
+    for event in response['stream']:
+        if first_token_time is None and 'contentBlockDelta' in event:
+            first_token_time = time.time() - start # TTFT
+        if 'messageStop' in event:
+            break
+
+    end_to_end = time.time() - start
+    return {"ttft": first_token_time, "e2e": end_to_end, "tokens": event.get('usage',{}).get('outputTokens',0)}
+
+# Run 20 times with same prompt to get p95
+results = [measure_latency("Summarize this 5-page doc...") for _ in range(20)]
+print(f"p95 End-to-End: {statistics.quantiles([r['e2e'] for r in results], n=20)[18]:.2f}s")
+print(f"Avg TTFT: {statistics.mean([r['ttft'] for r in results]):.2f}s")</code></pre>
+      <p><strong>What you learn:</strong> <code>Nova Lite TTFT 0.4s, p95 1.2s</code> vs <code>Claude Sonnet TTFT 0.9s, p95 3.1s</code>. If your chatbot needs &lt;1s first response, you now have data to choose Lite.</p>
+    </div>
+  </template>
+  <template id="help-tok-count-lead">
+    <div class="inner">
+<h2>1. Token Counting — You Can't Optimize What You Don't Measure</h2>
+      <p>Different foundation models use different <strong>tokenizers</strong>, so the same sentence can be 10 tokens in Titan and 13 in Claude. Don't guess. Measure. <strong>The Converse API always returns exact usage in every response.</strong></p>
+<pre><code>import boto3
+client = boto3.client("bedrock-runtime", region_name="us-east-1")
+
+response = client.converse(
+    modelId="anthropic.claude-3-5-sonnet-20240620-v1:0",
+    messages=[{"role": "user", "content": [{"text": "Summarize this 10-page policy doc..."}]}]
+)
+
+usage = response['usage']
+print(usage)
+# Output: {'inputTokens': 2450, 'outputTokens': 180, 'totalTokens': 2630}
+
+# Cost calculation - from Bedrock pricing page
+# Sonnet: $3 per 1M input tokens, $15 per 1M output tokens
+input_cost = (usage['inputTokens'] / 1_000_000) * 3
+output_cost = (usage['outputTokens'] / 1_000_000) * 15
+print(f"Cost for this call: ${input_cost + output_cost:.4f}")
+# Cost: $0.0100 - 73% of cost is from output!</code></pre>
+      <div class="note tip"><span class="tag">Architect's Tip</span><p>Input tokens = System Prompt + All User/Assistant Messages + Tool Definitions. Many teams forget that a long System Prompt with 5 few-shot examples is charged on <em>every</em> call. That's where Bedrock <strong>Prompt Caching</strong> helps.</p></div>
+    </div>
+  </template>
+  <template id="help-cost-visibility-lead">
+    <div class="inner">
+<h2>1. Real-time Visibility is Crucial for GenAI Costs</h2>
+      <p>Unlike EC2 where cost is predictable per hour, Bedrock cost is <code>Pay per Token</code>. Your bill depends on 4 variables:</p>
+      <ul>
+        <li><strong>Model Selection:</strong> Claude 3.5 Sonnet is ~7x more expensive than Nova Lite.</li>
+        <li><strong>Input Tokens:</strong> Length of your prompt + system prompt + RAG context.</li>
+        <li><strong>Output Tokens:</strong> Length of model's response - costs 3-5x more than input.</li>
+        <li><strong>Request Volume:</strong> Number of API calls per day.</li>
+      </ul>
+      <p>Without visibility, you won't know if your cost spike is due to longer prompts, longer answers, or simply more users.</p>
+    </div>
+  </template>
+  <template id="help-val2-tco-lead">
+    <div class="inner">
+<h2>1. Total Cost of Ownership [TCO] — The Complete Picture</h2>
+      <p>TCO is not just Bedrock inference cost. Many PoCs fail business review because they forget infrastructure, development, and maintenance costs. <strong>TCO = One-time Costs + Ongoing Operational Costs.</strong></p>
+      <p><strong>Current Manual Process TCO:</strong> Agent spends 8 mins to read and summarize a ticket at $25/hour &rarr; Cost per ticket = 8/60 * $25 = <strong>$3.33</strong> &rarr; Monthly = 5,000 * 30 * $3.33 = <strong>$499,500/month</strong> in agent time.</p>
+      <div class="tbl"><table>
+        <tr><th>Cost Component</th><th>Calculation</th><th>Monthly Cost</th></tr>
+        <tr><td><strong>A. Model Inference</strong></td><td>5k/day * 30 * $0.0019/ticket [Nova Pro]</td><td>$285</td></tr>
+        <tr><td><strong>B. Infrastructure</strong></td><td>OpenSearch [$100] + S3 [$20] + Lambda [$30] + CloudWatch [$25]</td><td>$175</td></tr>
+        <tr><td><strong>C. Development - Amortized</strong></td><td>4 weeks * 2 engineers [$20,000 one-time] / 12 months</td><td>$1,666</td></tr>
+        <tr><td><strong>D. Maintenance &amp; Eval</strong></td><td>Prompt tuning, Model Evaluation jobs, Guardrails</td><td>$300</td></tr>
+        <tr><td><strong>Total GenAI TCO</strong></td><td>A+B+C+D</td><td><strong>$2,426 / month</strong></td></tr>
+      </table></div>
+      <p><strong>You just proved:</strong> GenAI TCO is $2,426 vs Manual TCO of $499,500 for the <em>same</em> task. Even with human-in-the-loop for approval, you still save 75% of agent time.</p>
+    </div>
+  </template>
+  <template id="help-auto-time-lead">
+    <div class="inner">
+<h2>1. Time Savings Quantification — From Minutes to Seconds</h2>
+      <p>Measure end-to-end time saved for the human doing the job. Measure two types: <strong>Direct Task Time</strong> and <strong>Indirect Time</strong> (searching, switching tools, waiting).</p>
+      <p><strong>Manual Process - Measured over 50 tickets:</strong> Agent opens Zendesk 30 sec + reads 5-email thread 6 mins + searches Confluence for policy 3 mins + types summary &amp; category 2 mins = <strong>~11.5 mins per ticket</strong>.</p>
+      <p><strong>GenAI Automated Process with Bedrock Agent:</strong> Agent opens ticket 30 sec + clicks "Generate Summary" (<code>RetrieveAndGenerate</code> p95 latency 1.8s) + reviews/edits AI summary 1 min + clicks Approve = <strong>~1.5 mins per ticket</strong>.</p>
+      <p><strong>Quantified Benefit:</strong> Time saved per ticket = 11.5 - 1.5 = <strong>10 mins</strong>. For 5,000 tickets/day: 10 * 5,000 = 50,000 mins = <strong>833 hours saved per day</strong> = <strong>~104 FTE agents</strong> who can now handle complex L2 issues.</p>
+      <div class="note tip"><span class="tag">How to Measure Technically</span><p>In your Lambda, log <code>automation_time_saved</code> to CloudWatch: <code>Time Saved = manual_baseline_time - [bedrock_latency + human_review_time]</code>. Create a CloudWatch Dashboard showing total hours saved per week.</p></div>
+    </div>
+  </template>
+  <template id="help-impact-revenue-lead">
+    <div class="inner">
+<h2>1. Revenue Impact — How Does This Make Us More Money?</h2>
+      <p>GenAI directly drives revenue through faster conversion, higher CSAT, and enabling new offerings. <strong>Use Case:</strong> Auto-generate SEO-optimized product descriptions using Amazon Bedrock. Manual: merchandiser takes 2 hours per description; 100 new products/week = 200 hours; long tail products have no description = no search visibility.</p>
+      <div class="tbl"><table>
+        <tr><th>Metric</th><th>Before GenAI</th><th>After GenAI PoC</th><th>Technical Measurement</th></tr>
+        <tr><td><strong>Time-to-Market</strong></td><td>2 hours / product</td><td>3 mins / product [latency 1.2s]</td><td>CloudWatch: GenerationLatency</td></tr>
+        <tr><td><strong>Catalog Coverage</strong></td><td>100 products/week</td><td>1000 products/week, same team</td><td>S3 PutObject count per week</td></tr>
+        <tr><td><strong>SEO Conversion</strong></td><td>No description = 0.5% conversion</td><td>With SEO description = 2.1% [A/B test]</td><td>Website analytics + Model Evaluation</td></tr>
+        <tr><td><strong>Revenue Impact</strong></td><td>-</td><td>900 extra products * 50 views * 2.1% * $50 = <strong>$47,250 / week</strong></td><td>Business metrics dashboard</td></tr>
+      </table></div>
+      <p><strong>Value Translation:</strong> Your PoC cost is ~$300/month in Bedrock inference, but it unlocks <strong>$189k/month in new revenue</strong>. This is not cost savings, this is top-line growth.</p>
+    </div>
+  </template>
+
+
+<nav class="navbar">
+  <button class="btn" id="prevBtn" aria-label="Previous slide">← Prev</button>
+  <div class="counter"><b id="cur">1</b> / <span id="total">1</span></div>
+  <button class="btn" id="nextBtn" aria-label="Next slide">Next →</button>
+</nav>
+
+<div class="hint" id="hint">← → to move · C for contents · T for theme</div>
+
+<div class="menu" id="menu" hidden>
+  <div class="mwrap">
+    <h2>Contents</h2>
+    <ul class="mlist" id="mlist"></ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var idx = 0;
+  var deck = document.getElementById('deck');
+  var curEl = document.getElementById('cur');
+  var totalEl = document.getElementById('total');
+  var prog = document.getElementById('progress');
+  var menu = document.getElementById('menu');
+  var mlist = document.getElementById('mlist');
+  totalEl.textContent = total;
+
+  function idOf(i){ return slides[i].id; }
+
+  function render(){
+    slides.forEach(function(s,i){ s.hidden = (i!==idx); });
+    curEl.textContent = idx+1;
+    prog.style.width = ((idx)/(total-1)*100)+'%';
+    var active = slides[idx];
+    if(active) active.scrollTop = 0;
+    try{ history.replaceState(null,'','#'+idOf(idx)); }catch(e){ location.hash = idOf(idx); }
+    Array.prototype.forEach.call(mlist.querySelectorAll('.mitem'), function(b){
+      b.classList.toggle('cur', +b.dataset.i === idx);
+    });
+  }
+  function go(i){ idx = Math.max(0, Math.min(total-1, i)); render(); }
+  function next(){ go(idx+1); }
+  function prev(){ go(idx-1); }
+
+  document.getElementById('nextBtn').addEventListener('click', next);
+  document.getElementById('prevBtn').addEventListener('click', prev);
+
+  slides.forEach(function(s,i){
+    var li = document.createElement('li');
+    var b = document.createElement('button');
+    b.className = 'mitem' + (s.dataset.section==='true' ? ' sec' : '');
+    b.dataset.i = i;
+    var title = s.dataset.title || s.id;
+    b.innerHTML = '<span class="mn">'+(i+1)+'</span><span>'+title+'</span>';
+    b.addEventListener('click', function(){ closeMenu(); go(i); });
+    li.appendChild(b);
+    mlist.appendChild(li);
+  });
+
+  function openMenu(){ menu.hidden=false; }
+  function closeMenu(){ menu.hidden=true; }
+  function toggleMenu(){ menu.hidden ? openMenu() : closeMenu(); }
+  document.getElementById('menuBtn').addEventListener('click', toggleMenu);
+  menu.addEventListener('click', function(e){ if(e.target===menu) closeMenu(); });
+
+  var root = document.documentElement;
+  var themeBtn = document.getElementById('themeBtn');
+  function currentTheme(){
+    var attr = root.getAttribute('data-theme');
+    if(attr) return attr;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  themeBtn.addEventListener('click', function(){
+    var t = currentTheme()==='dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', t);
+    try{ localStorage.setItem('poc-theme', t); }catch(e){}
+  });
+  try{ var saved = localStorage.getItem('poc-theme'); if(saved) root.setAttribute('data-theme', saved); }catch(e){}
+
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape'){ if(!menu.hidden){ closeMenu(); e.preventDefault(); } return; }
+    if(!menu.hidden) return;
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': case 'Spacebar': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp': prev(); e.preventDefault(); break;
+      case 'Home': go(0); e.preventDefault(); break;
+      case 'End': go(total-1); e.preventDefault(); break;
+      case 'c': case 'C': toggleMenu(); e.preventDefault(); break;
+      case 't': case 'T': themeBtn.click(); e.preventDefault(); break;
+    }
+  });
+
+  var sx=0, sy=0;
+  deck.addEventListener('touchstart', function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; }, {passive:true});
+  deck.addEventListener('touchend', function(e){
+    var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)){ dx<0 ? next() : prev(); }
+  }, {passive:true});
+
+  var h = (location.hash||'').replace('#','');
+  if(h){ var found = slides.findIndex(function(s){ return s.id===h; }); if(found>=0) idx=found; }
+
+  setTimeout(function(){ var el=document.getElementById('hint'); if(el) el.style.opacity='0'; }, 4500);
+
+  // ---- Help / deep-dive popover ----
+  var helpPop = document.getElementById('helpPop');
+  var helpBody = document.getElementById('helpBody');
+  function openHelp(btn){
+    var tpl = document.getElementById('help-' + btn.dataset.help);
+    if(!tpl) return;
+    helpBody.innerHTML = '';
+    helpBody.appendChild(tpl.content.cloneNode(true));
+    helpBody.scrollTop = 0;
+    helpPop.hidden = false;
+  }
+  function closeHelp(){ helpPop.hidden = true; helpBody.innerHTML = ''; }
+  Array.prototype.forEach.call(document.querySelectorAll('.help-btn'), function(b){
+    b.addEventListener('click', function(e){ e.preventDefault(); openHelp(b); });
+  });
+  document.getElementById('helpClose').addEventListener('click', closeHelp);
+  helpPop.addEventListener('click', function(e){ if(e.target===helpPop) closeHelp(); });
+  // While a deep dive is open, swallow keys/swipes so the deck does not navigate.
+  document.addEventListener('keydown', function(e){
+    if(helpPop.hidden) return;
+    if(e.key==='Escape') closeHelp();
+    e.stopImmediatePropagation(); e.preventDefault();
+  }, true);
+  deck.addEventListener('touchstart', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+  deck.addEventListener('touchend', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+
+  render();
+})();
+</script>
+
+</body></html>
