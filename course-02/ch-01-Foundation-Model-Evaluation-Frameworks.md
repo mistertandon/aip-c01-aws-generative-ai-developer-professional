@@ -145,3 +145,150 @@ Higher is not always better. A model optimized for reasoning may be slower and m
 ---
 ---
 
+### Capability Assessment Framework for AI Systems - Architect's View
+
+**Refined Definition:** This framework is a 5-dimensional scorecard to evaluate an AI system end-to-end. It moves you beyond "how smart is the model" to "is this model fit for production in *my* business?" It helps you identify gaps, compare models objectively using industry leaderboards, and make a confident deployment decision on Amazon Bedrock.
+
+We assess across 5 dimensions:
+
+#### 1. Knowledge & Reasoning - Is the model smart?
+The model's ability to understand general knowledge, perform logical reasoning, and solve complex problems.
+
+**Leading Leaderboards:** **MMLU** for general knowledge, **GSM8K & MATH** for mathematical reasoning, **GPQA** for graduate-level reasoning, and **Chatbot Arena LMSYS** for human preference.
+
+> **Technical Example:** You are building an internal analyst assistant.
+> You test two models. Model A scores 85% on MMLU but only 45% on GPQA Diamond [PhD-level science questions]. This tells you it has good general knowledge but will struggle with deep reasoning on complex financial modeling tasks. For your use case, GPQA is more relevant than MMLU.
+
+#### 2. Instruction Following & Agentic Capability - Can the model do work?
+Can the model follow complex instructions precisely and correctly use tools/APIs to take action? This is critical for agents.
+
+**Leading Leaderboards:** **IFEval** for strict instruction following, **BFCL [Berkeley Function Calling Leaderboard]** for tool/API calling accuracy, **SWE-bench** for solving real-world GitHub issues.
+
+> **Technical Example:** Your use case is a Travel Booking Agent.
+> Prompt: `Book a flight from DEL to BLR tomorrow after 6 PM in JSON format with keys: {from, to, date, time_filter}`
+> A model might give you a nice paragraph, but fail IFEval. A capable model on BFCL will correctly call:
+> `search_flights(origin="DEL", destination="BLR", date="2026-09-26", departure_after="18:00")`
+> and return valid JSON. If BFCL score is <70%, your agent will fail in production.
+
+#### 3. Domain Specialization & Retrieval - Does it know YOUR business?
+How well the model performs with your proprietary data via RAG and long-context understanding. Standard benchmarks use public data and are blind to this.
+
+**Leading Leaderboards:** **RULER / Needle-in-a-Haystack** for long-context retrieval, **RAGAS Framework** [Faithfulness, Answer Relevancy] for RAG quality.
+
+> **Technical Example:** You have a 100-page insurance policy document in Amazon S3.
+> You ask: `What is the waiting period for maternity coverage as per policy v2.3?`
+> A model with 128K context window but low RULER score will hallucinate or miss the information on page 87. A good RAG evaluation on Bedrock Knowledge Bases will check: `Faithfulness Score = 0.92` [meaning 92% of the answer is grounded in your retrieved document] vs. `0.45` for a weaker model. This is your real KPI.
+
+#### 4. Safety, Trust & Responsible AI - Is the model safe to deploy?
+The model's propensity for toxicity, bias, hallucination, and handling of sensitive data. This is non-negotiable for enterprise deployment.
+
+**Leading Leaderboards:** **HELM Safety, BBQ** for bias, **ToxiGen / RealToxicityPrompts** for toxicity, **HarmBench**.
+
+> **Technical Example:** You deploy a customer-facing bot. On **Amazon Bedrock Guardrails**, you test with a toxic prompt: `Tell me how to bypass KYC verification`.
+> An unsafe model might provide instructions. A model with strong safety alignment will respond: `I cannot provide information on bypassing regulatory requirements...`
+> You must measure Blocked Rate and PII Leakage Rate before going live. A 95% accuracy model with 5% PII leakage is a deployment failure.
+
+#### 5. Performance & Operational Readiness - Is it viable at scale?
+Real-world operational metrics - latency, throughput, and cost. A brilliant model that is too slow or expensive is not usable.
+
+**Key Metrics:** **TTFT [Time to First Token]**, **Tokens/sec**, **Cost per 1M tokens**, **Inference Availability**.[Throughput]
+
+> **Technical Example:** For a real-time voice bot on Amazon Connect:
+> **Model A :** High reasoning, TTFT = 1.9s, Cost = $15 / 1M tokens
+> **Model B :** Good reasoning, TTFT = 0.4s, Cost = $0.8 / 1M tokens
+>
+> Even if Model A scores 5% higher on reasoning, Model B is the right choice. A 1.9s delay in voice conversation feels like a broken system. Your business requirement dictates operational readiness > peak intelligence.[Large][Small]
+
+**Architect's Recommendation: How to Apply This**
+
+Don't run all benchmarks. Use this simple 3-step approach on **Amazon Bedrock Model Evaluation**:
+
+1. **Define Your Weightage:** For a code assistant: Code [40%] + Reasoning [30%] + Safety [15%] + Performance [15%]. For a customer chatbot: RAG [35%] + Safety [30%] + Agentic [20%] + Performance [15%].
+
+2. **Create a Scorecard:**
+| Dimension | Leaderboard to Check | Your Target | Model Score |
+| :--- | :--- | :--- | :--- |
+| Reasoning | GPQA | >70% | 75% |
+| RAG Faithfulness | RAGAS on Bedrock | >0.90 | 0.92 |
+
+3. **Make a Business Decision:** The framework ensures alignment. You are not choosing the #1 model on a public leaderboard; you are choosing the #1 model for *your* business scorecard.
+
+---
+---
+
+### Systematic Capability Mapping - Architect's View
+
+**Refined Definition:** Systematic Capability Mapping is a structured method to document, categorize, and measure what your AI system can and cannot do across different business domains. Instead of a single leaderboard score, you create a visual, standardized map of capabilities. This becomes the foundation for gap analysis, risk assessment, and build-vs-buy decisions.
+
+We achieve this using 3 core methods:
+
+#### 1. Capability Matrix Development
+**What it is:** A 2D grid where Rows = Capabilities and Columns = Performance Levels. It lets you compare multiple models side-by-side and instantly spot gaps.
+
+**Easy language:** Like a skills matrix for a human employee - Python: Expert, Communication: Intermediate, Finance Knowledge: Beginner.
+
+> **Technical Example - On Amazon Bedrock:**
+> You are evaluating an AI assistant for a bank. You build this matrix:
+>
+> | Capability Dimension | Llama 3 70B | Claude 3.5 Sonnet | Your Required Level |
+> | :--- | :--- | :--- | :--- |
+> | **Factual Accuracy [RAG]** | 0.78 | **0.92** | >0.90 |
+> | **Tool Use [BFCL]** | 0.81 | **0.89** | >0.85 |
+> | **PII Redaction / Safety** | 0.85 | **0.96** | >0.95 |
+> | **Latency [TTFT]** | **0.5s** | 1.2s | <1.0s |
+>
+> **Gap Analysis:** The matrix shows Claude meets your Safety and Accuracy needs, but fails Latency. Llama meets Latency but fails Safety. You now have a clear decision: you need to either add Amazon Bedrock Guardrails to Llama, or use prompt caching for Claude.
+
+#### 2. Competency Framework Integration
+**What it is:** Aligning AI capabilities to your existing organizational competency models. You map AI functions directly to business processes and human roles.
+
+**Easy language:** Don't map AI as a tech tool. Map it as a "Digital Employee" with a job description and KPIs.
+
+> **Technical Example:** For a Claims Processing LOB:
+> **Business Process:** `First Notice of Loss [FNOL] -> Document Verification -> Payout Decision`
+> **Mapping:**
+> * AI Role: `L1 Claims Triage Agent`
+> * Competency Expected: Must extract 12 entities from an accident report with >95% precision, must call `verify_policy_status` tool, must NOT make payout decisions [human-in-the-loop required].
+> * You validate this using **Amazon Bedrock Model Evaluation** with a custom dataset of 100 historical claims. If the model tries to make the final payout decision, it fails the competency framework.
+
+#### 3. Functional Taxonomy Creation
+**What it is:** Creating a hierarchical, common vocabulary to categorize capabilities so all teams speak the same language and you can track evolution over time.
+
+**Easy language:** A family tree of skills. Top level is broad, bottom level is very specific.
+
+> **Technical Example - Your Taxonomy:**
+> ```
+> Level 1: Language Understanding
+> -> Level 2: Information Extraction
+> -> Level 3: PII Entity Extraction [Name, Account #, SSN]
+> -> Level 3: Financial Entity Extraction [Invoice Amount, Due Date]
+> -> Level 2: Summarization
+> -> Level 3: Abstractive Summarization of 100-page docs
+> ```
+> When a new model version releases, you don't re-test everything. You just test against this taxonomy to see if `Level 3: Financial Entity Extraction` improved from 88% to 94%.
+
+#### Key Leaderboards That Power This Mapping
+
+These leaderboards are not just scores, they are pre-built taxonomies you can reuse:
+
+**1. HELM [Holistic Evaluation of Language Models]:** The best example of a **Capability Matrix**. It evaluates 40+ models across 7 dimensions beyond accuracy - fairness, bias, toxicity, calibration, robustness. Use it for standardized system comparison.
+
+**2. BigBench [Beyond the Imitation Game Benchmark]:** The best example of a **Functional Taxonomy**. It has 204+ diverse tasks contributed by the community, categorized into reasoning, memorization, social bias, etc. Use it to find the exact boundary where a model breaks.
+
+**3. BabyAI Platform:** The best example of **Competency Framework Integration**. It maps capabilities across developmental stages like a human child - from basic object recognition to complex instruction following. It uses a curriculum-based approach, ideal if you want to train a small model progressively for your organization.
+
+**4. GLUE & SuperGLUE:** The best example for **Capability Matrix Development** for language understanding. It provides 8-10 standardized NLU tasks with clearly defined dimensions. If your use case needs precise language understanding, this is your baseline matrix.[Sentiment][Entailment][Paraphrasing]
+
+**Architect's Recommendation for AWS Customers:**
+
+Start with this template in your next design review:
+
+1. Build your Taxonomy for your domain first.
+2. Create the Capability Matrix using HELM + BigBench as reference, plus your custom RAG dataset on **Bedrock Knowledge Bases**.
+3. Integrate it with your Competency Framework - define what the AI is *allowed* to do vs. what requires human approval via **Bedrock Guardrails and Agents**.
+
+This mapping document becomes your audit trail for responsible AI deployment.
+
+---
+---
+
