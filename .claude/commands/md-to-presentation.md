@@ -94,9 +94,16 @@ entire `<script>` **verbatim**, then replace only the slide `<section>`s and the
     card's mesh/gradient read; the 16:9 card is what you see in the middle, never a slide-wide fill.
   - `.help-popover` is confined to the deck bounds and capped to `max-width:1300px` centered (matching
     the `.inner` card, see R2), so the deep dive renders over the card, not the full viewport.
+  - `<pre><code>` uses a **light, theme-adaptive** palette (not the old dark terminal): `--code-bg`
+    `#F1F4F8` light / `#101922` dark and `--code-text` `#152230` light / `#EBF1F7` dark, defined in all
+    three `:root` blocks. To keep blocks from looking dull, `pre` is **accent-tinted**: background
+    `color-mix(--local-accent 6%, --code-bg)`, border `color-mix(--local-accent 22%, --border)`, and a
+    `border-left:3px solid --local-accent` bar — so each block carries its section's accent. The
+    popover maps `--local-accent:var(--pop-accent)` so deep-dive code (and `.note.tip`) match the
+    popover's accent.
 - Do not reintroduce full-width slides, full-viewport popovers, a `--surface`/`--surface-2` deck
-  background (the deck must use `--deck-bg`), a section/`.slide` background fill, or a card whose
-  background matches the deck.
+  background (the deck must use `--deck-bg`), a section/`.slide` background fill, a dark terminal
+  `<pre>` theme, or a card whose background matches the deck.
 
 ---
 
