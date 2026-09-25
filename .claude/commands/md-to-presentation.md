@@ -42,11 +42,15 @@ entire `<script>` **verbatim**, then replace only the slide `<section>`s and the
   and the localStorage theme key if you want per-deck persistence (optional — leaving `poc-theme` is fine).
 
 ### R2 — The container/card model
-- The page (`body`) uses the darker `--bg`; slides live inside the `.deck` **card**
-  (`--surface` background, border, 16px radius, shadow, top accent bar). Never make slides
-  flush with the page background.
-- The help popover renders **inside** `.deck` (`position:absolute; inset:0`) and its close
-  button sits at the card's top-right corner — never floating at the viewport edge.
+- The page (`body`) uses `--bg`; the `.deck` **card** (border, 16px radius, shadow, top accent bar)
+  uses a distinct `--deck-bg` backdrop (GitHub canvas-inset: `#eaeef2` light / `#010409` dark) so the
+  centered `--surface` `.inner` card reads explicitly as a distinct card in the middle. Never make
+  slides flush with the page background.
+- The help popover is confined to the deck bounds and **capped to the `.inner` width** so it renders
+  over the content card (`position:fixed`; `top/bottom:60px`, `left/right:14px` like `.deck`, `8px`
+  on mobile; `max-width:1300px; margin-inline:auto` to center it over `.inner`; plus the card border,
+  16px radius and shadow) — never full-viewport `inset:0`. Its close button is `position:absolute`
+  at the card's top-right corner, and the topbar/navbar stay visible behind it.
 
 ### R3 — Per-slide accent color
 - Every `<section class="slide">` carries a `data-accent` from this palette:
@@ -66,6 +70,34 @@ entire `<script>` **verbatim**, then replace only the slide `<section>`s and the
   - Part divider slides (no `<h2>`) → the `.num` eyebrow text, e.g. `Part 04 · PoC Scoping Methodology`.
 - Mark section/divider slides with `data-section="true"` so they render bold in the menu.
 
+### R5 — Centered content card on a deck backdrop
+- The deck is a wide backdrop; each slide's `.inner` is a centered content **card** floating on it.
+  The deck's background must differ from the card's. Keep these chassis rules, don't remove:
+  - `.deck{ background:var(--deck-bg) }` — the backdrop tone. `--deck-bg` is GitHub canvas-inset
+    (`#eaeef2` light / `#010409` dark, per the bitly presentation reference), defined in all three
+    `:root` theme blocks, so the card pops against it.
+  - `.slide .inner` — the content card, and the element that carries the **16:9 frame** (like the
+    bitly `.presentation`, not the `section`): `width:100%; max-width:1300px; aspect-ratio:16 / 9;
+    max-height:100%; overflow-y:auto` (max-height + scroll so tall content is never clipped on short
+    viewports). Plus border, 16px radius, elevated `box-shadow:var(--shadow-lg)` (a stronger token
+    than `--shadow`, defined in all three `:root` blocks, so the card lifts off the deck), `28px 32px`
+    padding, and a **mesh + gradient** background over `var(--surface)` (per the bitly reference): two
+    1px grid linear-gradients at `background-size:46px 46px` tinted `color-mix(--local-accent 6%)`,
+    plus two corner radial glows (`--local-accent 14%` top-left, `--c-purple 11%` bottom-right). Its
+    base `--surface` must stay distinct from the deck's `--deck-bg` (deck bg ≠ inner bg).
+  - `.help-popover` carries the **same mesh + gradient** over `var(--surface)`, tinted by
+    `--pop-accent` (with the `--c-purple` complementary glow), and the same `--shadow-lg` elevation,
+    so the deep dive matches the card.
+  - `.slide{ background:transparent }` and `.divider{ background:transparent }` — the section itself
+    has **no background** and no size cap; it's a full-size (`inset:0`) transparent wrapper that
+    centers the `.inner` card (flex + `margin:auto 0`). Only the `--deck-bg` backdrop and the `.inner`
+    card's mesh/gradient read; the 16:9 card is what you see in the middle, never a slide-wide fill.
+  - `.help-popover` is confined to the deck bounds and capped to `max-width:1300px` centered (matching
+    the `.inner` card, see R2), so the deep dive renders over the card, not the full viewport.
+- Do not reintroduce full-width slides, full-viewport popovers, a `--surface`/`--surface-2` deck
+  background (the deck must use `--deck-bg`), a section/`.slide` background fill, or a card whose
+  background matches the deck.
+
 ---
 
 ## Slide taxonomy — how to map Markdown to slides
@@ -80,7 +112,6 @@ Decide per block; don't force everything into one shape.
    Use for each top-level Part when its sub-sections are long or example-heavy.
    - `.num` = `Part NN · <Part title>` (this is the slide's title → mirror into `data-title`).
    - Intro paragraph(s) = the Part's overview prose, verbatim.
-   - `<h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>`
    - `<ul class="help-list">` with one `<li class="help-list-item">` per sub-section:
      `<button class="help-btn" data-help="<id>" aria-label="Open deep dive: <title>">?</button><span><title></span>`.
    - The **first** sub-section id is conventionally `<part>-lead`.
@@ -149,7 +180,8 @@ Because the script selects slides via `document.querySelectorAll('.slide')` and 
    - `data-help` count == number of `help-*` templates, and every id resolves
      (`grep -o 'data-help="[^"]*"'` vs `grep -o 'id="help-[^"]*"'`).
    - Every `.slide` has a `data-accent`; every section's `data-title` equals its on-slide title.
-   - `{`/`}` balanced in the file; no leftover `position:fixed` on `.help-popover`.
+   - `{`/`}` balanced in the file; `.help-popover` is confined to the deck card (not `inset:0`
+     full-viewport); no `<h3>In this section …</h3>` lines remain (R5).
    - All Markdown content is present verbatim (spot-check code blocks, tables, numbers).
 6. Report the output path and a one-line summary of slide count + sections. Offer to open it in a
    browser (`file://…`) for visual review — the in-editor Chrome preview needs the extension connected.

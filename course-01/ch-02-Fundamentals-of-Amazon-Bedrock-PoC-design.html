@@ -11,7 +11,8 @@
   /* Deep dive: full-viewport overlay with an opaque surface so the slide never shows through;
      close button pinned to the top-right corner above everything. Accent is copied from the
      active slide onto the popover via --pop-accent (set in openHelp). */
-  .help-popover{--pop-accent:var(--accent);position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:var(--surface);border-top:4px solid var(--pop-accent);animation:helpPop .28s cubic-bezier(.16,1,.3,1)}
+  .help-popover{--pop-accent:var(--accent);position:fixed;top:calc(60px + env(safe-area-inset-top,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));left:14px;right:14px;max-width:1300px;margin-inline:auto;z-index:100;display:flex;flex-direction:column;background:linear-gradient(color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),linear-gradient(90deg, color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--pop-accent) 14%,transparent), transparent 45%),radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),var(--surface);background-size:46px 46px,46px 46px,auto,auto,auto;border:1px solid var(--border);border-top:4px solid var(--pop-accent);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;animation:helpPop .28s cubic-bezier(.16,1,.3,1)}
+  @media (max-width:600px){.help-popover{left:8px;right:8px}}
   .help-popover[hidden]{display:none}
   .help-popover[data-accent="orange"]{--pop-accent:var(--c-orange)}
   .help-popover[data-accent="teal"]{--pop-accent:var(--c-teal)}
@@ -23,9 +24,9 @@
   .help-popover[data-accent="amber"]{--pop-accent:var(--c-amber)}
   @keyframes helpPop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){.help-popover{animation:none}}
-  .help-popover-close{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:16px;z-index:101;width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:50%;cursor:pointer;color:var(--pop-accent);border:1px solid color-mix(in srgb,var(--pop-accent) 45%,transparent);background:color-mix(in srgb,var(--pop-accent) 14%,var(--surface))}
+  .help-popover-close{position:absolute;top:14px;right:16px;z-index:101;width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:50%;cursor:pointer;color:var(--pop-accent);border:1px solid color-mix(in srgb,var(--pop-accent) 45%,transparent);background:color-mix(in srgb,var(--pop-accent) 14%,var(--surface))}
   .help-popover-close:hover{background:var(--pop-accent);color:#fff;border-color:var(--pop-accent)}
-  .help-popover-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:calc(64px + env(safe-area-inset-top,0px)) 24px calc(40px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center}
+  .help-popover-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:64px 24px 40px;display:flex;justify-content:center}
   .help-popover-body .inner{margin:0}
 
 </style></head><body>
@@ -38,8 +39,8 @@
     --accent:#C2570B; --accent-soft:#F4E4D5; --accent2:#0E6E7D; --accent2-soft:#DDEEF0;
     --c-orange:#C2570B; --c-teal:#0E6E7D; --c-purple:#7C3AED; --c-green:#1F8A4C;
     --c-blue:#1E63C4; --c-pink:#C0357E; --c-red:#CB4335; --c-amber:#B7791F;
-    --border:#D4DBE3; --code-bg:#0E1620; --code-text:#E6EDF3;
-    --shadow:0 1px 3px rgba(20,34,48,.08),0 8px 30px rgba(20,34,48,.06);
+    --border:#D4DBE3; --code-bg:#0E1620; --code-text:#E6EDF3; --deck-bg:#eaeef2;
+    --shadow:0 1px 3px rgba(20,34,48,.08),0 8px 30px rgba(20,34,48,.06); --shadow-lg:0 6px 16px rgba(20,34,48,.12),0 20px 50px rgba(20,34,48,.16);
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -49,8 +50,8 @@
       --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
       --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
       --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
-      --border:#243240; --code-bg:#0A121A; --code-text:#E6EDF3;
-      --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35);
+      --border:#243240; --code-bg:#0A121A; --code-text:#E6EDF3; --deck-bg:#010409;
+      --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
     }
   }
   :root[data-theme="dark"]{
@@ -60,8 +61,8 @@
     --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
     --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
     --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
-    --border:#243240; --code-bg:#0A121A; --code-text:#E6EDF3;
-    --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35);
+    --border:#243240; --code-bg:#0A121A; --code-text:#E6EDF3; --deck-bg:#010409;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
   }
 
   *{box-sizing:border-box}
@@ -104,7 +105,7 @@
     top:calc(60px + env(safe-area-inset-top,0px));
     bottom:calc(60px + env(safe-area-inset-bottom,0px));
     left:14px; right:14px;
-    background:var(--surface);
+    background:var(--deck-bg);
     border:1px solid var(--border);
     border-top:4px solid var(--slide-accent);
     border-radius:16px;
@@ -127,7 +128,7 @@
     position:absolute; inset:0; overflow-y:auto; overflow-x:hidden;
     padding:32px 30px calc(28px + env(safe-area-inset-bottom,0px));
     display:flex; justify-content:center;
-    background:radial-gradient(760px 380px at 100% 0%, color-mix(in srgb,var(--local-accent) 7%,transparent), transparent 55%);
+    background:transparent;
   }
   .slide[data-accent="orange"]{--local-accent:var(--c-orange)}
   .slide[data-accent="teal"]{--local-accent:var(--c-teal)}
@@ -141,6 +142,17 @@
   @media (prefers-reduced-motion: reduce){.slide:not([hidden]){animation:none}}
   @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
   .inner{width:100%; max-width:1000px; margin:auto 0; padding-block:8px}
+  /* Content card: distinct --surface, floats on the --surface-2 deck backdrop */
+  .slide .inner{
+    background:
+      linear-gradient(color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--local-accent) 14%,transparent), transparent 45%),
+      radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),
+      var(--surface);
+    background-size:46px 46px,46px 46px,auto,auto,auto;
+    border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-lg); padding:28px 32px;
+    width:100%; max-width:1300px; aspect-ratio:16 / 9; max-height:100%; overflow-y:auto; overflow-x:hidden}
 
   .kicker{
     font-size:12.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase;
@@ -191,10 +203,7 @@
 
   #cover .inner{max-width:1000px}
   #cover .meta{font-size:13px; color:var(--faint); letter-spacing:2px; text-transform:uppercase; margin-top:16px}
-  .divider{background:
-     radial-gradient(1100px 560px at 12% -5%, color-mix(in srgb,var(--local-accent) 15%,transparent), transparent 60%),
-     radial-gradient(760px 380px at 100% 0%, color-mix(in srgb,var(--local-accent) 8%,transparent), transparent 55%),
-     var(--surface);}
+  .divider{background:transparent}
   .divider .num{font-size:13px; font-weight:700; letter-spacing:3px; color:var(--local-accent); text-transform:uppercase; margin-bottom:14px}
 
   .navbar{
@@ -327,7 +336,6 @@
         <li><strong>Level 4: Model Evaluation</strong> -&gt; Systematically prove which model is best for you.</li>
       </ul>
       <p>You choose the level based on your PoC requirement, not the other way around.</p>
-      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
       <ul class="help-list">
         <li class="help-list-item"><button class="help-btn" type="button" data-help="api-inference-lead" aria-label="Open deep dive: 1. Inference API — The Direct Foundation Model Call">?</button><span>1. Inference API — The Direct Foundation Model Call</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="api-kb" aria-label="Open deep dive: 2. Knowledge Bases — Managed RAG Without Undifferentiated Heavy Lifting">?</button><span>2. Knowledge Bases — Managed RAG Without Undifferentiated Heavy Lifting</span></li>
@@ -348,7 +356,6 @@
     <div class="inner">
       <p class="num">Part 03 · Prompt Engineering Fundamentals</p>
       <p><strong>The Core Idea:</strong> You don't need to fine-tune a model to improve it. For 80% of PoCs, better prompting gives you 90% of the improvement at 0% of the training cost. Prompt engineering is how you control a Foundation Model's behavior during <strong>inference</strong>. Think of the model as a very smart but very literal intern. If you give vague instructions, you get vague results.</p>
-      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
       <ul class="help-list">
         <li class="help-list-item"><button class="help-btn" type="button" data-help="pe-costar-lead" aria-label="Open deep dive: 1. Prompt Structure: The Anatomy of a Good Prompt">?</button><span>1. Prompt Structure: The Anatomy of a Good Prompt</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="pe-shots" aria-label="Open deep dive: 2. Prompting Techniques: Zero-Shot, One-Shot, Few-Shot">?</button><span>2. Prompting Techniques: Zero-Shot, One-Shot, Few-Shot</span></li>
@@ -367,7 +374,6 @@
       <p class="num">Part 04 · PoC Scoping Methodology</p>
       <p><strong>Core Principle:</strong> A PoC should not prove that Generative AI works. It should prove that it solves <em>your</em> business problem with measurable ROI, within your guardrails. Systematic scoping prevents the #1 failure I see: building a cool demo that no one can put into production.</p>
       <p class="quote"><strong>Running Example PoC:</strong> Automate summarization and categorization of 5,000 daily customer support tickets.</p>
-      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
       <ul class="help-list">
         <li class="help-list-item"><button class="help-btn" type="button" data-help="scope-p1-lead" aria-label="Open deep dive: Phase 1: Define Business Problems Suitable for Generative AI">?</button><span>Phase 1: Define Business Problems Suitable for Generative AI</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="scope-p2" aria-label="Open deep dive: Phase 2: Assess Data Requirements and Availability">?</button><span>Phase 2: Assess Data Requirements and Availability</span></li>
@@ -399,7 +405,6 @@
         <li><strong>Implementation Patterns:</strong> Did we build it the right way using AWS best practices?</li>
         <li><strong>Authentication &amp; Security:</strong> Is our data protected and ready for enterprise standards?</li>
       </ol>
-      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
       <ul class="help-list">
         <li class="help-list-item"><button class="help-btn" type="button" data-help="val-model-lead" aria-label="Open deep dive: 1. Systematic Model Selection">?</button><span>1. Systematic Model Selection</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="val-code" aria-label="Open deep dive: 2. Proven Code Implementation Patterns">?</button><span>2. Proven Code Implementation Patterns</span></li>
@@ -417,7 +422,6 @@
     <div class="inner">
       <p class="num">Part 06 · Model Selection Methodology</p>
       <p>There is no single "best" foundation model. There is only the best model <em>for your specific use case, with your latency and cost constraints</em>. We use a systematic 3-step process to prove it with data, not opinions: <strong>Define -&gt; Compare -&gt; Stress Test.</strong></p>
-      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
       <ul class="help-list">
         <li class="help-list-item"><button class="help-btn" type="button" data-help="ms-step1-lead" aria-label="Open deep dive: Step 1: Requirements Analysis — Define What &quot;Good&quot; Means Before You Test">?</button><span>Step 1: Requirements Analysis — Define What "Good" Means Before You Test</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="ms-step2" aria-label="Open deep dive: Step 2: Comparative Evaluation — Let Your Data Decide, Not Benchmarks">?</button><span>Step 2: Comparative Evaluation — Let Your Data Decide, Not Benchmarks</span></li>
@@ -438,7 +442,6 @@
     <div class="inner">
       <p class="num">Part 07 · Authentication and Security Considerations</p>
       <p>Security is not an add-on for later. With Bedrock, security is enabled by default, but you must configure it correctly to prove to your CISO that your PoC is enterprise-ready. Think of it in 3 layers: 1) Who can access Bedrock? -&gt; IAM Roles; 2) Is my data protected? -&gt; Encryption; 3) Can I prove who did what? -&gt; Access Logging. AWS Bedrock never uses your prompts, completions, or private data to train its foundation models.</p>
-      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
       <ul class="help-list">
         <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-iam-lead" aria-label="Open deep dive: 1. IAM Role Configuration — Principle of Least Privilege">?</button><span>1. IAM Role Configuration — Principle of Least Privilege</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-encrypt" aria-label="Open deep dive: 2. Data Encryption — In Transit and At Rest">?</button><span>2. Data Encryption — In Transit and At Rest</span></li>
@@ -456,7 +459,6 @@
     <div class="inner">
       <p class="num">Part 08 · Performance Testing Framework</p>
       <p>A model can be accurate but too slow or too expensive to use. Performance testing answers three business questions: 1) Speed: How fast will my user get an answer? 2) Scale: How many users can I handle at once before it breaks? 3) Cost: What will it cost me per transaction at scale? Test this now in PoC, not after launch.</p>
-      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
       <ul class="help-list">
         <li class="help-list-item"><button class="help-btn" type="button" data-help="perf-latency-lead" aria-label="Open deep dive: 1. Response Time Benchmarking — Latency Measurement">?</button><span>1. Response Time Benchmarking — Latency Measurement</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="perf-throughput" aria-label="Open deep dive: 2. Throughput Testing — Finding the Breaking Point">?</button><span>2. Throughput Testing — Finding the Breaking Point</span></li>
@@ -474,7 +476,6 @@
     <div class="inner">
       <p class="num">Part 09 · Input/Output Token Optimization</p>
       <p>Think of tokens as the currency of Generative AI. 1 token is roughly 4 characters or ~75% of a word. <strong>You pay for what you send [Input Tokens] + what you get back [Output Tokens]. Output tokens cost 3-5x more than input tokens and directly increase latency.</strong> Token optimization is not about being cheap - it's about removing waste while keeping quality high.</p>
-      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
       <ul class="help-list">
         <li class="help-list-item"><button class="help-btn" type="button" data-help="tok-count-lead" aria-label="Open deep dive: 1. Token Counting — You Can't Optimize What You Don't Measure">?</button><span>1. Token Counting — You Can't Optimize What You Don't Measure</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="tok-prompt" aria-label="Open deep dive: 2. Prompt Optimization — Shorter is Often Smarter">?</button><span>2. Prompt Optimization — Shorter is Often Smarter</span></li>
@@ -492,7 +493,6 @@
     <div class="inner">
       <p class="num">Part 10 · Cost Estimation Methods</p>
       <p>Traditional apps cost $X per month for servers. Generative AI apps cost $Y per <em>transaction</em>, and Y changes with every prompt. You need two lenses to control cost: 1) <strong>Financial Lens</strong> (How much am I spending? -&gt; AWS Cost Explorer); 2) <strong>Technical Lens</strong> (Why am I spending that much? -&gt; Amazon CloudWatch).</p>
-      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
       <ul class="help-list">
         <li class="help-list-item"><button class="help-btn" type="button" data-help="cost-visibility-lead" aria-label="Open deep dive: 1. Real-time Visibility is Crucial for GenAI Costs">?</button><span>1. Real-time Visibility is Crucial for GenAI Costs</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="cost-usage" aria-label="Open deep dive: 2. Usage Pattern Analysis — Project Before You Build">?</button><span>2. Usage Pattern Analysis — Project Before You Build</span></li>
@@ -513,7 +513,6 @@
     <div class="inner">
       <p class="num">Part 11 · Value Calculation Techniques</p>
       <p>Leadership doesn't approve technology, they approve business value. You must prove value in dollars. Value calculation has 3 layers: 1) Cost Comparison [TCO, Cost per Transaction, Break-Even]; 2) Process Automation Benefits; 3) Business Impact Assessment. For PoC approval, start with Layer 1.</p>
-      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
       <ul class="help-list">
         <li class="help-list-item"><button class="help-btn" type="button" data-help="val2-tco-lead" aria-label="Open deep dive: 1. Total Cost of Ownership [TCO] — The Complete Picture">?</button><span>1. Total Cost of Ownership [TCO] — The Complete Picture</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="val2-cpt" aria-label="Open deep dive: 2. Cost per Transaction — The Apples-to-Apples Metric">?</button><span>2. Cost per Transaction — The Apples-to-Apples Metric</span></li>
@@ -531,7 +530,6 @@
     <div class="inner">
       <p class="num">Part 12 · Process Automation Benefits</p>
       <p>Cost reduction tells you "we spend less". Process automation tells you "we do more, faster, and better with the same team". This is often the most compelling justification for leadership. We quantify it in 3 measurable dimensions.</p>
-      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
       <ul class="help-list">
         <li class="help-list-item"><button class="help-btn" type="button" data-help="auto-time-lead" aria-label="Open deep dive: 1. Time Savings Quantification — From Minutes to Seconds">?</button><span>1. Time Savings Quantification — From Minutes to Seconds</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="auto-quality" aria-label="Open deep dive: 2. Quality Improvements — Consistency at Scale">?</button><span>2. Quality Improvements — Consistency at Scale</span></li>
@@ -549,7 +547,6 @@
     <div class="inner">
       <p class="num">Part 13 · Business Impact Assessment</p>
       <p>Cost savings and time savings are easy to measure. But the biggest value of Generative AI is often strategic - it makes you money, reduces risk, and makes you more competitive. We assess this in 3 categories that leadership cares about.</p>
-      <h3>In this section — tap <span class="q-inline">?</span> to open each deep dive</h3>
       <ul class="help-list">
         <li class="help-list-item"><button class="help-btn" type="button" data-help="impact-revenue-lead" aria-label="Open deep dive: 1. Revenue Impact — How Does This Make Us More Money?">?</button><span>1. Revenue Impact — How Does This Make Us More Money?</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="impact-risk" aria-label="Open deep dive: 2. Risk Reduction — How Does This Make Us Safer?">?</button><span>2. Risk Reduction — How Does This Make Us Safer?</span></li>
