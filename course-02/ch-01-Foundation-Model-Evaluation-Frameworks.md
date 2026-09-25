@@ -147,7 +147,7 @@ Higher is not always better. A model optimized for reasoning may be slower and m
 
 ### Capability Assessment Framework for AI Systems - Architect's View
 
-**Refined Definition:** This framework is a 5-dimensional scorecard to evaluate an AI system end-to-end. It moves you beyond "how smart is the model" to "is this model fit for production in *my* business?" It helps you identify gaps, compare models objectively using industry leaderboards, and make a confident deployment decision on Amazon Bedrock.
+This framework is a 5-dimensional scorecard to evaluate an AI system end-to-end. It moves you beyond "how smart is the model" to "is this model fit for production in *my* business?" It helps you identify gaps, compare models objectively using industry leaderboards, and make a confident deployment decision on Amazon Bedrock.
 
 We assess across 5 dimensions:
 
@@ -218,12 +218,12 @@ Don't run all benchmarks. Use this simple 3-step approach on **Amazon Bedrock Mo
 
 ### Systematic Capability Mapping - Architect's View
 
-**Refined Definition:** Systematic Capability Mapping is a structured method to document, categorize, and measure what your AI system can and cannot do across different business domains. Instead of a single leaderboard score, you create a visual, standardized map of capabilities. This becomes the foundation for gap analysis, risk assessment, and build-vs-buy decisions.
+Systematic Capability Mapping is a structured method to document, categorize, and measure what your AI system can and cannot do across different business domains. Instead of a single leaderboard score, you create a visual, standardized map of capabilities. This becomes the foundation for gap analysis, risk assessment, and build-vs-buy decisions.
 
 We achieve this using 3 core methods:
 
 #### 1. Capability Matrix Development
-**What it is:** A 2D grid where Rows = Capabilities and Columns = Performance Levels. It lets you compare multiple models side-by-side and instantly spot gaps.
+A 2D grid where Rows = Capabilities and Columns = Performance Levels. It lets you compare multiple models side-by-side and instantly spot gaps.
 
 **Easy language:** Like a skills matrix for a human employee - Python: Expert, Communication: Intermediate, Finance Knowledge: Beginner.
 
@@ -240,7 +240,7 @@ We achieve this using 3 core methods:
 > **Gap Analysis:** The matrix shows Claude meets your Safety and Accuracy needs, but fails Latency. Llama meets Latency but fails Safety. You now have a clear decision: you need to either add Amazon Bedrock Guardrails to Llama, or use prompt caching for Claude.
 
 #### 2. Competency Framework Integration
-**What it is:** Aligning AI capabilities to your existing organizational competency models. You map AI functions directly to business processes and human roles.
+Aligning AI capabilities to your existing organizational competency models. You map AI functions directly to business processes and human roles.
 
 **Easy language:** Don't map AI as a tech tool. Map it as a "Digital Employee" with a job description and KPIs.
 
@@ -252,7 +252,7 @@ We achieve this using 3 core methods:
 > * You validate this using **Amazon Bedrock Model Evaluation** with a custom dataset of 100 historical claims. If the model tries to make the final payout decision, it fails the competency framework.
 
 #### 3. Functional Taxonomy Creation
-**What it is:** Creating a hierarchical, common vocabulary to categorize capabilities so all teams speak the same language and you can track evolution over time.
+Creating a hierarchical, common vocabulary to categorize capabilities so all teams speak the same language and you can track evolution over time.
 
 **Easy language:** A family tree of skills. Top level is broad, bottom level is very specific.
 
@@ -292,3 +292,219 @@ This mapping document becomes your audit trail for responsible AI deployment.
 ---
 ---
 
+### Domain-Specific Evaluation - Architect's View
+
+Domain-specific evaluation measures how well an AI system performs in *your* industry, with *your* terminology, regulations, and workflows. It answers: "Does this model understand finance, healthcare, or telecom like an analyst in that industry would?" We move from public Wikipedia knowledge to proprietary, high-stakes domain knowledge.
+
+We do this using 3 proven methods:
+
+#### 1. Industry Benchmarks
+Comparing the model against established, public or private datasets built specifically for an industry to find gaps against regulatory and professional standards.
+
+**Easy language:** It's like a board exam for doctors or CAs. You don't test a doctor on general knowledge, you test them on medical cases.
+
+> **Technical Example - Financial Services:**
+> You don't just test a model on math. You test it on **FinanceBench**.
+> **Prompt:** `From the attached 10-K filing for Company X, what was the YoY change in Net Interest Margin for Q3 2024, and is it compliant with Basel III disclosure requirements?`
+> A general model will hallucinate the number. A domain-capable model must do: Document Parsing -> Table Extraction -> Calculation [NIM = (Interest Income - Interest Expense) / Avg Earning Assets] -> Regulatory Check. If it fails this, it fails your industry benchmark, even if its MMLU is 90%.
+
+#### 2. Domain Expert Review [SME-in-the-loop]
+Engaging Subject Matter Experts to qualitatively review model outputs for subtle, high-risk errors that automated metrics like ROUGE or BLEU will completely miss.
+
+**Easy language:** Quantitative metrics check if the answer *looks* right. An SME checks if the answer *is* right and *safe*.
+
+> **Technical Example - Healthcare on Amazon Bedrock:**
+> You use **Bedrock Model Evaluation with Human Evaluation workflow**.
+> **Model Output:** `Patient has hyperglycemia, prescribe 10 units of insulin.`
+> **Automated Metric:** Faithfulness = 0.95, because it grounded the answer from the EHR.
+> **SME Review Flags:** `CRITICAL ERROR - Patient has Type 2 diabetes with CKD Stage 4, 10 units is contraindicated without checking eGFR. Model missed drug-dosage nuance. Risk: High.`
+> This is why we always pair automated evaluation with SME review for healthcare, using **Bedrock's human evaluation** where you can bring your own clinical reviewers to score outputs on Safety, Correctness, and Completeness.[Doctor]
+
+#### 3. Use Case Alignment
+Evaluating the AI not on isolated Q&A, but on an end-to-end business scenario to measure actual business impact and workflow integration.
+
+**Easy language:** Does it reduce handle time? Does it integrate with your existing systems like Salesforce or Epic?
+
+> **Technical Example - Insurance Claims:**
+> **Scenario:** `A customer uploads 3 documents - accident photos, police report, and policy PDF - and asks "Is my claim covered?"`
+> **Use Case Alignment Test:**
+> 1. Did it call the right tool `check_policy_coverage[policy_id]` in **Bedrock Agents**?
+> 2. Did it extract the correct incident date?
+> 3. What was the business KPI? Time to Decision went from 25 mins to 45 seconds [AI], with 98% accuracy.
+> This is more valuable than any benchmark score because it ties directly to ROI.[human]
+
+#### Key Leaderboards for Domain-Specific Evaluation
+
+These are your ready-made industry exams:
+
+**1. MMLU - 57 Domain Test:** While general, its real value is domain slicing. Don't look at overall MMLU. Filter it for `Professional Medicine, Clinical Knowledge, Accounting, Finance, Law`. If a model scores 88% overall but 62% in Professional Law, you cannot use it for your legal use case.
+
+**2. Bedrock Model Evaluation Leaderboard - Industry Tracks:** This is what we recommend to AWS customers. These are private, industry-specific tracks for Financial Services, Healthcare, and Telecom. Unlike public leaderboards, they incorporate **compliance requirements** - e.g., for finance, evaluation includes PCI-DSS and FINRA compliance checks; for healthcare, HIPAA-safe response and de-identification checks. You bring your own dataset, and Bedrock evaluates against these industry guardrails.
+
+**3. MedPaLM Benchmark / MedQA:** Built with doctors, specifically for clinical decision support. It tests medical reasoning, not just recall. Example question: `A 67-year-old male with chest pain radiating to the left arm...` It measures if the model can perform differential diagnosis safely. If you are in healthcare, this is your gold standard.
+
+**4. FinanceBench:** The most rigorous for financial services. It contains real-world questions based on actual 10-Ks, 10-Qs, earnings call transcripts, and regulatory documents like Basel III and SEC filings. It tests if the model can find a needle of financial insight in a haystack of filings, which is exactly your analyst's job.
+
+**Architect's Recommendation:**
+
+For any production workload, implement this 3-layer evaluation on AWS:
+
+1. **Layer 1 - Automated:** Run your model against the relevant domain slice of MMLU + FinanceBench/MedQA using **Amazon Bedrock Model Evaluation - Automatic [RAGAS]**.[Correctness]
+2. **Layer 2 - SME Review:** Route the 20% low-confidence or high-risk outputs to your SMEs using **Bedrock Model Evaluation - Human Workflow**.
+3. **Layer 3 - Business KPI:** Measure Use Case Alignment - `Claims auto-approved %, Average Handle Time, Compliance Violation Rate`.
+
+A model is only domain-ready when it passes all three layers.
+
+---
+---
+
+### Task-Specific Analysis - Architect's View
+
+Task-specific analysis evaluates an AI system's performance on a particular type of work - like summarization, code generation, or reasoning - independent of the industry. We don't care if the content is about healthcare or banking, we care if the *task* was done correctly, helpfully, and efficiently.
+
+We measure this using 3 core methods:
+
+#### 1. Precision / Recall Metrics - Was the task done accurately and completely?
+**What it measures:** For deterministic tasks like extraction and classification, we balance false positives vs. false negatives.
+
+*   **Precision:** Of all the things the model returned, how many were correct? [Penalizes hallucination]
+*   **Recall:** Of all the things it *should* have returned, how many did it find? [Penalizes missing info]
+*   **F1 Score:** Harmonic mean of both.
+
+> **Technical Example - Entity Extraction Task on Bedrock:**
+> **Task:** Extract all invoice amounts from a document.
+> Document has 5 true amounts: `[ $100, $250, $400, $50, $75 ]`
+> Model returns: `[ $100, $250, $900, $50 ]`
+> *   **Precision = 3/4 = 75%** - It returned 4, but $900 is wrong [false positive].
+> *   **Recall = 3/5 = 60%** - It only found 3 of the 5 true amounts. Missed $400 and $75 [false negatives].
+> *   This tells you immediately: The model is both hallucinating and missing data. You need to improve your RAG retriever or prompt.
+
+#### 2. Response Quality Assessment - Was the response actually helpful?
+**What it measures:** For generative tasks like chat and summarization, precision/recall is not enough. We evaluate Coherence, Relevance, Helpfulness, and Faithfulness to user intent. We now use **LLM-as-a-Judge** for this.
+
+> **Technical Example - Summarization Task:**
+> **User Intent:** `Summarize this 20-page escalation for a VP, focus on customer impact and next steps.`
+> **Model A Output:** A 500-word summary that is factually correct but includes all the technical logs. [High Precision, Low Relevance]
+> **Model B Output:** A 3-bullet summary: "Impact: 200 users blocked. Root Cause: API timeout. Next Step: Rollback deployed."
+> Using **Amazon Bedrock Model Evaluation with LLM-as-a-Judge**, Model B scores:
+> `Helpfulness: 4.8/5, Relevance: 4.9/5, Coherence: 5/5` while Model A scores `Helpfulness: 2.5/5`. This is what matters for business adoption.
+
+#### 3. Efficiency Metrics - Can it scale in production?
+**What it measures:** Computational cost to perform the task - response time, throughput, and resource usage under load.
+
+*   **TTFT [Time to First Token]:** For real-time chat.
+*   **Tokens/sec & Latency p95:** For batch processing.
+*   **Cost per Task:** $ per 1,000 tasks completed.
+
+> **Technical Example:** You have a task to classify 1 Million support tickets overnight.
+> **Model A:** 95% accuracy, 2.1 sec/ticket, $0.015 / 1K tokens = 24 hours + $450
+> **Model B:** 93% accuracy, 0.4 sec/ticket, $0.0008 / 1K tokens = 4.5 hours + $24
+> A 2% accuracy drop for 5x speed and 18x cost saving is a better business trade-off. We track this in Bedrock via latency and cost metrics.
+
+#### Key Leaderboards for Task-Specific Analysis
+
+**1. MT-Bench [Multi-Turn Benchmark]:** The gold standard for **conversational and instruction-following tasks**.
+It tests 8-turn conversations - writing, role-play, reasoning. It uses GPT-4 as a judge, which correlates 85%+ with human preference. It measures both Precision/Recall and Response Quality.
+
+> **Example:** Turn 1: `Write a Python script to analyze S3 logs.` Turn 2: `Now modify it to handle Parquet and add error handling.` If the model forgets Turn 1 context in Turn 2, it fails MT-Bench. This is critical if you are building an agent on **Bedrock Agents**.
+
+**2. HumanEval+ and MBPP+ [Coding Benchmarks]:** The gold standard for **code generation tasks**.
+Original HumanEval had only 7 tests per problem. HumanEval+ has 80x more tests to catch edge cases. It measures function completion, bug fixing, and algorithm implementation across Python, Java, etc.
+
+> **Example Prompt:** `def get_presigned_url(bucket, key, expiry=3600):`
+> A model may pass 1 basic test but fail HumanEval+ because it didn't handle `expiry <=0` or `key with special characters`. HumanEval+ score of 85%+ means the code is actually production-ready, not just demo-ready. We use this to select models for **Amazon Q Developer** use cases.
+
+**3. GSM8K and MATH:** The gold standard for **mathematical reasoning tasks**.
+GSM8K = 8.5K grade-school math word problems requiring step-by-step chain-of-thought. MATH = 12.5K competition-level problems. They measure precision in quantitative tasks.
+
+> **Example:** `Janet has 3x more apples than Tom. Tom has 5. If she gives 4 away, how many left?`
+> We don't just check the final answer `11`. We evaluate the chain-of-thought: `Tom=5, Janet=3*5=15, 15-4=11`. A model that gets 11 by guessing fails MATH. For finance or pricing use cases, this reasoning trace is mandatory for audit.
+
+**4. BIG-Bench Hard [BBH]:** The gold standard for **complex, multi-step reasoning edge cases**.
+It takes the 23 hardest tasks from BigBench that previous models failed. It tests logical deduction, sarcasm, causal reasoning.
+
+> **Example Task - Causal Reasoning:** `The following are 3 events: A) It rained, B) The ground is wet, C) People used umbrellas. What is the causal chain?`
+> A weak model says `B -> A`. A strong reasoning model correctly identifies `A -> B and A -> C`. If your use case is root-cause analysis or fraud detection, you need a high BBH score.
+
+**Architect's Recommendation on AWS:**
+
+Don't mix metrics. Map Task -> Metric -> Leaderboard -> Bedrock Tool:
+
+| Your Task | Metric to Track | Leaderboard to Check | AWS Tool |
+| :--- | :--- | :--- | :--- |
+| Extraction / Classification | Precision, Recall, F1 | GLUE / Custom | Bedrock Evaluation - Accuracy |
+| Chatbot / Summarization | Helpfulness, Faithfulness | MT-Bench | Bedrock Evaluation - LLM-as-a-Judge |
+| Code Generation | pass@k | HumanEval+ | Bedrock Evaluation - Code |
+| Cost at Scale | TTFT, $/task | - | CloudWatch + Bedrock Metrics |
+
+---
+---
+
+### Multimodal Assessment - Architect's View
+
+Multimodal assessment evaluates how well an AI system handles multiple data types - Text, Image, Audio, Video - *together*, not in isolation. We don't just test if it can see an image and read text separately. We test if it can *reason across them* while preserving information integrity. A model that describes an image perfectly but fails to link it to your text document fails this assessment.
+
+We evaluate this using 3 approaches:
+
+#### 1. Cross-Modal Coherence Evaluation
+**What it measures:** Consistency of information when it moves from one modality to another. Does the model's understanding of an image align with its understanding of the text about that same image?
+
+> **Technical Example - Insurance Claim on Amazon Bedrock:**
+> **Inputs:** Image = [Photo of a car with dented rear bumper], Text = Police report says "Front-end collision".
+> **Model with poor coherence:** Generates report: "Vehicle shows front-end damage as per police report." It ignored the image and just trusted the text - hallucination.
+> **Model with strong coherence:** Flags inconsistency: "Alert: Visual evidence shows rear damage, but text report states front-end collision. Cross-modal conflict detected - requires human review."
+> This is what we measure on **Claude 3.5 Sonnet and Amazon Nova Premier** on Bedrock. Good coherence = unified understanding.
+
+#### 2. Modal-Specific Performance Metrics
+**What it measures:** We apply specialized metrics to each modality to find the weakest link. A multimodal model is only as strong as its worst modality.
+
+* **Vision:** CIDEr, VQA Accuracy
+* **Audio:** Word Error Rate [WER] for transcription
+* **Video:** Temporal grounding accuracy
+
+> **Technical Example:** You build a shop-floor safety assistant using video + audio.
+> You test 100 samples:
+> * Text Q&A Accuracy: 92%
+> * Image Object Detection [hard hat]: 89%
+> * Audio Transcription [worker shouting "help"] WER: 35%
+> Your modal-specific metrics show the failure mode is Audio, not Vision. You need to add **Amazon Transcribe** as a pre-processor or choose a model with stronger audio encoder. Without this breakdown, you'd think the whole model is bad.[Poor]
+
+#### 3. Integration Assessment
+**What it measures:** How effectively the model *fuses* multiple modalities to perform reasoning that is impossible with a single modality alone, while preserving information integrity.
+
+> **Technical Example - Technical Troubleshooting:**
+> **Input 1 :** Technical diagram of an architecture with VPC-A peering to VPC-B
+> **Input 2 :** "App in VPC-A cannot reach RDS in VPC-B, but ping works."
+> **Input 3 :** Engineer says "Security group looks fine"
+> **Task:** Diagnose the issue.
+> A single-modality model fails. A model with strong integration assessment reasons across all three: `Ping works = Network ACL and Routing OK. Image shows peering is correct. Audio + Text suggests SG issue, but ping uses ICMP, RDS uses TCP 3306. Conclusion: Security Group inbound rule for TCP 3306 is missing in VPC-B.`
+> This is cross-modal reasoning. This is what we test.[Image][Text][Audio]
+
+#### Key Leaderboards for Multimodal Assessment
+
+**1. MMMLU [Massive Multimodal Language Understanding]:** Tests processing across text, images, audio, and video in a single task. It measures cross-modal coherence and information preservation - did information get lost when moving from image to text?
+
+**2. LMSys Chatbot Arena - Multimodal Tracks:** This is human preference for multimodal. It uses an **Elo rating system** based on millions of blind human comparisons. Users upload an image and ask a question, two models answer, humans vote which fusion was better. This is the closest to real-world user satisfaction for modal integration.
+
+**3. MMMU [Massive Multi-discipline Multimodal Understanding]:** The hardest professional test. It evaluates college-level tasks that *require* multimodal reasoning - reading technical diagrams, scientific charts, medical scans, financial tables. Example: An image of a circuit diagram + question "Calculate current through R3". It tests professional-level multimodal reasoning, not just captioning.
+
+**4. MME [Multimodal Evaluation Benchmark]:** The diagnostic benchmark. It **separates Perception from Reasoning** to identify specific strengths/weaknesses.
+* Perception Score: Can it see the objects correctly?
+* Cognition Score: Can it reason about what it saw?
+> Example: MME might show Model A has Perception 90% but Cognition 60% - it sees the X-ray correctly but fails to diagnose. Model B has Perception 70% but Cognition 85% - it struggles to see, but reasons well on what it does see. This tells you exactly what to fix.
+
+**Architect's Recommendation on AWS:**
+
+On **Amazon Bedrock**, when you evaluate multimodal models like Claude 3.5 Sonnet, Nova Pro, or Llama 3.2 Vision:
+
+1. **Don't test modalities in isolation.** Always create test cases that *require* 2+ modalities to answer.
+2. **Create a Modal Scorecard:**
+    | Test Case | Modality Needed | Coherence Pass? | Result |
+    | :--- | :--- | :--- | :--- |
+    | Claim Verification | Image + Text | Yes/No | Flagged conflict correctly? |
+3. **Use Bedrock's Multimodal Evaluation:** Upload image+text pairs and use LLM-as-a-Judge to score Cross-Modal Faithfulness - "Is the text response grounded in both the image and the provided document?"
+
+A model is multimodally ready only when it preserves information across modalities and can reason across them to solve a task that single modality cannot.
+
+---
+---
