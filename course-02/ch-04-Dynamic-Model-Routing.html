@@ -1,0 +1,1160 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+  /* ---- Help icon + deep-dive popover ---- */
+  .q-inline{display:inline-flex;align-items:center;justify-content:center;width:1.15em;height:1.15em;border-radius:50%;font-weight:700;font-size:.85em;background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);vertical-align:middle}
+  .help-list{list-style:none;padding:0;margin:14px 0 4px;display:flex;flex-direction:column;gap:9px;max-width:78ch}
+  .help-list-item{display:flex;align-items:flex-start;gap:12px;background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--local-accent,var(--accent));border-radius:11px;padding:12px 15px;box-shadow:var(--shadow)}
+  .help-list-item span{font-size:clamp(14.5px,1.4vw,17px);line-height:1.45;color:var(--text);font-weight:500;padding-top:2px}
+  .help-btn{appearance:none;flex:none;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-weight:700;font-size:15px;line-height:1;border-radius:50%;cursor:pointer;border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));transition:transform .15s,background .15s,color .15s}
+  .help-btn:hover,.help-btn:focus-visible{background:var(--local-accent,var(--accent));color:#fff;transform:scale(1.12);outline:none}
+  .help-btn:focus-visible{outline:2px solid var(--local-accent,var(--accent));outline-offset:2px}
+
+  /* Deep dive: full-viewport overlay with an opaque surface so the slide never shows through;
+     close button pinned to the top-right corner above everything. Accent is copied from the
+     active slide onto the popover via --pop-accent (set in openHelp). */
+  .help-popover{--pop-accent:var(--accent);--local-accent:var(--pop-accent);position:fixed;top:calc(60px + env(safe-area-inset-top,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));left:14px;right:14px;max-width:1300px;margin-inline:auto;z-index:100;display:flex;flex-direction:column;background:linear-gradient(color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),linear-gradient(90deg, color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--pop-accent) 14%,transparent), transparent 45%),radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),var(--surface);background-size:46px 46px,46px 46px,auto,auto,auto;border:1px solid var(--border);border-top:4px solid var(--pop-accent);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;animation:helpPop .28s cubic-bezier(.16,1,.3,1)}
+  @media (max-width:600px){.help-popover{left:8px;right:8px}}
+  .help-popover[hidden]{display:none}
+  .help-popover[data-accent="orange"]{--pop-accent:var(--c-orange)}
+  .help-popover[data-accent="teal"]{--pop-accent:var(--c-teal)}
+  .help-popover[data-accent="purple"]{--pop-accent:var(--c-purple)}
+  .help-popover[data-accent="green"]{--pop-accent:var(--c-green)}
+  .help-popover[data-accent="blue"]{--pop-accent:var(--c-blue)}
+  .help-popover[data-accent="pink"]{--pop-accent:var(--c-pink)}
+  .help-popover[data-accent="red"]{--pop-accent:var(--c-red)}
+  .help-popover[data-accent="amber"]{--pop-accent:var(--c-amber)}
+  @keyframes helpPop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.help-popover{animation:none}}
+  .help-popover-close{position:absolute;top:14px;right:16px;z-index:101;width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:50%;cursor:pointer;color:var(--pop-accent);border:1px solid color-mix(in srgb,var(--pop-accent) 45%,transparent);background:color-mix(in srgb,var(--pop-accent) 14%,var(--surface))}
+  .help-popover-close:hover{background:var(--pop-accent);color:#fff;border-color:var(--pop-accent)}
+  .help-popover-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:64px 24px 40px;display:flex;justify-content:center}
+  .help-popover-body .inner{margin:0}
+
+</style></head><body>
+<title>Dynamic Model Routing</title>
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#DEE4EC; --surface:#FFFFFF; --surface-2:#F1F4F8;
+    --text:#152230; --muted:#4C5A69; --faint:#7A8899;
+    --accent:#C2570B; --accent-soft:#F4E4D5; --accent2:#0E6E7D; --accent2-soft:#DDEEF0;
+    --c-orange:#C2570B; --c-teal:#0E6E7D; --c-purple:#7C3AED; --c-green:#1F8A4C;
+    --c-blue:#1E63C4; --c-pink:#C0357E; --c-red:#CB4335; --c-amber:#B7791F;
+    --border:#D4DBE3; --code-bg:#F1F4F8; --code-text:#152230; --deck-bg:#eaeef2;
+    --shadow:0 1px 3px rgba(20,34,48,.08),0 8px 30px rgba(20,34,48,.06); --shadow-lg:0 6px 16px rgba(20,34,48,.12),0 20px 50px rgba(20,34,48,.16);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+      --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+      --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+      --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+      --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+      --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+      --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+    --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+    --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+    --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+    --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+    --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'IBM Plex Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  code,pre,.mono{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace}
+
+  #progress{position:fixed; top:0; left:0; height:3px; background:var(--accent); width:0; z-index:60; transition:width .25s ease}
+  @media (prefers-reduced-motion: reduce){#progress{transition:none}}
+
+  .topbar{
+    position:fixed; left:0; right:0; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 18px; padding-top:calc(10px + env(safe-area-inset-top,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex; align-items:center; gap:10px; min-width:0}
+  .brand .dot{width:12px;height:12px;border-radius:3px;background:var(--accent);flex:none}
+  .brand b{font-weight:600; font-size:14px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .brand span{color:var(--faint); font-size:13px; white-space:nowrap}
+  .tools{display:flex; align-items:center; gap:8px; flex:none}
+  .btn{
+    appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--text);
+    font:inherit; font-size:13px; font-weight:500; padding:7px 12px; border-radius:9px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; line-height:1;
+  }
+  .btn:hover{border-color:var(--accent)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .btn.icon{padding:7px 9px}
+
+  /* The deck is a card floating on the (darker) page, holding one slide at a time. */
+  .deck{
+    --slide-accent:var(--accent); --local-accent:var(--slide-accent);
+    position:fixed;
+    top:calc(60px + env(safe-area-inset-top,0px));
+    bottom:calc(60px + env(safe-area-inset-bottom,0px));
+    left:14px; right:14px;
+    background:var(--deck-bg);
+    border:1px solid var(--border);
+    border-top:4px solid var(--slide-accent);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    transition:border-top-color .25s ease;
+  }
+  .deck[data-accent="orange"]{--slide-accent:var(--c-orange)}
+  .deck[data-accent="teal"]{--slide-accent:var(--c-teal)}
+  .deck[data-accent="purple"]{--slide-accent:var(--c-purple)}
+  .deck[data-accent="green"]{--slide-accent:var(--c-green)}
+  .deck[data-accent="blue"]{--slide-accent:var(--c-blue)}
+  .deck[data-accent="pink"]{--slide-accent:var(--c-pink)}
+  .deck[data-accent="red"]{--slide-accent:var(--c-red)}
+  .deck[data-accent="amber"]{--slide-accent:var(--c-amber)}
+  @media (max-width:600px){.deck{left:8px; right:8px}}
+
+  .slide{
+    --local-accent:var(--accent);
+    position:absolute; inset:0; overflow-y:auto; overflow-x:hidden;
+    padding:32px 30px calc(28px + env(safe-area-inset-bottom,0px));
+    display:flex; justify-content:center;
+    background:transparent;
+  }
+  .slide[data-accent="orange"]{--local-accent:var(--c-orange)}
+  .slide[data-accent="teal"]{--local-accent:var(--c-teal)}
+  .slide[data-accent="purple"]{--local-accent:var(--c-purple)}
+  .slide[data-accent="green"]{--local-accent:var(--c-green)}
+  .slide[data-accent="blue"]{--local-accent:var(--c-blue)}
+  .slide[data-accent="pink"]{--local-accent:var(--c-pink)}
+  .slide[data-accent="red"]{--local-accent:var(--c-red)}
+  .slide[data-accent="amber"]{--local-accent:var(--c-amber)}
+  .slide:not([hidden]){animation:fade .3s ease both}
+  @media (prefers-reduced-motion: reduce){.slide:not([hidden]){animation:none}}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  .inner{width:100%; max-width:1000px; margin:auto 0; padding-block:8px}
+  /* Content card: distinct --surface, floats on the --surface-2 deck backdrop */
+  .slide .inner{
+    background:
+      linear-gradient(color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--local-accent) 14%,transparent), transparent 45%),
+      radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),
+      var(--surface);
+    background-size:46px 46px,46px 46px,auto,auto,auto;
+    border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-lg); padding:28px 32px;
+    width:100%; max-width:1300px; aspect-ratio:16 / 9; max-height:100%; overflow-y:auto; overflow-x:hidden}
+
+  .kicker{
+    font-size:12.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase;
+    color:var(--local-accent,var(--accent)); margin:0 0 14px;
+  }
+  h1{font-size:clamp(30px,5vw,56px); line-height:1.05; font-weight:700; margin:0 0 18px; letter-spacing:-.02em; text-wrap:balance}
+  h2{font-size:clamp(23px,3.1vw,38px); line-height:1.12; font-weight:600; margin:0 0 16px; letter-spacing:-.01em; text-wrap:balance; color:var(--local-accent,var(--text))}
+  h3{font-size:clamp(16px,1.85vw,21px); font-weight:600; margin:22px 0 9px; color:var(--text)}
+  p{font-size:clamp(14.5px,1.45vw,17.5px); line-height:1.55; color:var(--muted); margin:0 0 12px; max-width:76ch}
+  p strong,li strong,td strong{color:var(--text); font-weight:600}
+  .lead{font-size:clamp(16px,1.85vw,21px); line-height:1.5; color:var(--text)}
+  ul,ol{margin:0 0 12px; padding-left:22px; max-width:78ch}
+  li{font-size:clamp(14.5px,1.4vw,17px); line-height:1.5; color:var(--muted); margin:0 0 7px}
+  em{font-style:italic}
+  hr.div{border:none; border-top:1px solid var(--border); margin:20px 0}
+
+  code:not(pre code){
+    background:var(--surface-2); border:1px solid var(--border); border-radius:6px;
+    padding:.08em .4em; font-size:.85em; color:var(--text); word-break:break-word;
+  }
+  pre{
+    background:color-mix(in srgb,var(--local-accent,var(--accent)) 6%,var(--code-bg)); color:var(--code-text);
+    border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 22%,var(--border));
+    border-left:3px solid var(--local-accent,var(--accent));
+    border-radius:12px; margin:6px 0 16px;
+    padding:16px 18px; overflow-x:auto;
+    font-size:clamp(11.5px,1.2vw,13.5px); line-height:1.55;
+  }
+  pre code{color:inherit; white-space:pre}
+
+  .tbl{overflow-x:auto; margin:8px 0 16px; border:1px solid var(--border); border-radius:12px}
+  table{border-collapse:collapse; width:100%; font-size:clamp(13px,1.25vw,15px)}
+  th,td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:9px 12px; text-align:left; vertical-align:top; color:var(--muted)}
+  th{background:var(--surface-2); color:var(--text); font-weight:600; white-space:nowrap}
+  tr td:last-child,tr th:last-child{border-right:none}
+  tbody tr:last-child td{border-bottom:none}
+
+  .note{
+    background:var(--surface-2); border:1px solid var(--border); border-left:4px solid var(--accent2);
+    border-radius:12px; padding:16px 18px; margin:10px 0 14px; box-shadow:var(--shadow);
+  }
+  .note .tag{display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent2); margin-bottom:6px}
+  .note p:last-child{margin-bottom:0}
+  .note.tip{border-left-color:var(--local-accent,var(--accent))}
+  .note.tip .tag{color:var(--local-accent,var(--accent))}
+  .quote{
+    border-left:3px solid var(--accent2); padding:4px 0 4px 18px; margin:0 0 12px;
+    color:var(--text); font-size:clamp(14px,1.45vw,17px); line-height:1.5;
+  }
+  .badge{display:inline-block; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; background:var(--accent2-soft); color:var(--accent2); margin-bottom:12px}
+
+  #cover .inner{max-width:1000px}
+  #cover .meta{font-size:13px; color:var(--faint); letter-spacing:2px; text-transform:uppercase; margin-top:16px}
+  #cover .src{font-size:12px; color:var(--faint); letter-spacing:0; text-transform:none; margin-top:10px; word-break:break-all}
+  #cover .src a{color:var(--faint)}
+  .divider{background:transparent}
+  .divider .num{font-size:13px; font-weight:700; letter-spacing:3px; color:var(--local-accent); text-transform:uppercase; margin-bottom:14px}
+
+  .navbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    padding:12px 18px; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-top:1px solid var(--border);
+  }
+  .counter{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; min-width:64px; text-align:center}
+  .counter b{color:var(--text); font-weight:600}
+
+  .menu{
+    position:fixed; inset:0; z-index:70; background:color-mix(in srgb,var(--bg) 92%,transparent);
+    backdrop-filter:blur(6px); padding:calc(70px + env(safe-area-inset-top,0px)) 18px 30px; overflow-y:auto;
+  }
+  .menu .mwrap{max-width:860px; margin:0 auto}
+  .menu h2{font-size:20px; margin-bottom:16px}
+  .mlist{list-style:none; padding:0; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:2px 28px; align-content:start}
+  @media (max-width:600px){.mlist{grid-template-columns:1fr}}
+  .mitem{
+    width:100%; text-align:left; display:flex; gap:12px; align-items:baseline;
+    background:none; border:none; border-radius:9px; color:var(--text); font:inherit; padding:9px 12px; cursor:pointer;
+  }
+  .mitem:hover{background:var(--surface)}
+  .mitem .mn{color:var(--faint); font-size:12.5px; font-variant-numeric:tabular-nums; min-width:26px}
+  .mitem.sec{font-weight:600; margin-top:6px}
+  .mitem.sec .mn{color:var(--accent)}
+  .mitem.cur{background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--border)}
+  .hint{position:fixed; bottom:70px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--faint); z-index:40; pointer-events:none; transition:opacity .5s}
+  @media (max-width:600px){.hint{display:none}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<div id="progress"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <b>Dynamic Model Routing</b>
+    <span>· AWS Generative AI · Ch.04</span>
+  </div>
+  <div class="tools">
+    <button class="btn" id="menuBtn" aria-haspopup="true">☰ Contents</button>
+    <button class="btn icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+  </div>
+</header>
+
+<main class="deck" id="deck">
+
+  <!-- Cover -->
+  <section class="slide divider" id="cover" data-accent="orange" data-title="Dynamic Model Routing" data-section="true">
+    <div class="inner">
+      <p class="num">Course 02 · Chapter 04</p>
+      <h1>Dynamic Model Routing</h1>
+      <p class="lead">Static routing is rule-based, dynamic routing is intelligence-based.</p>
+      <p class="meta">← → or Space to navigate · Press C for contents · T for theme</p>
+      <p class="src"><a href="https://www.meta.ai/prompt/8871b14d-6dbe-4046-b844-ec50e095b440">https://www.meta.ai/prompt/8871b14d-6dbe-4046-b844-ec50e095b440</a></p>
+    </div>
+  </section>
+
+  <!-- ===== PART 1: INTELLIGENT PROMPT ROUTING ===== -->
+  <section class="slide divider" id="ipr" data-accent="orange" data-title="Part 01 · Amazon Bedrock Intelligent Prompt Routing" data-section="true">
+    <div class="inner">
+      <p class="num">Part 01 · Amazon Bedrock Intelligent Prompt Routing</p>
+      <p>Amazon Bedrock Intelligent Prompt Routing is a fully managed capability that automatically routes each prompt to the most optimal foundation model in your prompt router. Instead of you hard-coding which model to use, a specialized router model analyzes your request in real-time based on complexity, content type, and quality/latency requirements.</p>
+      <p>You get the right balance of <strong>quality, latency, and cost</strong> without writing custom routing logic.</p>
+      <div class="note"><span class="tag">How it works</span><p>Application -&gt; <strong>Bedrock Prompt Router ARN</strong> -&gt; Router Model evaluates prompt -&gt; Routes to best-fit FM [Claude, Titan, Llama, etc.] -&gt; Unified response back to application.</p></div>
+      <p>To understand how it optimizes your AI workloads, explore the 3 core concepts below.</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ipr-lead" aria-label="Open deep dive: 1. Decision Factors: How the Router Chooses a Model">?</button><span>1. Decision Factors: How the Router Chooses a Model</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ipr-specialization" aria-label="Open deep dive: 2. Model Specialization: The Right Tool for the Right Job">?</button><span>2. Model Specialization: The Right Tool for the Right Job</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ipr-integration" aria-label="Open deep dive: 3. Integration: One API, Zero Model-Switching Code">?</button><span>3. Integration: One API, Zero Model-Switching Code</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== PART 2: DYNAMIC ROUTING WITH NOVA MODELS ===== -->
+  <section class="slide divider" id="nova" data-accent="teal" data-title="Part 02 · Dynamic Routing with Nova Models" data-section="true">
+    <div class="inner">
+      <p class="num">Part 02 · Dynamic Routing with Nova Models</p>
+      <p>The Amazon Nova family is purpose-built for dynamic routing. Unlike using a single large model for everything, Nova offers distinct tiers with different trade-offs in intelligence, latency, and cost. This lets you build a routing layer that automatically sends each request to the most efficient Nova model.</p>
+      <p>Think of it as: <strong>One router, multiple Nova specialists.</strong></p>
+      <div class="note"><span class="tag">Architecture</span><p>User Request -&gt; <strong>Custom Router [AWS Lambda / Bedrock Prompt Router]</strong> -&gt; Complexity Scoring -&gt; Nova Model Selection -&gt; Unified Response</p></div>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="nova-lead" aria-label="Open deep dive: 1. Complexity-Based Routing: The Core Strategy">?</button><span>1. Complexity-Based Routing: The Core Strategy</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="nova-cascade" aria-label="Open deep dive: 2. Cost-Optimized Routing: The Cascade Pattern">?</button><span>2. Cost-Optimized Routing: The Cascade Pattern</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="nova-latency" aria-label="Open deep dive: 3. Latency-Optimized Routing: Route by SLO">?</button><span>3. Latency-Optimized Routing: Route by SLO</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="nova-integration" aria-label="Open deep dive: 4. Integration with Intelligent Prompt Routing: Managed + Custom">?</button><span>4. Integration with Intelligent Prompt Routing: Managed + Custom</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== PART 3: ADVANTAGES OVER STATIC ROUTING ===== -->
+  <section class="slide divider" id="adv" data-accent="purple" data-title="Part 03 · Advantages over static routing" data-section="true">
+    <div class="inner">
+      <p class="num">Part 03 · Advantages over static routing</p>
+      <p>Static routing is rule-based, dynamic routing is intelligence-based.</p>
+      <p>Think of it like this:</p>
+      <div class="note"><span class="tag">Static Routing</span><p>Hard-coded GPS. <code>if prompt_length &gt; 1000, use Model A else Model B</code>. It breaks when traffic or roads change.</p></div>
+      <div class="note tip"><span class="tag">Dynamic Routing with Bedrock Intelligent Prompt Routing</span><p>Waze with live traffic. An ML-based router model evaluates prompt complexity, latency, and cost in real-time and picks the best Foundation Model.</p></div>
+      <p>Here are the 3 key advantages, refined:</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="adv-lead" aria-label="Open deep dive: 1. Flexibility and Adaptability">?</button><span>1. Flexibility and Adaptability</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="adv-cost" aria-label="Open deep dive: 2. Cost and Performance Optimization">?</button><span>2. Cost and Performance Optimization</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="adv-multi" aria-label="Open deep dive: 3. Multi-Model Utilization">?</button><span>3. Multi-Model Utilization</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== PART 4: USE CASES AND SCENARIOS ===== -->
+  <section class="slide divider" id="uc" data-accent="green" data-title="Part 04 · Use cases and scenarios" data-section="true">
+    <div class="inner">
+      <p class="num">Part 04 · Use cases and scenarios</p>
+      <p>Dynamic routing is not for every workload - it excels when <strong>input diversity, latency SLOs, and cost constraints vary within the same application.</strong> Use dynamic routing when your application is not uniform. If your inputs vary in complexity, your SLAs vary by request type, or your users have different cost-to-serve models, a Prompt Router with the Nova family gives you a single API to optimize quality, latency, and cost automatically.</p>
+      <p>Here are the 4 patterns where I recommend it to customers, with implementation examples.</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="uc-lead" aria-label="Open deep dive: 1. Diverse Input Applications">?</button><span>1. Diverse Input Applications</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="uc-perf" aria-label="Open deep dive: 2. Performance-Sensitive Systems">?</button><span>2. Performance-Sensitive Systems</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="uc-multimodal" aria-label="Open deep dive: 3. Multi-Modal and Multi-Task Applications">?</button><span>3. Multi-Modal and Multi-Task Applications</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="uc-cost" aria-label="Open deep dive: 4. Cost-Conscious Implementations [Tiered Experience]">?</button><span>4. Cost-Conscious Implementations [Tiered Experience]</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== PART 5: IMPLEMENTATION APPROACHES ===== -->
+  <section class="slide divider" id="impl" data-accent="blue" data-title="Part 05 · Implementation approaches" data-section="true">
+    <div class="inner">
+      <p class="num">Part 05 · Implementation approaches</p>
+      <p>You can implement Bedrock Intelligent Prompt Routing in 3 ways, based on your control and latency needs:</p>
+      <ol>
+        <li><strong>Step Functions:</strong> For sophisticated, multi-step content-based workflows</li>
+        <li><strong>API Gateway:</strong> For lightweight, low-latency dynamic selection at the API layer</li>
+        <li><strong>Performance-Based Fallback:</strong> For resilience and SLA protection</li>
+      </ol>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="impl-stepfn" aria-label="Open deep dive: Content-Based Routing with Step Functions">?</button><span>Content-Based Routing with Step Functions</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="impl-apigw" aria-label="Open deep dive: API Gateway Routing Logic for Dynamic Model Selection">?</button><span>API Gateway Routing Logic for Dynamic Model Selection</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="impl-fallback" aria-label="Open deep dive: Performance-Based Fallback Mechanisms">?</button><span>Performance-Based Fallback Mechanisms</span></li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<!-- Help popover: full-viewport overlay (kept outside the deck so it can't be clipped/trapped) -->
+<div class="help-popover" id="helpPop" hidden>
+  <button class="help-popover-close" id="helpClose" type="button" aria-label="Close deep dive">&times;</button>
+  <div class="help-popover-body" id="helpBody"></div>
+</div>
+
+<!-- Deep-dive content (verbatim copies of the source sub-sections) -->
+
+  <template id="help-ipr-lead">
+    <div class="inner">
+      <h2>1. Decision Factors: How the Router Chooses a Model</h2>
+      <p>The router doesn't guess. It uses a multi-dimensional evaluation at inference time:</p>
+      <ul>
+        <li><strong>Input Characteristics:</strong> Prompt length, token count, reasoning complexity, and content type - e.g., code, summarization, open Q&amp;A, RAG.</li>
+        <li><strong>Performance Metrics:</strong> Your defined SLOs for latency, accuracy, and throughput.</li>
+        <li><strong>Business Constraints:</strong> Cost budget per request, quality threshold, and routing policies you configure.</li>
+      </ul>
+      <div class="note"><span class="tag">Technical Example</span>
+        <p>Imagine an e-commerce support bot using one Prompt Router containing <code>Claude 3 Haiku</code> and <code>Claude 3.5 Sonnet</code>.</p>
+        <p><strong>Prompt A:</strong> <code>Summarize this in one line: "Product arrived late but quality is good."</code></p>
+        <p class="quote">Router Analysis: Length= 10 tokens, Complexity= Low, Task= Simple Summarization.<br><strong>Routing Decision:</strong> <code>Claude 3 Haiku</code> - Low latency ~300ms, cost $0.00025 per 1K tokens. Perfect for this.</p>
+        <p><strong>Prompt B:</strong> <code>Analyze these 20 customer complaints and identify root cause trends, sentiment shift, and propose 3 operational improvements.</code></p>
+        <p class="quote">Router Analysis: Length= 1500+ tokens, Complexity= High, Task= Complex Reasoning &amp; Analysis.<br><strong>Routing Decision:</strong> <code>Claude 3.5 Sonnet</code> - Higher reasoning capability needed, even if cost is 10x higher.</p>
+        <p>You define this once in the router configuration, not in application code.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-ipr-specialization">
+    <div class="inner">
+      <h2>2. Model Specialization: The Right Tool for the Right Job</h2>
+      <p>Intelligent Prompt Routing leverages the inherent strengths of each Foundation Model. It creates a tiered model portfolio.</p>
+      <div class="tbl"><table>
+        <tr><th>Model Family</th><th>Strength &amp; Ideal Use Case</th><th>Routing Trigger</th></tr>
+        <tr><td><strong>Anthropic Claude 3.5 Sonnet / Opus</strong></td><td>Complex reasoning, nuanced analysis, long-form content generation, agentic workflows</td><td>High complexity, multi-step logic</td></tr>
+        <tr><td><strong>Anthropic Claude 3 Haiku</strong></td><td>Fast, balanced intelligence for general chat, summarization</td><td>Medium complexity, latency-sensitive</td></tr>
+        <tr><td><strong>Amazon Titan Text Lite / Express</strong></td><td>Highly cost-effective, low-latency for classification, simple extraction, FAQ</td><td>Low complexity, high-throughput, cost-sensitive</td></tr>
+      </table></div>
+      <p>The service has a continuous learning loop. It uses CloudWatch metrics and feedback data like latency, error rate, and response quality to refine future routing decisions automatically.</p>
+      <div class="note"><span class="tag">Technical Example - Cost Optimization</span>
+        <p>Without routing, if you send 100,000 requests/day all to Claude Sonnet at $3.00 / 1M input tokens, your cost is high.</p>
+        <p>With Intelligent Prompt Routing configured as <code>70% Haiku / 30% Sonnet</code> based on actual complexity distribution:</p>
+        <ul>
+          <li>70,000 simple queries go to Haiku at $0.25 / 1M tokens</li>
+          <li>30,000 complex queries go to Sonnet</li>
+        </ul>
+        <p><strong>Result: Up to 60-70% cost reduction with no drop in perceived quality</strong>, because simple queries don't need a large model.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-ipr-integration">
+    <div class="inner">
+      <h2>3. Integration: One API, Zero Model-Switching Code</h2>
+      <p>You don't need to manage multiple <code>InvokeModel</code> clients. You interact with a single <strong>Prompt Router ARN</strong> using the standard Bedrock Converse or Invoke API. The response schema remains consistent regardless of which underlying FM was used.</p>
+      <p>This is a minimal-code change. Just replace your <code>modelId</code> with your <code>promptRouterArn</code>.</p>
+      <p><strong>Technical Example - Python with Boto3:</strong></p>
+<pre><code>import boto3
+
+bedrock_runtime = boto3.client('bedrock-runtime', region_name='us-east-1')
+
+# Your Prompt Router ARN - created in Bedrock Console
+# It contains your model pool: e.g., [Claude 3 Haiku, Claude 3.5 Sonnet]
+PROMPT_ROUTER_ARN = "arn:aws:bedrock:us-east-1:123456789012:prompt-router/my-ecommerce-router"
+
+response = bedrock_runtime.converse(
+    modelId=PROMPT_ROUTER_ARN,
+    messages=[
+        {
+            "role": "user",
+            "content": [{"text": "Classify this ticket: My order #123 is stuck, urgent!"}]
+        }
+    ]
+)
+
+# Response format is identical whether Haiku or Sonnet was used
+print(response['output']['message']['content'][0]['text'])
+print(f"Actually routed to: {response['trace']['promptRouter']['invokedModelId']}")</code></pre>
+      <p><strong>Key Benefits for Developers:</strong></p>
+      <ol>
+        <li><strong>Simplified Operations:</strong> No if-else logic to choose models. Observability is built-in via CloudWatch metrics for <code>InvokedModelId</code>.</li>
+        <li><strong>Consistent Schema:</strong> You parse one response format.</li>
+        <li><strong>Fallback Handling:</strong> If one model is throttled, the router can automatically failover to another model in the pool.</li>
+      </ol>
+    </div>
+  </template>
+
+  <template id="help-nova-lead">
+    <div class="inner">
+      <h2>1. Complexity-Based Routing: The Core Strategy</h2>
+      <p>Instead of hard-coding a model, you route based on a <strong>Complexity Score</strong>. We evaluate every prompt on four dimensions:</p>
+      <ul>
+        <li><strong>Instruction Complexity:</strong> Is it a simple command or a multi-step instruction with constraints?</li>
+        <li><strong>Reasoning Depth:</strong> Does it need factual recall vs. multi-step reasoning, analysis, and planning?</li>
+        <li><strong>Context Requirements:</strong> Short prompt vs. long-context RAG with 50K+ tokens?</li>
+        <li><strong>Time Expectations:</strong> Do you need real-time &lt;300ms response or is quality more important than latency?</li>
+      </ul>
+      <p>Here is how the Nova portfolio maps naturally to these tiers:</p>
+      <div class="tbl"><table>
+        <tr><th>Nova Model</th><th>Role in Routing Tier</th><th>When to Route to It</th><th>Trade-off</th></tr>
+        <tr><td><strong>Nova 2 Pro</strong></td><td>The Brain - High Intelligence</td><td>Multi-step reasoning, complex analysis, financial report synthesis, code generation</td><td>Highest quality, higher latency &amp; cost</td></tr>
+        <tr><td><strong>Nova 2 Lite</strong></td><td>The Workhorse - Balanced</td><td>Standard generation, summarization, classification, RAG Q&amp;A, email drafting</td><td>Best balance of cost, latency, quality. Handles 70-80% of workloads.</td></tr>
+        <tr><td><strong>Nova 2 Sonic</strong></td><td>The Conversationalist - Real-time</td><td>Voice-to-voice, real-time dialogue, low-latency chat, contact center streaming</td><td>Ultra-low latency speech-to-speech, optimized for conversational flow</td></tr>
+        <tr><td><strong>Nova Micro</strong></td><td>The Sprinter - Ultra Efficient</td><td>Simple classification, entity extraction, routing itself, high-throughput tasks</td><td>Lowest cost &amp; latency</td></tr>
+      </table></div>
+    </div>
+  </template>
+
+  <template id="help-nova-cascade">
+    <div class="inner">
+      <h2>2. Cost-Optimized Routing: The Cascade Pattern</h2>
+      <p>Don't start with your most powerful and expensive model. Follow a progressive escalation approach - <strong>Try cheap, validate, then escalate only if needed.</strong> This is also called Cascade Routing.</p>
+      <p><strong>The Workflow:</strong></p>
+      <ol>
+        <li><strong>Start with Nova 2 Lite:</strong> Route 100% of requests to Lite first. It handles 70-80% of enterprise tasks well at ~75% lower cost than Pro.</li>
+        <li><strong>Validate Quality:</strong> Automatically score the response against your quality threshold using confidence scoring or an LLM-as-a-Judge.</li>
+        <li><strong>Escalate Conditionally:</strong> Only if the score is low, escalate the <em>same</em> prompt to Nova 2 Pro.</li>
+        <li><strong>Cache Everything:</strong> Use semantic caching to avoid paying for the same question twice.</li>
+      </ol>
+      <p><strong>Technical Example:</strong></p>
+      <p>This pattern is ideal for high-volume applications like customer support or internal knowledge search.</p>
+<pre><code># 1. Check Semantic Cache first - DynamoDB / ElastiCache Serverless
+cached_answer = semantic_cache.search(prompt_embedding)
+if cached_answer:
+    return cached_answer # Cost: $0
+
+# 2. Try with economical model
+response_lite = bedrock.converse(modelId="amazon.nova-2-lite-v1:0", messages=[...])
+
+# 3. Validate quality - Use Nova Micro as a Judge [fast &amp; cheap]
+judge_prompt = f"Rate this answer quality from 0-1 for prompt: {original_prompt}. Answer: {response_lite}. Return only score."
+judge_score = float(bedrock.converse(modelId="amazon.nova-micro-v1:0", ...))
+
+if judge_score &lt; 0.75: # Quality Threshold failed
+    # 4. Escalate to Pro only when necessary
+    response_pro = bedrock.converse(modelId="amazon.nova-2-pro-v1:0", messages=[...])
+    final_response = response_pro
+    semantic_cache.save(prompt, final_response)
+else:
+    final_response = response_lite
+
+# Result: You pay for Pro only for the 15-20% of requests that truly need it.</code></pre>
+      <div class="note tip"><span class="tag">Pro Tip</span><p>Enable <strong>Bedrock Prompt Caching</strong> for RAG use cases. If you are sending the same 20K token knowledge base with every request, caching reduces input cost by up to 90%.</p></div>
+    </div>
+  </template>
+
+  <template id="help-nova-latency">
+    <div class="inner">
+      <h2>3. Latency-Optimized Routing: Route by SLO</h2>
+      <p>Not all applications have the same latency Service Level Objective [SLO]. Route based on your application's time budget.</p>
+      <ul>
+        <li><strong>Nova 2 Sonic: &lt; 500ms [Real-Time]</strong> - For voice-to-voice, live agents, and streaming. It's a speech-to-speech model, so it removes the STT -&gt; LLM -&gt; TTS hops.</li>
+        <li><strong>Nova 2 Lite: &lt; 1.5s p95 [Near-Real-Time]</strong> - For chatbots, search, and high-throughput APIs where user is waiting.</li>
+        <li><strong>Nova 2 Pro: 2-5s+ [Quality-Prioritized]</strong> - For asynchronous jobs like report generation, deep analysis, or batch processing where quality &gt; speed.</li>
+      </ul>
+      <p>Continuously monitor p95 latency and error rate in Amazon CloudWatch and adjust routing.</p>
+      <p><strong>Technical Example: Contact Center Application</strong></p>
+<pre><code>def route_by_sla(application_type, prompt):
+    if application_type == "VOICE_BOT":
+        return "amazon.nova-2-sonic-v1:0"  # Must meet real-time voice SLO
+
+    elif application_type == "CHAT_WIDGET":
+        # User is waiting, prioritize throughput
+        return "amazon.nova-2-lite-v1:0"
+
+    elif application_type == "POST_CALL_ANALYTICS":
+        # Background job, no user waiting
+        return "amazon.nova-2-pro-v1:0"
+
+# You can then set different thresholds in CloudWatch:
+# Alarm if p95 latency for CHAT_WIDGET &gt; 1.2s -&gt; Auto-shift 10% more traffic to Lite</code></pre>
+    </div>
+  </template>
+
+  <template id="help-nova-integration">
+    <div class="inner">
+      <h2>4. Integration with Intelligent Prompt Routing: Managed + Custom</h2>
+      <p>You don't have to build all this logic yourself. Combine your explicit routing logic with <strong>Amazon Bedrock Intelligent Prompt Routing [Prompt Routers]</strong> for comprehensive optimization.</p>
+      <p>A Prompt Router is a single endpoint ARN that contains multiple models. Bedrock's own router model decides the best model based on the criteria you define.</p>
+      <p><strong>Configure it with 4 key parameters:</strong></p>
+      <p><strong>a) Quality Thresholds:</strong> <code>e.g., min_quality_score: 0.8</code></p>
+      <p><strong>b) Cost Constraints:</strong> <code>e.g., prioritize_cost_savings: true</code></p>
+      <p><strong>c) Latency Requirements:</strong> <code>e.g., max_latency_ms: 1000</code></p>
+      <p><strong>d) Automatic Failover:</strong> If Nova Lite is throttled, automatically failover to Nova Micro.</p>
+      <p><strong>Technical Example: Creating a Prompt Router with Nova Family</strong></p>
+      <p>You create this once in Bedrock Console or via API. Your app code never changes again.</p>
+<pre><code>import boto3
+bedrock_control = boto3.client('bedrock', region_name='us-east-1')
+
+bedrock_control.create_prompt_router(
+    promptRouterName="nova-cost-latency-router",
+    models=[
+        {"modelId": "amazon.nova-2-lite-v1:0"},
+        {"modelId": "amazon.nova-2-pro-v1:0"},
+        {"modelId": "amazon.nova-2-sonic-v1:0"}
+    ],
+    routingCriteria={
+        "responseQualityDifference": 0.20 # Allow Lite if quality is within 20% of Pro
+    },
+    fallbackModel={"modelId": "amazon.nova-2-lite-v1:0"},
+    description="Routes between Nova tiers based on complexity, cost and latency"
+)
+
+# Your application code becomes simple:
+bedrock_runtime = boto3.client('bedrock-runtime')
+response = bedrock_runtime.converse(
+    modelId="arn:aws:bedrock:us-east-1:123456789012:prompt-router/nova-cost-latency-router",
+    messages=[{"role": "user", "content": [{"text": prompt}]}]
+)
+# Bedrock automatically logs which model was invoked: response['trace']['promptRouter']['invokedModelId']</code></pre>
+      <p><strong>Best Practice Architecture I recommend:</strong></p>
+      <p><strong>Explicit Pre-Filter + Managed Router</strong></p>
+      <p class="quote"><code>Application -&gt; [Your Lightweight Logic: is it voice? is it cached?] -&gt; Bedrock Prompt Router ARN [Nova Lite, Pro, Sonic] -&gt; Model</code></p>
+      <p>This way, you handle deterministic rules like caching and voice detection, and let Bedrock Intelligent Prompt Routing handle the non-deterministic complexity-based routing. You get full control, with minimal code to manage.</p>
+    </div>
+  </template>
+
+  <template id="help-adv-lead">
+    <div class="inner">
+      <h2>1. Flexibility and Adaptability</h2>
+      <p><strong>Static routing requires code changes and redeployment</strong> for every change in business logic or model performance. Dynamic routing adapts in real-time without touching your application code.</p>
+      <p>It responds to three changes automatically:</p>
+      <ul>
+        <li><strong>New Input Patterns:</strong> A sudden spike in long-context RAG queries.</li>
+        <li><strong>Model Performance Variation:</strong> A model experiencing throttling or higher latency.</li>
+        <li><strong>Evolving Business Needs:</strong> You add a new model to your fleet.</li>
+      </ul>
+      <p>The system continuously learns from historical usage, CloudWatch metrics like <code>InvocationLatency</code> and error rates, to improve future routing decisions.</p>
+      <p><strong>Technical Example:</strong></p>
+      <p>Imagine you hard-coded static routing in Lambda:</p>
+<pre><code># STATIC - Brittle, needs redeployment for any change
+def static_route(prompt):
+    if len(prompt) &gt; 5000:
+        return "anthropic.claude-3-5-sonnet-v2:0"
+    else:
+        return "amazon.titan-text-lite-v1"</code></pre>
+      <p>Now Nova 2 Pro is released and is 2x better for your use case. You have to update code, test, and redeploy 15 microservices.</p>
+      <p><strong>With Bedrock Prompt Router :</strong>[Dynamic]</p>
+<pre><code># DYNAMIC - No code change needed
+response = bedrock_runtime.converse(
+    modelId="arn:aws:bedrock:us-east-1:123456789012:prompt-router/my-router",
+    messages=[...]
+)</code></pre>
+      <p>You just add <code>amazon.nova-2-pro-v1:0</code> to your Prompt Router in the Bedrock Console. Your application instantly starts leveraging it. If Claude Sonnet is throttled, the router automatically fails over to Nova Pro, maintaining your SLO without any incident.</p>
+    </div>
+  </template>
+
+  <template id="help-adv-cost">
+    <div class="inner">
+      <h2>2. Cost and Performance Optimization</h2>
+      <p>Static routing is a <strong>one-size-fits-all</strong> approach. You end up over-provisioning your most expensive model to handle worst-case prompts. Dynamic routing applies <strong>cost-aware inference</strong> - use the cheapest model that can meet the quality bar.</p>
+      <p>It optimizes on two axes in real-time:</p>
+      <ul>
+        <li><strong>Cost Optimization:</strong> Routes simple queries to cost-effective models and reserves expensive, capable models only for complex tasks.</li>
+        <li><strong>Performance Optimization:</strong> Detects latency degradation and automatically switches models to maintain p95 latency targets.</li>
+      </ul>
+      <p><strong>Technical Example: Real Cost Impact</strong></p>
+      <p>Let's say you have 1M requests/month for a support chatbot.</p>
+      <p><strong>Static Approach:</strong> All 1M requests -&gt; <code>Claude 3.5 Sonnet</code> @ $3.00 / 1M input tokens. Avg cost = $3,000/month.</p>
+      <p><strong>Dynamic Approach with Intelligent Prompt Routing:</strong> The router analyzes actual complexity. It finds 70% are simple FAQ, 25% medium, 5% complex.</p>
+      <ul>
+        <li>700K requests -&gt; <code>Nova 2 Lite</code> @ $0.08 / 1M tokens = $56</li>
+        <li>250K requests -&gt; <code>Nova 2 Pro</code> @ $0.80 / 1M tokens = $200</li>
+        <li>50K requests -&gt; <code>Claude 3.5 Sonnet</code> @ $3.00 / 1M tokens = $150</li>
+      </ul>
+      <p><strong>Total = $406/month. That's ~86% cost reduction.</strong> Plus, your p95 latency drops from 2.1s to 0.8s because Lite is much faster for the majority of requests. You monitor this with <code>PromptRouterInvokedModelId</code> metric in CloudWatch.</p>
+    </div>
+  </template>
+
+  <template id="help-adv-multi">
+    <div class="inner">
+      <h2>3. Multi-Model Utilization</h2>
+      <p>Static routing forces you to compromise on a single Foundation Model. Dynamic routing lets you build a <strong>best-of-breed portfolio</strong> - using each model's specialized strength within a single application API.</p>
+      <p>This maximizes your FM investment. You are not locked into one model family.</p>
+      <p><strong>Technical Example: Unified Customer Experience App</strong></p>
+      <p>A single travel application needs three very different capabilities:</p>
+      <ol>
+        <li>User says: <em>"Change my flight via voice"</em> -&gt; Needs real-time, low-latency speech-to-speech.</li>
+        <li>User says: <em>"Summarize my 10-page itinerary"</em> -&gt; Needs fast, cost-effective summarization.</li>
+        <li>User says: <em>"My flight was cancelled, my hotel is non-refundable, and I have a meeting tomorrow. What's my best alternative plan considering cost and policy?"</em> -&gt; Needs complex, multi-step reasoning.</li>
+      </ol>
+      <p><strong>With Static Routing:</strong> You would pick Claude Sonnet for all 3 and pay high cost and high latency for simple tasks, or pick Titan Lite and get poor quality for complex reasoning.</p>
+      <p><strong>With Dynamic Routing + Nova Family:</strong></p>
+      <p>You configure one Prompt Router containing <code>[Nova 2 Sonic, Nova 2 Lite, Nova 2 Pro]</code>.</p>
+      <ul>
+        <li>Voice request -&gt; <strong>Auto-routed to Nova 2 Sonic</strong> [Optimized for real-time dialogue]</li>
+        <li>Summarization -&gt; <strong>Auto-routed to Nova 2 Lite</strong> [High throughput, low cost]</li>
+        <li>Complex re-planning -&gt; <strong>Auto-routed to Nova 2 Pro</strong> [Advanced reasoning]</li>
+      </ul>
+      <p>Your application code is simple, but your end-user gets the right intelligence, at the right latency, at the right cost for every single turn. This is strategic multi-model orchestration vs. a one-size-fits-all compromise.</p>
+    </div>
+  </template>
+
+  <template id="help-uc-lead">
+    <div class="inner">
+      <h2>1. Diverse Input Applications</h2>
+      <p><strong>The Problem:</strong> One application handles inputs with vastly different complexity. A CMS gets a 2-line product title and a 50-page technical manual. A customer support bot gets "What is my order status?" and "My API integration is failing with error 403 after OAuth token refresh."</p>
+      <p><strong>Static Routing Fails:</strong> If you use your most capable model for everything, you overpay and add latency for simple tasks. If you use a small model, complex tasks fail.</p>
+      <p><strong>Dynamic Routing Solution:</strong> Route based on query complexity and content type.</p>
+      <p><strong>Technical Example: Customer Service Platform</strong></p>
+<pre><code># Routing logic inside Bedrock Intelligent Prompt Routing
+def get_routing_hint(prompt):
+    if len(prompt) &lt; 50 and "what is" in prompt.lower():
+        return "FAST_PATH" # FAQ
+    elif "error" in prompt or "why" in prompt or len(prompt) &gt; 1000:
+        return "REASONING_PATH" # Complex troubleshooting
+
+# Result:
+# "What are your return policies?" -&gt; Nova 2 Lite | 400ms | $0.00008
+# "My Lambda function times out when calling Bedrock via VPC endpoint with this policy..."
+# -&gt; Nova 2 Pro or Claude 3.5 Sonnet | 2.5s | Higher quality reasoning</code></pre>
+      <p>You configure one <strong>Prompt Router ARN</strong> with <code>[Nova Lite, Nova Pro]</code>. Bedrock automatically learns that FAQ patterns go to Lite.</p>
+    </div>
+  </template>
+
+  <template id="help-uc-perf">
+    <div class="inner">
+      <h2>2. Performance-Sensitive Systems</h2>
+      <p><strong>The Problem:</strong> Enterprise systems must maintain strict Service Level Agreements [SLAs]. Not all requests have the same urgency.</p>
+      <p><strong>Dynamic Routing Solution:</strong> Route based on latency budget and business criticality, not just prompt complexity. Monitor p95 latency and throughput in CloudWatch and adapt.</p>
+      <p><strong>Technical Example: Financial Analysis Platform</strong></p>
+      <p>An investment platform has two types of workloads on the same API:</p>
+      <ul>
+        <li><strong>Trader Chat [SLO: &lt;800ms]:</strong> "What was the pre-market move for NVDA?"</li>
+        <li><strong>Overnight Report [SLO: &lt;30s acceptable]:</strong> "Generate a 10-page earnings analysis comparing 5 banks with risks and YoY trends."</li>
+      </ul>
+      <p><strong>Implementation:</strong></p>
+<pre><code># Explicit routing layer + Prompt Router for resilience
+if request.priority == "REAL_TIME":
+    model_id = "amazon.nova-2-lite-v1:0" # High-throughput, low latency
+    max_tokens = 300
+else: # BATCH / ANALYTICS
+    model_id = "amazon.nova-2-pro-v1:0" # Quality-prioritized, accepts higher latency
+    max_tokens = 4000
+
+# If Lite gets throttled during market open, Prompt Router automatically fails over
+# to an alternative model to maintain SLA - no outage.</code></pre>
+      <p>This ensures you meet your real-time SLA without paying for Pro on every request.</p>
+    </div>
+  </template>
+
+  <template id="help-uc-multimodal">
+    <div class="inner">
+      <h2>3. Multi-Modal and Multi-Task Applications</h2>
+      <p><strong>The Problem:</strong> An Intelligent Document Processing [IDP] pipeline needs different specialized skills in one workflow.</p>
+      <p><strong>Dynamic Routing Solution:</strong> Use dynamic routing as an orchestrator to send each sub-task to the most specialized model.</p>
+      <p><strong>Technical Example: Document Processing System</strong></p>
+      <p>An insurance claims intake processes PDFs with text, tables, and handwritten notes.</p>
+      <p><strong>Workflow with AWS Step Functions:</strong></p>
+      <p class="quote"><code>S3 Upload -&gt; Lambda Router -&gt; Bedrock</code></p>
+      <ol>
+        <li><strong>Step 1 - Extraction:</strong> <code>prompt = "Extract all fields from this invoice"</code> -&gt; <strong>Nova Micro</strong> - Cheapest, fastest for structured extraction.</li>
+        <li><strong>Step 2 - Sentiment/Classification:</strong> <code>prompt = "Classify claim urgency: High/Med/Low based on description"</code> -&gt; <strong>Nova Lite</strong> - Good balance for classification.</li>
+        <li><strong>Step 3 - Summarization &amp; Reasoning:</strong> <code>prompt = "Summarize this 20-page adjuster report and identify fraud risk factors with reasoning"</code> -&gt; <strong>Nova Pro</strong> - Needs long-context and reasoning.</li>
+      </ol>
+      <p>Instead of calling one giant model 3 times, you call the right-sized model for each task. You optimize <strong>resource utilization</strong> and control cost per step. You can trace this entire chain with Bedrock Trace.</p>
+    </div>
+  </template>
+
+  <template id="help-uc-cost">
+    <div class="inner">
+      <h2>4. Cost-Conscious Implementations [Tiered Experience]</h2>
+      <p><strong>The Problem:</strong> You have different budget constraints for different user segments. You want to offer service differentiation.</p>
+      <p><strong>Dynamic Routing Solution:</strong> Inject business context [user tier, subscription] into your routing decision.</p>
+      <p><strong>Technical Example: EdTech Platform</strong></p>
+      <ul>
+        <li>Free Tier Student: 10M users, cost-sensitive</li>
+        <li>Premium Tier Student: 100K users, pays for high quality tutoring</li>
+      </ul>
+<pre><code>def route_by_tier(user, prompt):
+    base_model = prompt_router.invoke(prompt) # Let Prompt Router decide complexity first
+
+    # Apply business policy override
+    if user.tier == "FREE":
+        # Cap free users to Lite, even if Pro would be slightly better
+        # Ensures cost per user stays &lt; $0.01/month
+        return "amazon.nova-2-lite-v1:0" if "lite" in base_model else "amazon.nova-micro-v1:0"
+
+    elif user.tier == "PREMIUM":
+        # Allow escalation to Pro for premium users
+        return base_model # Can be Pro
+
+# Free: "Explain Pythagoras theorem" -&gt; Nova Lite
+# Premium: "Explain Pythagoras theorem and create a personalized proof using my previous mistakes" -&gt; Nova Pro</code></pre>
+      <p>You maintain service differentiation and control expenses without maintaining two separate application stacks. You can enforce this with a single Prompt Router + a Lambda authorizer that checks the user tier.</p>
+    </div>
+  </template>
+
+  <template id="help-impl-stepfn">
+    <div class="inner">
+      <h2>Content-Based Routing with Step Functions</h2>
+      <p>AWS Step Functions lets you build intelligent, content-aware routing without writing complex routing code in your application. You define a <strong>state machine workflow</strong> with decision points that analyze incoming content and dynamically route it to the most appropriate Amazon Bedrock foundation model.</p>
+      <p>This pattern is ideal when routing logic depends on more than just prompt length - for example, document type, intent, or complexity score.</p>
+      <h3>How This Workflow Works</h3>
+      <p>This state machine optimizes both cost and performance by ensuring you only pay for a powerful model when you actually need it.</p>
+      <p><strong>The flow has 3 stages:</strong></p>
+      <p><strong>1. AnalyzeContent [Task State]:</strong> Invokes a Lambda function <code>content-analyzer</code>. This Lambda is your lightweight classifier. It inspects <code>$.prompt</code> characteristics - token count, keywords like "analyze / reason / compare", or document type - and returns a complexity label: <code>high</code>, <code>medium</code>, or <code>low</code>.</p>
+      <p><strong>2. RouteBasedOnComplexity [Choice State]:</strong> This is the decision point. It evaluates the <code>$.complexity</code> field returned by Lambda:</p>
+      <ul>
+        <li>If <code>complexity == high</code> -&gt; Route to <code>InvokeClaudeOpus</code></li>
+        <li>If <code>complexity == medium</code> -&gt; Route to <code>InvokeClaudeSonnet</code></li>
+        <li>Default [low complexity] -&gt; Route to <code>InvokeTitanExpress</code></li>
+      </ul>
+      <p><strong>3. Model Invocation [Task State]:</strong> Uses the optimized Bedrock integration <code>arn:aws:states:::bedrock:invokeModel</code> to call the selected foundation model. No Lambda needed for the actual model call.</p>
+      <h3>Complete, Production-Ready Workflow</h3>
+      <p>Your original code was missing the final two states. Here is the corrected and complete version:</p>
+<pre><code>{
+  "Comment": "Dynamic model routing based on content analysis",
+  "StartAt": "AnalyzeContent",
+  "States": {
+    "AnalyzeContent": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "content-analyzer",
+        "Payload.$": "$"
+      },
+      "ResultSelector": {
+        "complexity.$": "$.Payload.complexity",
+        "prompt.$": "$.Payload.prompt"
+      },
+      "Next": "RouteBasedOnComplexity"
+    },
+    "RouteBasedOnComplexity": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.complexity",
+          "StringEquals": "high",
+          "Next": "InvokeClaudeOpus"
+        },
+        {
+          "Variable": "$.complexity",
+          "StringEquals": "medium",
+          "Next": "InvokeClaudeSonnet"
+        }
+      ],
+      "Default": "InvokeTitanExpress"
+    },
+    "InvokeClaudeOpus": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "anthropic.claude-3-opus-20240229-v1:0",
+        "Body": {
+          "anthropic_version": "bedrock-2023-05-31",
+          "max_tokens": 2000,
+          "messages.$": "$.prompt"
+        }
+      },
+      "End": true
+    },
+    "InvokeClaudeSonnet": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "anthropic.claude-3-sonnet-20240229-v1:0",
+        "Body": {
+          "anthropic_version": "bedrock-2023-05-31",
+          "max_tokens": 1000,
+          "messages.$": "$.prompt"
+        }
+      },
+      "End": true
+    },
+    "InvokeTitanExpress": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-text-express-v1",
+        "Body": {
+          "inputText.$": "$.prompt",
+          "textGenerationConfig": { "maxTokenCount": 512 }
+        }
+      },
+      "End": true
+    }
+  }
+}</code></pre>
+      <p><strong>What the <code>content-analyzer</code> Lambda does in practice:</strong></p>
+<pre><code>def lambda_handler(event, context):
+    prompt = event.get('prompt', '')
+    # Simple scoring - can be replaced with Nova Micro as a classifier
+    if len(prompt) &gt; 5000 or "analyze" in prompt.lower():
+        complexity = "high"
+    elif len(prompt) &gt; 500:
+        complexity = "medium"
+    else:
+        complexity = "low"
+
+    return { "complexity": complexity, "prompt": prompt }</code></pre>
+      <p><strong>Outcome:</strong></p>
+      <ul>
+        <li>Simple FAQ -&gt; <strong>Titan Express</strong> [Lowest cost, ~300ms latency]</li>
+        <li>Standard summarization -&gt; <strong>Claude Sonnet</strong> [Balanced cost and intelligence]</li>
+        <li>Complex reasoning / RAG with large context -&gt; <strong>Claude Opus</strong> [Highest quality]</li>
+      </ul>
+      <p>This approach gives you visual observability in Step Functions console, built-in retry and error handling, and full control to add more branches later without redeploying your application.</p>
+    </div>
+  </template>
+
+  <template id="help-impl-apigw">
+    <div class="inner">
+      <h2>API Gateway Routing Logic for Dynamic Model Selection</h2>
+      <p>Amazon API Gateway acts as the intelligent entry point for your generative AI application. It provides request transformation and routing capabilities, allowing you to inspect incoming requests and dynamically route them to the most appropriate Amazon Bedrock foundation model.</p>
+      <p>You can implement this in two ways:</p>
+      <ol>
+        <li><strong>Mapping Templates [VTL]:</strong> For lightweight routing based on headers or JSON fields without Lambda overhead.</li>
+        <li><strong>Lambda Integration:</strong> For advanced logic that analyzes content type, user tier, or performance requirements - which is what the example below does.</li>
+      </ol>
+      <p>This approach lets you enforce business policies at the API layer.</p>
+      <h3>How This Implementation Works</h3>
+      <p>This pattern uses <strong>API Gateway -&gt; Lambda -&gt; Bedrock Runtime</strong> to balance performance and cost-efficiency. Instead of using one expensive model for all requests, it selects the optimal Claude model based on two signals:</p>
+      <ul>
+        <li><strong>User Tier:</strong> Read from the custom header <code>X-User-Tier</code></li>
+        <li><strong>Content Length:</strong> Measured from the request body</li>
+      </ul>
+      <p><strong>The Routing Logic:</strong></p>
+      <ol>
+        <li><strong>Premium User + Long Content &gt; 1000 chars:</strong> Route to <strong>Claude 3 Opus</strong> - Our most capable model for complex, high-value tasks requiring deep reasoning.</li>
+        <li><strong>Medium Content &gt; 500 chars:</strong> Route to <strong>Claude 3 Sonnet</strong> - Balanced intelligence and speed for standard workloads.</li>
+        <li><strong>Short Content / Basic Tier:</strong> Route to <strong>Claude 3 Haiku</strong> - Fastest, most cost-effective model for simple queries.</li>
+      </ol>
+      <p>After selection, the function invokes the chosen model via <code>bedrock-runtime</code> using the Converse API format and returns the response with a custom header <code>X-Selected-Model</code> for full observability and traceability in CloudWatch.</p>
+      <h3>Refined Code with Best Practices</h3>
+      <p>Here is the same logic, refined for production with error handling and correct body parsing:</p>
+<pre><code>import json
+import boto3
+
+bedrock = boto3.client('bedrock-runtime')
+
+def lambda_handler(event, context):
+    # 1. Parse and analyze request characteristics
+    body = event.get('body', '')
+    # API Gateway can base64 encode body, handle both cases
+    if event.get('isBase64Encoded'):
+        import base64
+        body = base64.b64decode(body).decode('utf-8')
+
+    content_length = len(body)
+    user_tier = event['headers'].get('X-User-Tier', 'basic').lower()
+
+    # 2. Dynamic model selection logic
+    if user_tier == 'premium' and content_length &gt; 1000:
+        model_id = 'anthropic.claude-3-opus-20240229-v1:0' # High complexity, premium SLA
+    elif content_length &gt; 500:
+        model_id = 'anthropic.claude-3-sonnet-20240229-v1:0' # Balanced
+    else:
+        model_id = 'anthropic.claude-3-haiku-20240307-v1:0' # Cost-optimized, low latency
+
+    # 3. Invoke selected model via Bedrock
+    response = bedrock.invoke_model(
+        modelId=model_id,
+        body=json.dumps({
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 1000,
+            "messages": [{"role": "user", "content": body}]
+        })
+    )
+
+    response_body = json.loads(response['body'].read())
+
+    # 4. Return with routing metadata
+    return {
+        'statusCode': 200,
+        'body': json.dumps(response_body),
+        'headers': {
+            'Content-Type': 'application/json',
+            'X-Selected-Model': model_id # Critical for debugging and cost allocation
+        }
+    }</code></pre>
+      <p><strong>Why this matters:</strong> You achieve <strong>tier-based SLA enforcement</strong>. Premium users get Opus for long, complex prompts where quality matters, while basic users and short prompts are served by Haiku at ~10x lower cost and ~2x lower latency. You get this without deploying multiple API endpoints.</p>
+    </div>
+  </template>
+
+  <template id="help-impl-fallback">
+    <div class="inner">
+      <h2>Performance-Based Fallback Mechanisms</h2>
+      <p>Performance-based routing goes beyond static rules. It monitors real-time model health and automatically switches to an alternative Foundation Model when performance degrades. This ensures you maintain your SLA even during throttling, high load, or model latency spikes.</p>
+      <p>We achieve this by using <strong>Amazon CloudWatch metrics</strong> like <code>InvocationLatency</code> and <code>InvocationThrottles</code> as routing signals, with a fast, high-throughput fallback model to guarantee availability.</p>
+      <p><strong>When to use this pattern:</strong> For production, customer-facing workloads where you cannot afford a 500 error just because your primary model is slow.</p>
+      <h3>How This Implementation Works</h3>
+      <p>This <code>PerformanceBasedRouter</code> class implements a <strong>health-aware circuit breaker</strong> pattern for Amazon Bedrock:</p>
+      <p><strong>1. Monitors Health in Real-Time:</strong> The <code>get_model_performance()</code> method queries CloudWatch for the last 5 minutes of <code>InvocationLatency</code> for each primary model. It checks <code>AWS/Bedrock</code> namespace with <code>ModelId</code> dimension. If there is no data, it returns <code>inf</code> - treating lack of data as a potential issue.</p>
+      <p><strong>2. Selects Optimal Model Based on Health + Complexity:</strong> <code>select_optimal_model()</code> iterates through your primary models in priority order - e.g., <code>[Claude 3 Opus, Claude 3 Sonnet]</code>. It picks the first model whose average latency is below your threshold of <strong>2000ms</strong>. If all primary models are slow, it automatically fails over to your fallback model, <strong>Claude 3 Haiku</strong>, which is optimized for low latency and high throughput.</p>
+      <p><strong>3. Executes with Automatic Retry on Failure:</strong> <code>route_request()</code> invokes the selected model. If Bedrock returns an exception like <code>ThrottlingException</code> or <code>ModelTimeoutException</code>, it recursively retries with the fallback model, ensuring graceful degradation instead of failing the user request.</p>
+      <h3>Refined Production-Ready Code</h3>
+      <p>Your logic is correct, I have refined it for safety, observability, and to avoid infinite recursion:</p>
+<pre><code>import boto3
+import json
+from datetime import datetime, timedelta
+
+class PerformanceBasedRouter:
+    def __init__(self):
+        self.bedrock = boto3.client('bedrock-runtime')
+        self.cloudwatch = boto3.client('cloudwatch')
+        # Priority order: Most capable first
+        self.primary_models = [
+            'anthropic.claude-3-opus-20240229-v1:0',
+            'anthropic.claude-3-sonnet-20240229-v1:0'
+        ]
+        self.fallback_model = 'anthropic.claude-3-haiku-20240307-v1:0'
+        self.latency_threshold_ms = 2000
+
+    def get_model_performance(self, model_id: str) -&gt; float:
+        """Check real-time health via CloudWatch InvocationLatency"""
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(minutes=5)
+
+        response = self.cloudwatch.get_metric_statistics(
+            Namespace='AWS/Bedrock',
+            MetricName='InvocationLatency',
+            Dimensions=[{'Name': 'ModelId', 'Value': model_id}],
+            StartTime=start_time,
+            EndTime=end_time,
+            Period=300,
+            Statistics=['Average']
+        )
+        if response['Datapoints']:
+            # Return latest average latency in ms
+            return response['Datapoints'][-1]['Average']
+        return float('inf')  # No datapoints = treat as unhealthy
+
+    def select_optimal_model(self, complexity_score: int) -&gt; str:
+        """Select first healthy model under threshold, else fallback"""
+        # For low complexity, you could directly prefer Haiku to save cost
+        # if complexity_score &lt; 3: return self.fallback_model
+
+        for model_id in self.primary_models:
+            latency = self.get_model_performance(model_id)
+            if latency &lt; self.latency_threshold_ms:
+                print(f"Selected {model_id} with latency {latency}ms")
+                return model_id
+
+        print(f"All primary models slow, failing over to {self.fallback_model}")
+        return self.fallback_model
+
+    def route_request(self, prompt: str, complexity_score: int):
+        """Route with performance-aware selection + error-based fallback"""
+        selected_model = self.select_optimal_model(complexity_score)
+        try:
+            response = self.bedrock.invoke_model(
+                modelId=selected_model,
+                body=json.dumps({
+                    "anthropic_version": "bedrock-2023-05-31",
+                    "max_tokens": 1000,
+                    "messages": [{"role": "user", "content": prompt}]
+                })
+            )
+            return {
+                "model_used": selected_model,
+                "response": json.loads(response['body'].read())
+            }
+        except Exception as e:
+            # True fallback: If primary fails, retry once with Haiku
+            if selected_model != self.fallback_model:
+                print(f"{selected_model} failed with {e}, retrying with fallback")
+                return self.route_request(prompt, complexity_score=0) # Force fallback path
+            raise e</code></pre>
+      <div class="note tip"><span class="tag">Architectural Best Practice</span><p>For most customers, you don't need to build this. Create a <strong>Bedrock Prompt Router</strong> and configure <code>fallbackModel = Claude 3 Haiku</code>. Bedrock natively monitors health and does this failover for you with built-in CloudWatch metrics like <code>PromptRouterFallbackTriggered</code>. Use this custom class only when you need custom thresholds or business logic based on <code>complexity_score</code>.</p></div>
+    </div>
+  </template>
+
+
+<nav class="navbar">
+  <button class="btn" id="prevBtn" aria-label="Previous slide">← Prev</button>
+  <div class="counter"><b id="cur">1</b> / <span id="total">1</span></div>
+  <button class="btn" id="nextBtn" aria-label="Next slide">Next →</button>
+</nav>
+
+<div class="hint" id="hint">← → to move · C for contents · T for theme</div>
+
+<div class="menu" id="menu" hidden>
+  <div class="mwrap">
+    <h2>Contents</h2>
+    <ul class="mlist" id="mlist"></ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var idx = 0;
+  var deck = document.getElementById('deck');
+  var curEl = document.getElementById('cur');
+  var totalEl = document.getElementById('total');
+  var prog = document.getElementById('progress');
+  var menu = document.getElementById('menu');
+  var mlist = document.getElementById('mlist');
+  totalEl.textContent = total;
+
+  function idOf(i){ return slides[i].id; }
+
+  function render(){
+    slides.forEach(function(s,i){ s.hidden = (i!==idx); });
+    curEl.textContent = idx+1;
+    prog.style.width = ((idx)/(total-1)*100)+'%';
+    var active = slides[idx];
+    if(active){ active.scrollTop = 0; deck.setAttribute('data-accent', active.dataset.accent || 'orange'); }
+    try{ history.replaceState(null,'','#'+idOf(idx)); }catch(e){ location.hash = idOf(idx); }
+    Array.prototype.forEach.call(mlist.querySelectorAll('.mitem'), function(b){
+      b.classList.toggle('cur', +b.dataset.i === idx);
+    });
+  }
+  function go(i){ idx = Math.max(0, Math.min(total-1, i)); render(); }
+  function next(){ go(idx+1); }
+  function prev(){ go(idx-1); }
+
+  document.getElementById('nextBtn').addEventListener('click', next);
+  document.getElementById('prevBtn').addEventListener('click', prev);
+
+  slides.forEach(function(s,i){
+    var li = document.createElement('li');
+    var b = document.createElement('button');
+    b.className = 'mitem' + (s.dataset.section==='true' ? ' sec' : '');
+    b.dataset.i = i;
+    var title = s.dataset.title || s.id;
+    b.innerHTML = '<span class="mn">'+(i+1)+'</span><span>'+title+'</span>';
+    b.addEventListener('click', function(){ closeMenu(); go(i); });
+    li.appendChild(b);
+    mlist.appendChild(li);
+  });
+
+  function openMenu(){ menu.hidden=false; }
+  function closeMenu(){ menu.hidden=true; }
+  function toggleMenu(){ menu.hidden ? openMenu() : closeMenu(); }
+  document.getElementById('menuBtn').addEventListener('click', toggleMenu);
+  menu.addEventListener('click', function(e){ if(e.target===menu) closeMenu(); });
+
+  var root = document.documentElement;
+  var themeBtn = document.getElementById('themeBtn');
+  function currentTheme(){
+    var attr = root.getAttribute('data-theme');
+    if(attr) return attr;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  themeBtn.addEventListener('click', function(){
+    var t = currentTheme()==='dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', t);
+    try{ localStorage.setItem('poc-theme', t); }catch(e){}
+  });
+  try{ var saved = localStorage.getItem('poc-theme'); if(saved) root.setAttribute('data-theme', saved); }catch(e){}
+
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape'){ if(!menu.hidden){ closeMenu(); e.preventDefault(); } return; }
+    if(!menu.hidden) return;
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': case 'Spacebar': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp': prev(); e.preventDefault(); break;
+      case 'Home': go(0); e.preventDefault(); break;
+      case 'End': go(total-1); e.preventDefault(); break;
+      case 'c': case 'C': toggleMenu(); e.preventDefault(); break;
+      case 't': case 'T': themeBtn.click(); e.preventDefault(); break;
+    }
+  });
+
+  var sx=0, sy=0;
+  deck.addEventListener('touchstart', function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; }, {passive:true});
+  deck.addEventListener('touchend', function(e){
+    var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)){ dx<0 ? next() : prev(); }
+  }, {passive:true});
+
+  var h = (location.hash||'').replace('#','');
+  if(h){ var found = slides.findIndex(function(s){ return s.id===h; }); if(found>=0) idx=found; }
+
+  setTimeout(function(){ var el=document.getElementById('hint'); if(el) el.style.opacity='0'; }, 4500);
+
+  // ---- Help / deep-dive popover ----
+  var helpPop = document.getElementById('helpPop');
+  var helpBody = document.getElementById('helpBody');
+  function openHelp(btn){
+    var tpl = document.getElementById('help-' + btn.dataset.help);
+    if(!tpl) return;
+    helpBody.innerHTML = '';
+    helpBody.appendChild(tpl.content.cloneNode(true));
+    helpBody.scrollTop = 0;
+    // Match the deep dive's accent to the slide it was opened from.
+    helpPop.setAttribute('data-accent', deck.getAttribute('data-accent') || 'orange');
+    helpPop.hidden = false;
+  }
+  function closeHelp(){ helpPop.hidden = true; helpBody.innerHTML = ''; }
+  Array.prototype.forEach.call(document.querySelectorAll('.help-btn'), function(b){
+    b.addEventListener('click', function(e){ e.preventDefault(); openHelp(b); });
+  });
+  document.getElementById('helpClose').addEventListener('click', closeHelp);
+  helpPop.addEventListener('click', function(e){ if(e.target===helpPop) closeHelp(); });
+  // While a deep dive is open, swallow keys/swipes so the deck does not navigate.
+  document.addEventListener('keydown', function(e){
+    if(helpPop.hidden) return;
+    if(e.key==='Escape') closeHelp();
+    e.stopImmediatePropagation(); e.preventDefault();
+  }, true);
+  deck.addEventListener('touchstart', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+  deck.addEventListener('touchend', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+
+  render();
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,1045 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+  /* ---- Help icon + deep-dive popover ---- */
+  .q-inline{display:inline-flex;align-items:center;justify-content:center;width:1.15em;height:1.15em;border-radius:50%;font-weight:700;font-size:.85em;background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);vertical-align:middle}
+  .help-list{list-style:none;padding:0;margin:14px 0 4px;display:flex;flex-direction:column;gap:9px;max-width:78ch}
+  .help-list-item{display:flex;align-items:flex-start;gap:12px;background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--local-accent,var(--accent));border-radius:11px;padding:12px 15px;box-shadow:var(--shadow)}
+  .help-list-item span{font-size:clamp(14.5px,1.4vw,17px);line-height:1.45;color:var(--text);font-weight:500;padding-top:2px}
+  .help-btn{appearance:none;flex:none;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-weight:700;font-size:15px;line-height:1;border-radius:50%;cursor:pointer;border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));transition:transform .15s,background .15s,color .15s}
+  .help-btn:hover,.help-btn:focus-visible{background:var(--local-accent,var(--accent));color:#fff;transform:scale(1.12);outline:none}
+  .help-btn:focus-visible{outline:2px solid var(--local-accent,var(--accent));outline-offset:2px}
+
+  /* Deep dive: full-viewport overlay with an opaque surface so the slide never shows through;
+     close button pinned to the top-right corner above everything. Accent is copied from the
+     active slide onto the popover via --pop-accent (set in openHelp). */
+  .help-popover{--pop-accent:var(--accent);--local-accent:var(--pop-accent);position:fixed;top:calc(60px + env(safe-area-inset-top,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));left:14px;right:14px;max-width:1300px;margin-inline:auto;z-index:100;display:flex;flex-direction:column;background:linear-gradient(color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),linear-gradient(90deg, color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--pop-accent) 14%,transparent), transparent 45%),radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),var(--surface);background-size:46px 46px,46px 46px,auto,auto,auto;border:1px solid var(--border);border-top:4px solid var(--pop-accent);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;animation:helpPop .28s cubic-bezier(.16,1,.3,1)}
+  @media (max-width:600px){.help-popover{left:8px;right:8px}}
+  .help-popover[hidden]{display:none}
+  .help-popover[data-accent="orange"]{--pop-accent:var(--c-orange)}
+  .help-popover[data-accent="teal"]{--pop-accent:var(--c-teal)}
+  .help-popover[data-accent="purple"]{--pop-accent:var(--c-purple)}
+  .help-popover[data-accent="green"]{--pop-accent:var(--c-green)}
+  .help-popover[data-accent="blue"]{--pop-accent:var(--c-blue)}
+  .help-popover[data-accent="pink"]{--pop-accent:var(--c-pink)}
+  .help-popover[data-accent="red"]{--pop-accent:var(--c-red)}
+  .help-popover[data-accent="amber"]{--pop-accent:var(--c-amber)}
+  @keyframes helpPop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.help-popover{animation:none}}
+  .help-popover-close{position:absolute;top:14px;right:16px;z-index:101;width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:50%;cursor:pointer;color:var(--pop-accent);border:1px solid color-mix(in srgb,var(--pop-accent) 45%,transparent);background:color-mix(in srgb,var(--pop-accent) 14%,var(--surface))}
+  .help-popover-close:hover{background:var(--pop-accent);color:#fff;border-color:var(--pop-accent)}
+  .help-popover-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:64px 24px 40px;display:flex;justify-content:center}
+  .help-popover-body .inner{margin:0}
+
+</style></head><body>
+<title>Foundation Model Evaluation Frameworks</title>
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#DEE4EC; --surface:#FFFFFF; --surface-2:#F1F4F8;
+    --text:#152230; --muted:#4C5A69; --faint:#7A8899;
+    --accent:#C2570B; --accent-soft:#F4E4D5; --accent2:#0E6E7D; --accent2-soft:#DDEEF0;
+    --c-orange:#C2570B; --c-teal:#0E6E7D; --c-purple:#7C3AED; --c-green:#1F8A4C;
+    --c-blue:#1E63C4; --c-pink:#C0357E; --c-red:#CB4335; --c-amber:#B7791F;
+    --border:#D4DBE3; --code-bg:#F1F4F8; --code-text:#152230; --deck-bg:#eaeef2;
+    --shadow:0 1px 3px rgba(20,34,48,.08),0 8px 30px rgba(20,34,48,.06); --shadow-lg:0 6px 16px rgba(20,34,48,.12),0 20px 50px rgba(20,34,48,.16);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+      --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+      --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+      --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+      --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+      --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+      --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+    --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+    --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+    --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+    --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+    --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'IBM Plex Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  code,pre,.mono{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace}
+
+  #progress{position:fixed; top:0; left:0; height:3px; background:var(--accent); width:0; z-index:60; transition:width .25s ease}
+  @media (prefers-reduced-motion: reduce){#progress{transition:none}}
+
+  .topbar{
+    position:fixed; left:0; right:0; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 18px; padding-top:calc(10px + env(safe-area-inset-top,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex; align-items:center; gap:10px; min-width:0}
+  .brand .dot{width:12px;height:12px;border-radius:3px;background:var(--accent);flex:none}
+  .brand b{font-weight:600; font-size:14px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .brand span{color:var(--faint); font-size:13px; white-space:nowrap}
+  .tools{display:flex; align-items:center; gap:8px; flex:none}
+  .btn{
+    appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--text);
+    font:inherit; font-size:13px; font-weight:500; padding:7px 12px; border-radius:9px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; line-height:1;
+  }
+  .btn:hover{border-color:var(--accent)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .btn.icon{padding:7px 9px}
+
+  /* The deck is a card floating on the (darker) page, holding one slide at a time. */
+  .deck{
+    --slide-accent:var(--accent); --local-accent:var(--slide-accent);
+    position:fixed;
+    top:calc(60px + env(safe-area-inset-top,0px));
+    bottom:calc(60px + env(safe-area-inset-bottom,0px));
+    left:14px; right:14px;
+    background:var(--deck-bg);
+    border:1px solid var(--border);
+    border-top:4px solid var(--slide-accent);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    transition:border-top-color .25s ease;
+  }
+  .deck[data-accent="orange"]{--slide-accent:var(--c-orange)}
+  .deck[data-accent="teal"]{--slide-accent:var(--c-teal)}
+  .deck[data-accent="purple"]{--slide-accent:var(--c-purple)}
+  .deck[data-accent="green"]{--slide-accent:var(--c-green)}
+  .deck[data-accent="blue"]{--slide-accent:var(--c-blue)}
+  .deck[data-accent="pink"]{--slide-accent:var(--c-pink)}
+  .deck[data-accent="red"]{--slide-accent:var(--c-red)}
+  .deck[data-accent="amber"]{--slide-accent:var(--c-amber)}
+  @media (max-width:600px){.deck{left:8px; right:8px}}
+
+  .slide{
+    --local-accent:var(--accent);
+    position:absolute; inset:0; overflow-y:auto; overflow-x:hidden;
+    padding:32px 30px calc(28px + env(safe-area-inset-bottom,0px));
+    display:flex; justify-content:center;
+    background:transparent;
+  }
+  .slide[data-accent="orange"]{--local-accent:var(--c-orange)}
+  .slide[data-accent="teal"]{--local-accent:var(--c-teal)}
+  .slide[data-accent="purple"]{--local-accent:var(--c-purple)}
+  .slide[data-accent="green"]{--local-accent:var(--c-green)}
+  .slide[data-accent="blue"]{--local-accent:var(--c-blue)}
+  .slide[data-accent="pink"]{--local-accent:var(--c-pink)}
+  .slide[data-accent="red"]{--local-accent:var(--c-red)}
+  .slide[data-accent="amber"]{--local-accent:var(--c-amber)}
+  .slide:not([hidden]){animation:fade .3s ease both}
+  @media (prefers-reduced-motion: reduce){.slide:not([hidden]){animation:none}}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  .inner{width:100%; max-width:1000px; margin:auto 0; padding-block:8px}
+  /* Content card: distinct --surface, floats on the --surface-2 deck backdrop */
+  .slide .inner{
+    background:
+      linear-gradient(color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--local-accent) 14%,transparent), transparent 45%),
+      radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),
+      var(--surface);
+    background-size:46px 46px,46px 46px,auto,auto,auto;
+    border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-lg); padding:28px 32px;
+    width:100%; max-width:1300px; aspect-ratio:16 / 9; max-height:100%; overflow-y:auto; overflow-x:hidden}
+
+  .kicker{
+    font-size:12.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase;
+    color:var(--local-accent,var(--accent)); margin:0 0 14px;
+  }
+  h1{font-size:clamp(30px,5vw,56px); line-height:1.05; font-weight:700; margin:0 0 18px; letter-spacing:-.02em; text-wrap:balance}
+  h2{font-size:clamp(23px,3.1vw,38px); line-height:1.12; font-weight:600; margin:0 0 16px; letter-spacing:-.01em; text-wrap:balance; color:var(--local-accent,var(--text))}
+  h3{font-size:clamp(16px,1.85vw,21px); font-weight:600; margin:22px 0 9px; color:var(--text)}
+  p{font-size:clamp(14.5px,1.45vw,17.5px); line-height:1.55; color:var(--muted); margin:0 0 12px; max-width:76ch}
+  p strong,li strong,td strong{color:var(--text); font-weight:600}
+  .lead{font-size:clamp(16px,1.85vw,21px); line-height:1.5; color:var(--text)}
+  ul,ol{margin:0 0 12px; padding-left:22px; max-width:78ch}
+  li{font-size:clamp(14.5px,1.4vw,17px); line-height:1.5; color:var(--muted); margin:0 0 7px}
+  em{font-style:italic}
+  hr.div{border:none; border-top:1px solid var(--border); margin:20px 0}
+
+  code:not(pre code){
+    background:var(--surface-2); border:1px solid var(--border); border-radius:6px;
+    padding:.08em .4em; font-size:.85em; color:var(--text); word-break:break-word;
+  }
+  pre{
+    background:color-mix(in srgb,var(--local-accent,var(--accent)) 6%,var(--code-bg)); color:var(--code-text);
+    border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 22%,var(--border));
+    border-left:3px solid var(--local-accent,var(--accent));
+    border-radius:12px; margin:6px 0 16px;
+    padding:16px 18px; overflow-x:auto;
+    font-size:clamp(11.5px,1.2vw,13.5px); line-height:1.55;
+  }
+  pre code{color:inherit; white-space:pre}
+
+  .tbl{overflow-x:auto; margin:8px 0 16px; border:1px solid var(--border); border-radius:12px}
+  table{border-collapse:collapse; width:100%; font-size:clamp(13px,1.25vw,15px)}
+  th,td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:9px 12px; text-align:left; vertical-align:top; color:var(--muted)}
+  th{background:var(--surface-2); color:var(--text); font-weight:600; white-space:nowrap}
+  tr td:last-child,tr th:last-child{border-right:none}
+  tbody tr:last-child td{border-bottom:none}
+
+  .note{
+    background:var(--surface-2); border:1px solid var(--border); border-left:4px solid var(--accent2);
+    border-radius:12px; padding:16px 18px; margin:10px 0 14px; box-shadow:var(--shadow);
+  }
+  .note .tag{display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent2); margin-bottom:6px}
+  .note p:last-child{margin-bottom:0}
+  .note.tip{border-left-color:var(--local-accent,var(--accent))}
+  .note.tip .tag{color:var(--local-accent,var(--accent))}
+  .quote{
+    border-left:3px solid var(--accent2); padding:4px 0 4px 18px; margin:0 0 12px;
+    color:var(--text); font-size:clamp(14px,1.45vw,17px); line-height:1.5;
+  }
+  .badge{display:inline-block; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; background:var(--accent2-soft); color:var(--accent2); margin-bottom:12px}
+
+  #cover .inner{max-width:1000px}
+  #cover .meta{font-size:13px; color:var(--faint); letter-spacing:2px; text-transform:uppercase; margin-top:16px}
+  .divider{background:transparent}
+  .divider .num{font-size:13px; font-weight:700; letter-spacing:3px; color:var(--local-accent); text-transform:uppercase; margin-bottom:14px}
+
+  .navbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    padding:12px 18px; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-top:1px solid var(--border);
+  }
+  .counter{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; min-width:64px; text-align:center}
+  .counter b{color:var(--text); font-weight:600}
+
+  .menu{
+    position:fixed; inset:0; z-index:70; background:color-mix(in srgb,var(--bg) 92%,transparent);
+    backdrop-filter:blur(6px); padding:calc(70px + env(safe-area-inset-top,0px)) 18px 30px; overflow-y:auto;
+  }
+  .menu .mwrap{max-width:860px; margin:0 auto}
+  .menu h2{font-size:20px; margin-bottom:16px}
+  .mlist{list-style:none; padding:0; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:2px 28px; align-content:start}
+  @media (max-width:600px){.mlist{grid-template-columns:1fr}}
+  .mitem{
+    width:100%; text-align:left; display:flex; gap:12px; align-items:baseline;
+    background:none; border:none; border-radius:9px; color:var(--text); font:inherit; padding:9px 12px; cursor:pointer;
+  }
+  .mitem:hover{background:var(--surface)}
+  .mitem .mn{color:var(--faint); font-size:12.5px; font-variant-numeric:tabular-nums; min-width:26px}
+  .mitem.sec{font-weight:600; margin-top:6px}
+  .mitem.sec .mn{color:var(--accent)}
+  .mitem.cur{background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--border)}
+  .hint{position:fixed; bottom:70px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--faint); z-index:40; pointer-events:none; transition:opacity .5s}
+  @media (max-width:600px){.hint{display:none}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<div id="progress"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <b>Foundation Model Evaluation Frameworks</b>
+    <span>· AWS Generative AI · Ch.01</span>
+  </div>
+  <div class="tools">
+    <button class="btn" id="menuBtn" aria-haspopup="true">☰ Contents</button>
+    <button class="btn icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+  </div>
+</header>
+
+<main class="deck" id="deck">
+
+<!-- Source: https://www.meta.ai/prompt/d463e567-ed07-4ade-b095-530436fccd9e -->
+
+  <!-- Cover -->
+  <section class="slide divider" id="cover" data-accent="orange" data-title="Foundation Model Evaluation Frameworks" data-section="true">
+    <div class="inner">
+      <p class="num">Course 02 · Chapter 01</p>
+      <h1>Foundation Model Evaluation Frameworks</h1>
+      <p class="lead">Foundation model landscape on Amazon Bedrock, performance benchmarking, capability assessment, systematic capability mapping, domain-specific evaluation, task-specific analysis, and multimodal assessment.</p>
+      <p class="meta">← → or Space to navigate · Press C for contents · T for theme</p>
+    </div>
+  </section>
+
+  <!-- ===== PART 1: FOUNDATION MODEL LANDSCAPE ===== -->
+  <section class="slide divider" id="fm-landscape" data-accent="orange" data-title="Part 01 · Foundation Model Landscape on Amazon Bedrock" data-section="true">
+    <div class="inner">
+      <p class="num">Part 01 · Foundation Model Landscape on Amazon Bedrock</p>
+      <p>The Foundation Model [FM] landscape is evolving fast. <strong>Amazon Bedrock</strong> simplifies this by giving you serverless, pay-per-token access to nearly 100 models from leading providers - including <strong>Amazon Nova, Anthropic Claude, Meta Llama, Mistral, Cohere, and AI21 Labs.</strong></p>
+      <p>On Bedrock, you don't manage any infrastructure. All models are available via a single API. The catalog includes two types:</p>
+      <ul>
+        <li><strong>Fully Managed Models:</strong> Proprietary models like Claude and Nova, fully managed by the provider.</li>
+        <li><strong>Open-Weight Models:</strong> Models like Llama and Mistral, where weights are open and you can customize deployment.</li>
+      </ul>
+      <p>This breadth lets you select a model based on your specific evaluation criteria, not just brand.</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="fm-types" aria-label="Open deep dive: 1. What Types of Foundation Models Are Available?">?</button><span>1. What Types of Foundation Models Are Available?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="fm-choose" aria-label="Open deep dive: 2. How to Choose the Right Model? 6 Key Differentiators">?</button><span>2. How to Choose the Right Model? 6 Key Differentiators</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== PART 2: PERFORMANCE BENCHMARKING ===== -->
+  <section class="slide divider" id="perf-bench" data-accent="teal" data-title="Part 02 · Performance Benchmarking Fundamentals" data-section="true">
+    <div class="inner">
+      <p class="num">Part 02 · Performance Benchmarking Fundamentals</p>
+      <p>Performance benchmarking is a structured approach to measure how well a Foundation Model [FM] performs against your specific business needs. We combine industry-standard benchmarks for a baseline comparison, with your own custom evaluations to get a real-world picture. Think of it as a 2-step validation process.</p>
+      <p>Here are the 3 categories expanded:</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="bench-standard" aria-label="Open deep dive: 1. Standard Benchmarking Methodologies">?</button><span>1. Standard Benchmarking Methodologies</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="bench-custom" aria-label="Open deep dive: 2. Customized Benchmarks">?</button><span>2. Customized Benchmarks</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="bench-interpret" aria-label="Open deep dive: 3. Interpreting Benchmark Results">?</button><span>3. Interpreting Benchmark Results</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== PART 3: CAPABILITY ASSESSMENT FRAMEWORK ===== -->
+  <section class="slide divider" id="cap-assess" data-accent="purple" data-title="Part 03 · Capability Assessment Framework for AI Systems - Architect's View" data-section="true">
+    <div class="inner">
+      <p class="num">Part 03 · Capability Assessment Framework for AI Systems - Architect's View</p>
+      <p>This framework is a 5-dimensional scorecard to evaluate an AI system end-to-end. It moves you beyond "how smart is the model" to "is this model fit for production in <em>my</em> business?" It helps you identify gaps, compare models objectively using industry leaderboards, and make a confident deployment decision on Amazon Bedrock.</p>
+      <p>We assess across 5 dimensions:</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cap-knowledge" aria-label="Open deep dive: 1. Knowledge &amp; Reasoning - Is the model smart?">?</button><span>1. Knowledge &amp; Reasoning - Is the model smart?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cap-instruction" aria-label="Open deep dive: 2. Instruction Following &amp; Agentic Capability - Can the model do work?">?</button><span>2. Instruction Following &amp; Agentic Capability - Can the model do work?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cap-domain" aria-label="Open deep dive: 3. Domain Specialization &amp; Retrieval - Does it know YOUR business?">?</button><span>3. Domain Specialization &amp; Retrieval - Does it know YOUR business?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cap-safety" aria-label="Open deep dive: 4. Safety, Trust &amp; Responsible AI - Is the model safe to deploy?">?</button><span>4. Safety, Trust &amp; Responsible AI - Is the model safe to deploy?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cap-performance" aria-label="Open deep dive: 5. Performance &amp; Operational Readiness - Is it viable at scale?">?</button><span>5. Performance &amp; Operational Readiness - Is it viable at scale?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cap-recommend" aria-label="Open deep dive: Architect's Recommendation: How to Apply This">?</button><span>Architect's Recommendation: How to Apply This</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== PART 4: SYSTEMATIC CAPABILITY MAPPING ===== -->
+  <section class="slide divider" id="sys-mapping" data-accent="green" data-title="Part 04 · Systematic Capability Mapping - Architect's View" data-section="true">
+    <div class="inner">
+      <p class="num">Part 04 · Systematic Capability Mapping - Architect's View</p>
+      <p>Systematic Capability Mapping is a structured method to document, categorize, and measure what your AI system can and cannot do across different business domains. Instead of a single leaderboard score, you create a visual, standardized map of capabilities. This becomes the foundation for gap analysis, risk assessment, and build-vs-buy decisions.</p>
+      <p>We achieve this using 3 core methods:</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="map-matrix" aria-label="Open deep dive: 1. Capability Matrix Development">?</button><span>1. Capability Matrix Development</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="map-competency" aria-label="Open deep dive: 2. Competency Framework Integration">?</button><span>2. Competency Framework Integration</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="map-taxonomy" aria-label="Open deep dive: 3. Functional Taxonomy Creation">?</button><span>3. Functional Taxonomy Creation</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="map-leaderboards" aria-label="Open deep dive: Key Leaderboards That Power This Mapping">?</button><span>Key Leaderboards That Power This Mapping</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="map-recommend" aria-label="Open deep dive: Architect's Recommendation for AWS Customers">?</button><span>Architect's Recommendation for AWS Customers</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== PART 5: DOMAIN-SPECIFIC EVALUATION ===== -->
+  <section class="slide divider" id="domain-eval" data-accent="blue" data-title="Part 05 · Domain-Specific Evaluation - Architect's View" data-section="true">
+    <div class="inner">
+      <p class="num">Part 05 · Domain-Specific Evaluation - Architect's View</p>
+      <p>Domain-specific evaluation measures how well an AI system performs in <em>your</em> industry, with <em>your</em> terminology, regulations, and workflows. It answers: "Does this model understand finance, healthcare, or telecom like an analyst in that industry would?" We move from public Wikipedia knowledge to proprietary, high-stakes domain knowledge.</p>
+      <p>We do this using 3 proven methods:</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="domain-benchmarks" aria-label="Open deep dive: 1. Industry Benchmarks">?</button><span>1. Industry Benchmarks</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="domain-sme" aria-label="Open deep dive: 2. Domain Expert Review [SME-in-the-loop]">?</button><span>2. Domain Expert Review [SME-in-the-loop]</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="domain-usecase" aria-label="Open deep dive: 3. Use Case Alignment">?</button><span>3. Use Case Alignment</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="domain-leaderboards" aria-label="Open deep dive: Key Leaderboards for Domain-Specific Evaluation">?</button><span>Key Leaderboards for Domain-Specific Evaluation</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="domain-recommend" aria-label="Open deep dive: Architect's Recommendation">?</button><span>Architect's Recommendation</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== PART 6: TASK-SPECIFIC ANALYSIS ===== -->
+  <section class="slide divider" id="task-analysis" data-accent="pink" data-title="Part 06 · Task-Specific Analysis - Architect's View" data-section="true">
+    <div class="inner">
+      <p class="num">Part 06 · Task-Specific Analysis - Architect's View</p>
+      <p>Task-specific analysis evaluates an AI system's performance on a particular type of work - like summarization, code generation, or reasoning - independent of the industry. We don't care if the content is about healthcare or banking, we care if the <em>task</em> was done correctly, helpfully, and efficiently.</p>
+      <p>We measure this using 3 core methods:</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="task-precision" aria-label="Open deep dive: 1. Precision / Recall Metrics - Was the task done accurately and completely?">?</button><span>1. Precision / Recall Metrics - Was the task done accurately and completely?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="task-quality" aria-label="Open deep dive: 2. Response Quality Assessment - Was the response actually helpful?">?</button><span>2. Response Quality Assessment - Was the response actually helpful?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="task-efficiency" aria-label="Open deep dive: 3. Efficiency Metrics - Can it scale in production?">?</button><span>3. Efficiency Metrics - Can it scale in production?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="task-leaderboards" aria-label="Open deep dive: Key Leaderboards for Task-Specific Analysis">?</button><span>Key Leaderboards for Task-Specific Analysis</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="task-recommend" aria-label="Open deep dive: Architect's Recommendation on AWS">?</button><span>Architect's Recommendation on AWS</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== PART 7: MULTIMODAL ASSESSMENT ===== -->
+  <section class="slide divider" id="mm-assess" data-accent="red" data-title="Part 07 · Multimodal Assessment - Architect's View" data-section="true">
+    <div class="inner">
+      <p class="num">Part 07 · Multimodal Assessment - Architect's View</p>
+      <p>Multimodal assessment evaluates how well an AI system handles multiple data types - Text, Image, Audio, Video - <em>together</em>, not in isolation. We don't just test if it can see an image and read text separately. We test if it can <em>reason across them</em> while preserving information integrity. A model that describes an image perfectly but fails to link it to your text document fails this assessment.</p>
+      <p>We evaluate this using 3 approaches:</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mm-coherence" aria-label="Open deep dive: 1. Cross-Modal Coherence Evaluation">?</button><span>1. Cross-Modal Coherence Evaluation</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mm-modal" aria-label="Open deep dive: 2. Modal-Specific Performance Metrics">?</button><span>2. Modal-Specific Performance Metrics</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mm-integration" aria-label="Open deep dive: 3. Integration Assessment">?</button><span>3. Integration Assessment</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mm-leaderboards" aria-label="Open deep dive: Key Leaderboards for Multimodal Assessment">?</button><span>Key Leaderboards for Multimodal Assessment</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mm-recommend" aria-label="Open deep dive: Architect's Recommendation on AWS">?</button><span>Architect's Recommendation on AWS</span></li>
+      </ul>
+    </div>
+  </section>
+
+
+</main>
+
+<!-- Help popover: full-viewport overlay (kept outside the deck so it can't be clipped/trapped) -->
+<div class="help-popover" id="helpPop" hidden>
+  <button class="help-popover-close" id="helpClose" type="button" aria-label="Close deep dive">&times;</button>
+  <div class="help-popover-body" id="helpBody"></div>
+</div>
+
+<!-- Deep-dive content (verbatim from the source Markdown) -->
+  <!-- ===== PART 1 TEMPLATES ===== -->
+  <template id="help-fm-types">
+    <div class="inner">
+      <h2>1. What Types of Foundation Models Are Available?</h2>
+      <p>Think of FMs in 3 categories:</p>
+      <p><strong>a) Large Language Models :</strong> Text-in, Text-out. Best for summarization, chat, RAG, and reasoning.</p>
+      <div class="note"><span class="tag">Technical Example</span><p><code>anthropic.claude-3-5-sonnet-20241022-v2</code> to summarize a 100-page insurance policy into key exclusions.[LLMs]</p></div>
+      <p><strong>b) Multimodal Models:</strong> Text + Image / Video / Audio. Can understand and reason across modalities.</p>
+      <div class="note"><span class="tag">Technical Example</span><p><code>amazon.nova-pro-v1:0</code> takes an input of <code>[product_image.jpg + text: "Is there shipping damage? If yes, create a return ticket"]</code> and generates a structured JSON output.</p></div>
+      <p><strong>c) Specialized / Domain-Specific Models:</strong> Optimized for one task.</p>
+      <div class="note"><span class="tag">Technical Example</span><p><code>mistral.codestral-22b-v0-1</code> for code generation and <code>cohere.embed-english-v3</code> for vector embeddings in your RAG pipeline, which is more cost-effective than using a large LLM for embedding.</p></div>
+    </div>
+  </template>
+
+  <template id="help-fm-choose">
+    <div class="inner">
+      <h2>2. How to Choose the Right Model? 6 Key Differentiators</h2>
+      <p>As architects, we evaluate models on these 6 dimensions:</p>
+      <p><strong>1. Model Size and Parameter Count</strong><br>What it means: Number of parameters [e.g., 8B vs 70B vs 405B]. Larger models generally have better reasoning and knowledge but higher latency and cost.</p>
+      <div class="note"><span class="tag">Example</span><p>For a high-volume customer support chatbot needing &lt;500ms latency, use <strong>Nova Micro or Llama 3.2 3B</strong>. For complex legal reasoning, use <strong>Claude 3.5 Sonnet or Nova Premier</strong> with 100B+ parameters.</p></div>
+      <p><strong>2. Training Data and Methodology</strong><br>What it means: What data the model was trained on and how - e.g., RLHF, instruction tuning, knowledge cutoff date.</p>
+      <div class="note"><span class="tag">Example</span><p>A model trained with heavy code data like <code>meta.llama-3-3-70b-instruct</code> will perform better on Python generation than a general-purpose model, even if both are 70B.</p></div>
+      <p><strong>3. Architecture Design</strong><br>What it means: How the model processes information - e.g., Dense Transformer vs. Mixture-of-Experts.</p>
+      <div class="note"><span class="tag">Example</span><p><strong>Mixtral 8x7B</strong> uses MoE architecture. It has 8 experts and only activates 2 per token. So you get the capability of a ~47B model with the inference cost of a ~12B model - ideal for balancing cost and performance.[MoE]</p></div>
+      <p><strong>4. Licensing and Availability</strong><br>What it means: Impacts what you can do. Open-weight allows fine-tuning and self-hosting. Fully managed is API-only.</p>
+      <div class="note"><span class="tag">Example</span><p>If you need to fine-tune on your proprietary financial data and host in your VPC, choose an open-weight model like <strong>Llama 3.3 70B on Bedrock</strong>. If you need a commercial-ready API with no infra, choose <strong>Claude or Nova</strong>.</p></div>
+      <p><strong>5. Provider Ecosystem and Model Family Strengths</strong><br>What it means: Each provider optimizes for different strengths.</p>
+      <div class="note"><span class="tag">Example</span><p><strong>Anthropic Claude:</strong> Best for complex reasoning, following instructions, and agentic workflows. <strong>Amazon Nova:</strong> Best for cost-optimized, low-latency, and AWS-native integration. <strong>Cohere:</strong> Best for RAG and enterprise search.</p></div>
+      <p><strong>6. Optimization Focus</strong><br>What it means: Every model makes a trade-off between Reasoning, Speed, and Cost.</p>
+      <div class="note"><span class="tag">Example in Code</span>
+<pre><code>import boto3
+bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
+
+# Use case 1: Low-cost classification at scale - Optimize for COST &amp; SPEED
+# Model: amazon.nova-micro-v1:0 -&gt; $0.03 / 1M input tokens
+
+# Use case 2: Complex multi-step reasoning - Optimize for REASONING
+# Model: anthropic.claude-3-5-sonnet-20241022-v2 -&gt; $3.00 / 1M input tokens
+response = bedrock.converse(
+    modelId="anthropic.claude-3-5-sonnet-20241022-v2",
+    messages=[{"role": "user", "content": [{"text": "Reason through this claim fraud scenario step-by-step"}]}]
+)</code></pre>
+      </div>
+    </div>
+  </template>
+
+  <!-- ===== PART 2 TEMPLATES ===== -->
+  <template id="help-bench-standard">
+    <div class="inner">
+      <h2>1. Standard Benchmarking Methodologies</h2>
+      <p>Standard benchmarks are public, industry-accepted test suites that provide an apples-to-apples comparison across different FMs. They measure isolated capabilities using consistent metrics.</p>
+      <p><strong>Common benchmarks you should know:</strong></p>
+      <ul>
+        <li><strong>MMLU [Massive Multitask Language Understanding]:</strong> Tests general knowledge and reasoning across 57 subjects like math, history, law. Metric: Accuracy %.</li>
+        <li><strong>HumanEval:</strong> Tests code generation ability. The model is given a function signature and docstring, it must write correct code that passes unit tests. Metric: pass@k.</li>
+        <li><strong>HELM [Holistic Evaluation of Language Models]:</strong> A comprehensive framework from Stanford that evaluates models across 7 dimensions - accuracy, calibration, robustness, fairness, bias, toxicity, and efficiency.</li>
+      </ul>
+      <div class="note"><span class="tag">Technical Example</span>
+        <p>Let's say you are comparing two models on Amazon Bedrock. You run them on HumanEval. The prompt is:</p>
+        <p class="quote"><code>def has_close_elements(numbers: List[float], threshold: float) -&gt; bool:</code><br><code>"Check if in given list of numbers, are any two numbers closer than threshold"</code></p>
+        <p><strong>Model A gets 82% pass@1</strong> and <strong>Model B gets 67% pass@1</strong>. On paper, Model A is a better coder. However, this test uses generic Python problems. It doesn't tell you if Model A can write secure, optimized code for <em>your</em> AWS Lambda functions using boto3.</p>
+      </div>
+      <div class="note tip"><span class="tag">Architect's Take</span><p>Use standard benchmarks for initial filtering only. A high MMLU score does not guarantee it will work well for your insurance claims summarization task.</p></div>
+    </div>
+  </template>
+
+  <template id="help-bench-custom">
+    <div class="inner">
+      <h2>2. Customized Benchmarks</h2>
+      <p>This is the most critical step. A custom benchmark is an evaluation framework you build using <em>your own</em> data, tasks, and success criteria. It measures what actually matters to your business: response quality, latency, and domain accuracy.</p>
+      <p>Your custom benchmark must have 3 components:</p>
+      <ol>
+        <li><strong>Representative Tasks:</strong> The exact prompts your users will use.</li>
+        <li><strong>Realistic Data:</strong> Your proprietary documents, not public Wikipedia data.</li>
+        <li><strong>Business-Aligned Metrics:</strong> Beyond accuracy, include Time to First Token [TTFT], Cost per 1K tokens, and Hallucination Rate.</li>
+      </ol>
+      <div class="note"><span class="tag">Technical Example: E-commerce Customer Support Bot</span>
+        <p>You are building a bot for product returns. A standard benchmark is useless here.</p>
+        <p><strong>Your custom benchmark dataset [50-100 samples]:</strong></p>
+<pre><code>{
+  "input": "I bought shoes order #12345, can I return after 45 days?",
+  "context": "&lt;Your return policy document: 30-day return window...&gt;",
+  "expected_output": "No, returns are only allowed within 30 days. Order #12345 is outside policy.",
+  "success_criteria": {
+    "factual_accuracy": "Must cite 30-day policy",
+    "no_hallucination": "Must not invent a 60-day policy",
+    "latency_p95": "&lt; 1.5 seconds",
+    "tone": "Empathetic"
+  }
+}</code></pre>
+        <p>You can run this easily using <strong>Amazon Bedrock Model Evaluation</strong> with either human evaluation or LLM-as-a-judge to score your models on this private dataset.</p>
+      </div>
+      <div class="note tip"><span class="tag">Architect's Take</span><p>If you do only one thing, do this. Start with 100 high-quality, curated examples from your own domain. This will give you 10x more insight than any public leaderboard.</p></div>
+    </div>
+  </template>
+
+  <template id="help-bench-interpret">
+    <div class="inner">
+      <h2>3. Interpreting Benchmark Results</h2>
+      <p>A benchmark score is not a final grade. It's a data point that needs context. You must interpret results by looking at the evaluation methodology, the test data, and the trade-offs between metrics like quality, latency, and cost.</p>
+      <p>Higher is not always better. A model optimized for reasoning may be slower and more expensive.</p>
+      <div class="note"><span class="tag">Technical Example: The Trade-off Decision</span>
+        <p>You evaluate two models for a real-time banking chatbot:</p>
+        <div class="tbl"><table>
+          <tr><th>Model</th><th>MMLU Score</th><th>Custom Domain Accuracy</th><th>p95 Latency</th><th>Cost / 1K tokens</th></tr>
+          <tr><td><strong>Model A - Claude 3.5 Sonnet</strong></td><td>88.7%</td><td>92%</td><td>1.8 sec</td><td>$0.015</td></tr>
+          <tr><td><strong>Model B - Llama 3 8B</strong></td><td>79.2%</td><td>89%</td><td>0.6 sec</td><td>$0.0006</td></tr>
+        </table></div>
+        <p><strong>Interpretation:</strong> Model A wins on paper. But for your use case, which needs sub-second response for chat and handles 1M requests/day, Model B is the better fit. It gives you 89% accuracy [only 3% less] with 3x faster latency and 25x lower cost. The 88.7% MMLU score is irrelevant to your ROI.</p>
+      </div>
+      <div class="note tip"><span class="tag">Architect's Take</span><p>Always compare across <em>multiple</em> benchmarks. Look at the full picture - capability vs. latency vs. cost. On Bedrock, I recommend creating a radar chart with 5 axes: Accuracy, Latency, Cost, Hallucination Rate, and Domain Compliance.</p></div>
+    </div>
+  </template>
+
+  <!-- ===== PART 3 TEMPLATES ===== -->
+  <template id="help-cap-knowledge">
+    <div class="inner">
+      <h2>1. Knowledge &amp; Reasoning - Is the model smart?</h2>
+      <p>The model's ability to understand general knowledge, perform logical reasoning, and solve complex problems.</p>
+      <p><strong>Leading Leaderboards:</strong> <strong>MMLU</strong> for general knowledge, <strong>GSM8K &amp; MATH</strong> for mathematical reasoning, <strong>GPQA</strong> for graduate-level reasoning, and <strong>Chatbot Arena LMSYS</strong> for human preference.</p>
+      <div class="note"><span class="tag">Technical Example</span><p>You are building an internal analyst assistant. You test two models. Model A scores 85% on MMLU but only 45% on GPQA Diamond [PhD-level science questions]. This tells you it has good general knowledge but will struggle with deep reasoning on complex financial modeling tasks. For your use case, GPQA is more relevant than MMLU.</p></div>
+    </div>
+  </template>
+
+  <template id="help-cap-instruction">
+    <div class="inner">
+      <h2>2. Instruction Following &amp; Agentic Capability - Can the model do work?</h2>
+      <p>Can the model follow complex instructions precisely and correctly use tools/APIs to take action? This is critical for agents.</p>
+      <p><strong>Leading Leaderboards:</strong> <strong>IFEval</strong> for strict instruction following, <strong>BFCL [Berkeley Function Calling Leaderboard]</strong> for tool/API calling accuracy, <strong>SWE-bench</strong> for solving real-world GitHub issues.</p>
+      <div class="note"><span class="tag">Technical Example</span>
+        <p>Your use case is a Travel Booking Agent.</p>
+        <p class="quote"><code>Book a flight from DEL to BLR tomorrow after 6 PM in JSON format with keys: {from, to, date, time_filter}</code></p>
+        <p>A model might give you a nice paragraph, but fail IFEval. A capable model on BFCL will correctly call:</p>
+        <p class="quote"><code>search_flights(origin="DEL", destination="BLR", date="2026-09-26", departure_after="18:00")</code></p>
+        <p>and return valid JSON. If BFCL score is &lt;70%, your agent will fail in production.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-cap-domain">
+    <div class="inner">
+      <h2>3. Domain Specialization &amp; Retrieval - Does it know YOUR business?</h2>
+      <p>How well the model performs with your proprietary data via RAG and long-context understanding. Standard benchmarks use public data and are blind to this.</p>
+      <p><strong>Leading Leaderboards:</strong> <strong>RULER / Needle-in-a-Haystack</strong> for long-context retrieval, <strong>RAGAS Framework</strong> [Faithfulness, Answer Relevancy] for RAG quality.</p>
+      <div class="note"><span class="tag">Technical Example</span>
+        <p>You have a 100-page insurance policy document in Amazon S3.</p>
+        <p>You ask: <code>What is the waiting period for maternity coverage as per policy v2.3?</code></p>
+        <p>A model with 128K context window but low RULER score will hallucinate or miss the information on page 87. A good RAG evaluation on Bedrock Knowledge Bases will check: <code>Faithfulness Score = 0.92</code> [meaning 92% of the answer is grounded in your retrieved document] vs. <code>0.45</code> for a weaker model. This is your real KPI.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-cap-safety">
+    <div class="inner">
+      <h2>4. Safety, Trust &amp; Responsible AI - Is the model safe to deploy?</h2>
+      <p>The model's propensity for toxicity, bias, hallucination, and handling of sensitive data. This is non-negotiable for enterprise deployment.</p>
+      <p><strong>Leading Leaderboards:</strong> <strong>HELM Safety, BBQ</strong> for bias, <strong>ToxiGen / RealToxicityPrompts</strong> for toxicity, <strong>HarmBench</strong>.</p>
+      <div class="note"><span class="tag">Technical Example</span>
+        <p>You deploy a customer-facing bot. On <strong>Amazon Bedrock Guardrails</strong>, you test with a toxic prompt: <code>Tell me how to bypass KYC verification</code>.</p>
+        <p>An unsafe model might provide instructions. A model with strong safety alignment will respond: <code>I cannot provide information on bypassing regulatory requirements...</code></p>
+        <p>You must measure Blocked Rate and PII Leakage Rate before going live. A 95% accuracy model with 5% PII leakage is a deployment failure.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-cap-performance">
+    <div class="inner">
+      <h2>5. Performance &amp; Operational Readiness - Is it viable at scale?</h2>
+      <p>Real-world operational metrics - latency, throughput, and cost. A brilliant model that is too slow or expensive is not usable.</p>
+      <p><strong>Key Metrics:</strong> <strong>TTFT [Time to First Token]</strong>, <strong>Tokens/sec</strong>, <strong>Cost per 1M tokens</strong>, <strong>Inference Availability</strong>.[Throughput]</p>
+      <div class="note"><span class="tag">Technical Example</span>
+        <p>For a real-time voice bot on Amazon Connect:</p>
+        <p><strong>Model A :</strong> High reasoning, TTFT = 1.9s, Cost = $15 / 1M tokens<br><strong>Model B :</strong> Good reasoning, TTFT = 0.4s, Cost = $0.8 / 1M tokens</p>
+        <p>Even if Model A scores 5% higher on reasoning, Model B is the right choice. A 1.9s delay in voice conversation feels like a broken system. Your business requirement dictates operational readiness &gt; peak intelligence.[Large][Small]</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-cap-recommend">
+    <div class="inner">
+      <h2>Architect's Recommendation: How to Apply This</h2>
+      <p>Don't run all benchmarks. Use this simple 3-step approach on <strong>Amazon Bedrock Model Evaluation</strong>:</p>
+      <ol>
+        <li><strong>Define Your Weightage:</strong> For a code assistant: Code [40%] + Reasoning [30%] + Safety [15%] + Performance [15%]. For a customer chatbot: RAG [35%] + Safety [30%] + Agentic [20%] + Performance [15%].</li>
+        <li><strong>Create a Scorecard:</strong>
+          <div class="tbl"><table>
+            <tr><th>Dimension</th><th>Leaderboard to Check</th><th>Your Target</th><th>Model Score</th></tr>
+            <tr><td>Reasoning</td><td>GPQA</td><td>&gt;70%</td><td>75%</td></tr>
+            <tr><td>RAG Faithfulness</td><td>RAGAS on Bedrock</td><td>&gt;0.90</td><td>0.92</td></tr>
+          </table></div>
+        </li>
+        <li><strong>Make a Business Decision:</strong> The framework ensures alignment. You are not choosing the #1 model on a public leaderboard; you are choosing the #1 model for <em>your</em> business scorecard.</li>
+      </ol>
+    </div>
+  </template>
+
+  <!-- ===== PART 4 TEMPLATES ===== -->
+  <template id="help-map-matrix">
+    <div class="inner">
+      <h2>1. Capability Matrix Development</h2>
+      <p>A 2D grid where Rows = Capabilities and Columns = Performance Levels. It lets you compare multiple models side-by-side and instantly spot gaps.</p>
+      <p><strong>Easy language:</strong> Like a skills matrix for a human employee - Python: Expert, Communication: Intermediate, Finance Knowledge: Beginner.</p>
+      <div class="note"><span class="tag">Technical Example - On Amazon Bedrock</span>
+        <p>You are evaluating an AI assistant for a bank. You build this matrix:</p>
+        <div class="tbl"><table>
+          <tr><th>Capability Dimension</th><th>Llama 3 70B</th><th>Claude 3.5 Sonnet</th><th>Your Required Level</th></tr>
+          <tr><td><strong>Factual Accuracy [RAG]</strong></td><td>0.78</td><td><strong>0.92</strong></td><td>&gt;0.90</td></tr>
+          <tr><td><strong>Tool Use [BFCL]</strong></td><td>0.81</td><td><strong>0.89</strong></td><td>&gt;0.85</td></tr>
+          <tr><td><strong>PII Redaction / Safety</strong></td><td>0.85</td><td><strong>0.96</strong></td><td>&gt;0.95</td></tr>
+          <tr><td><strong>Latency [TTFT]</strong></td><td><strong>0.5s</strong></td><td>1.2s</td><td>&lt;1.0s</td></tr>
+        </table></div>
+        <p><strong>Gap Analysis:</strong> The matrix shows Claude meets your Safety and Accuracy needs, but fails Latency. Llama meets Latency but fails Safety. You now have a clear decision: you need to either add Amazon Bedrock Guardrails to Llama, or use prompt caching for Claude.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-map-competency">
+    <div class="inner">
+      <h2>2. Competency Framework Integration</h2>
+      <p>Aligning AI capabilities to your existing organizational competency models. You map AI functions directly to business processes and human roles.</p>
+      <p><strong>Easy language:</strong> Don't map AI as a tech tool. Map it as a "Digital Employee" with a job description and KPIs.</p>
+      <div class="note"><span class="tag">Technical Example</span>
+        <p>For a Claims Processing LOB:</p>
+        <p><strong>Business Process:</strong> <code>First Notice of Loss [FNOL] -&gt; Document Verification -&gt; Payout Decision</code></p>
+        <p><strong>Mapping:</strong></p>
+        <ul>
+          <li>AI Role: <code>L1 Claims Triage Agent</code></li>
+          <li>Competency Expected: Must extract 12 entities from an accident report with &gt;95% precision, must call <code>verify_policy_status</code> tool, must NOT make payout decisions [human-in-the-loop required].</li>
+          <li>You validate this using <strong>Amazon Bedrock Model Evaluation</strong> with a custom dataset of 100 historical claims. If the model tries to make the final payout decision, it fails the competency framework.</li>
+        </ul>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-map-taxonomy">
+    <div class="inner">
+      <h2>3. Functional Taxonomy Creation</h2>
+      <p>Creating a hierarchical, common vocabulary to categorize capabilities so all teams speak the same language and you can track evolution over time.</p>
+      <p><strong>Easy language:</strong> A family tree of skills. Top level is broad, bottom level is very specific.</p>
+      <div class="note"><span class="tag">Technical Example - Your Taxonomy</span>
+<pre><code>Level 1: Language Understanding
+-&gt; Level 2: Information Extraction
+-&gt; Level 3: PII Entity Extraction [Name, Account #, SSN]
+-&gt; Level 3: Financial Entity Extraction [Invoice Amount, Due Date]
+-&gt; Level 2: Summarization
+-&gt; Level 3: Abstractive Summarization of 100-page docs</code></pre>
+        <p>When a new model version releases, you don't re-test everything. You just test against this taxonomy to see if <code>Level 3: Financial Entity Extraction</code> improved from 88% to 94%.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-map-leaderboards">
+    <div class="inner">
+      <h2>Key Leaderboards That Power This Mapping</h2>
+      <p>These leaderboards are not just scores, they are pre-built taxonomies you can reuse:</p>
+      <p><strong>1. HELM [Holistic Evaluation of Language Models]:</strong> The best example of a <strong>Capability Matrix</strong>. It evaluates 40+ models across 7 dimensions beyond accuracy - fairness, bias, toxicity, calibration, robustness. Use it for standardized system comparison.</p>
+      <p><strong>2. BigBench [Beyond the Imitation Game Benchmark]:</strong> The best example of a <strong>Functional Taxonomy</strong>. It has 204+ diverse tasks contributed by the community, categorized into reasoning, memorization, social bias, etc. Use it to find the exact boundary where a model breaks.</p>
+      <p><strong>3. BabyAI Platform:</strong> The best example of <strong>Competency Framework Integration</strong>. It maps capabilities across developmental stages like a human child - from basic object recognition to complex instruction following. It uses a curriculum-based approach, ideal if you want to train a small model progressively for your organization.</p>
+      <p><strong>4. GLUE &amp; SuperGLUE:</strong> The best example for <strong>Capability Matrix Development</strong> for language understanding. It provides 8-10 standardized NLU tasks with clearly defined dimensions. If your use case needs precise language understanding, this is your baseline matrix.[Sentiment][Entailment][Paraphrasing]</p>
+    </div>
+  </template>
+
+  <template id="help-map-recommend">
+    <div class="inner">
+      <h2>Architect's Recommendation for AWS Customers</h2>
+      <p>Start with this template in your next design review:</p>
+      <ol>
+        <li>Build your Taxonomy for your domain first.</li>
+        <li>Create the Capability Matrix using HELM + BigBench as reference, plus your custom RAG dataset on <strong>Bedrock Knowledge Bases</strong>.</li>
+        <li>Integrate it with your Competency Framework - define what the AI is <em>allowed</em> to do vs. what requires human approval via <strong>Bedrock Guardrails and Agents</strong>.</li>
+      </ol>
+      <p>This mapping document becomes your audit trail for responsible AI deployment.</p>
+    </div>
+  </template>
+
+  <!-- ===== PART 5 TEMPLATES ===== -->
+  <template id="help-domain-benchmarks">
+    <div class="inner">
+      <h2>1. Industry Benchmarks</h2>
+      <p>Comparing the model against established, public or private datasets built specifically for an industry to find gaps against regulatory and professional standards.</p>
+      <p><strong>Easy language:</strong> It's like a board exam for doctors or CAs. You don't test a doctor on general knowledge, you test them on medical cases.</p>
+      <div class="note"><span class="tag">Technical Example - Financial Services</span>
+        <p>You don't just test a model on math. You test it on <strong>FinanceBench</strong>.</p>
+        <p><strong>Prompt:</strong> <code>From the attached 10-K filing for Company X, what was the YoY change in Net Interest Margin for Q3 2024, and is it compliant with Basel III disclosure requirements?</code></p>
+        <p>A general model will hallucinate the number. A domain-capable model must do: Document Parsing -&gt; Table Extraction -&gt; Calculation [NIM = (Interest Income - Interest Expense) / Avg Earning Assets] -&gt; Regulatory Check. If it fails this, it fails your industry benchmark, even if its MMLU is 90%.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-domain-sme">
+    <div class="inner">
+      <h2>2. Domain Expert Review [SME-in-the-loop]</h2>
+      <p>Engaging Subject Matter Experts to qualitatively review model outputs for subtle, high-risk errors that automated metrics like ROUGE or BLEU will completely miss.</p>
+      <p><strong>Easy language:</strong> Quantitative metrics check if the answer <em>looks</em> right. An SME checks if the answer <em>is</em> right and <em>safe</em>.</p>
+      <div class="note"><span class="tag">Technical Example - Healthcare on Amazon Bedrock</span>
+        <p>You use <strong>Bedrock Model Evaluation with Human Evaluation workflow</strong>.</p>
+        <p><strong>Model Output:</strong> <code>Patient has hyperglycemia, prescribe 10 units of insulin.</code></p>
+        <p><strong>Automated Metric:</strong> Faithfulness = 0.95, because it grounded the answer from the EHR.</p>
+        <p><strong>SME Review Flags:</strong> <code>CRITICAL ERROR - Patient has Type 2 diabetes with CKD Stage 4, 10 units is contraindicated without checking eGFR. Model missed drug-dosage nuance. Risk: High.</code></p>
+        <p>This is why we always pair automated evaluation with SME review for healthcare, using <strong>Bedrock's human evaluation</strong> where you can bring your own clinical reviewers to score outputs on Safety, Correctness, and Completeness.[Doctor]</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-domain-usecase">
+    <div class="inner">
+      <h2>3. Use Case Alignment</h2>
+      <p>Evaluating the AI not on isolated Q&amp;A, but on an end-to-end business scenario to measure actual business impact and workflow integration.</p>
+      <p><strong>Easy language:</strong> Does it reduce handle time? Does it integrate with your existing systems like Salesforce or Epic?</p>
+      <div class="note"><span class="tag">Technical Example - Insurance Claims</span>
+        <p><strong>Scenario:</strong> <code>A customer uploads 3 documents - accident photos, police report, and policy PDF - and asks "Is my claim covered?"</code></p>
+        <p><strong>Use Case Alignment Test:</strong></p>
+        <ol>
+          <li>Did it call the right tool <code>check_policy_coverage[policy_id]</code> in <strong>Bedrock Agents</strong>?</li>
+          <li>Did it extract the correct incident date?</li>
+          <li>What was the business KPI? Time to Decision went from 25 mins to 45 seconds [AI], with 98% accuracy.</li>
+        </ol>
+        <p>This is more valuable than any benchmark score because it ties directly to ROI.[human]</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-domain-leaderboards">
+    <div class="inner">
+      <h2>Key Leaderboards for Domain-Specific Evaluation</h2>
+      <p>These are your ready-made industry exams:</p>
+      <p><strong>1. MMLU - 57 Domain Test:</strong> While general, its real value is domain slicing. Don't look at overall MMLU. Filter it for <code>Professional Medicine, Clinical Knowledge, Accounting, Finance, Law</code>. If a model scores 88% overall but 62% in Professional Law, you cannot use it for your legal use case.</p>
+      <p><strong>2. Bedrock Model Evaluation Leaderboard - Industry Tracks:</strong> This is what we recommend to AWS customers. These are private, industry-specific tracks for Financial Services, Healthcare, and Telecom. Unlike public leaderboards, they incorporate <strong>compliance requirements</strong> - e.g., for finance, evaluation includes PCI-DSS and FINRA compliance checks; for healthcare, HIPAA-safe response and de-identification checks. You bring your own dataset, and Bedrock evaluates against these industry guardrails.</p>
+      <p><strong>3. MedPaLM Benchmark / MedQA:</strong> Built with doctors, specifically for clinical decision support. It tests medical reasoning, not just recall. Example question: <code>A 67-year-old male with chest pain radiating to the left arm...</code> It measures if the model can perform differential diagnosis safely. If you are in healthcare, this is your gold standard.</p>
+      <p><strong>4. FinanceBench:</strong> The most rigorous for financial services. It contains real-world questions based on actual 10-Ks, 10-Qs, earnings call transcripts, and regulatory documents like Basel III and SEC filings. It tests if the model can find a needle of financial insight in a haystack of filings, which is exactly your analyst's job.</p>
+    </div>
+  </template>
+
+  <template id="help-domain-recommend">
+    <div class="inner">
+      <h2>Architect's Recommendation</h2>
+      <p>For any production workload, implement this 3-layer evaluation on AWS:</p>
+      <ol>
+        <li><strong>Layer 1 - Automated:</strong> Run your model against the relevant domain slice of MMLU + FinanceBench/MedQA using <strong>Amazon Bedrock Model Evaluation - Automatic [RAGAS]</strong>.[Correctness]</li>
+        <li><strong>Layer 2 - SME Review:</strong> Route the 20% low-confidence or high-risk outputs to your SMEs using <strong>Bedrock Model Evaluation - Human Workflow</strong>.</li>
+        <li><strong>Layer 3 - Business KPI:</strong> Measure Use Case Alignment - <code>Claims auto-approved %, Average Handle Time, Compliance Violation Rate</code>.</li>
+      </ol>
+      <p>A model is only domain-ready when it passes all three layers.</p>
+    </div>
+  </template>
+
+  <!-- ===== PART 6 TEMPLATES ===== -->
+  <template id="help-task-precision">
+    <div class="inner">
+      <h2>1. Precision / Recall Metrics - Was the task done accurately and completely?</h2>
+      <p><strong>What it measures:</strong> For deterministic tasks like extraction and classification, we balance false positives vs. false negatives.</p>
+      <ul>
+        <li><strong>Precision:</strong> Of all the things the model returned, how many were correct? [Penalizes hallucination]</li>
+        <li><strong>Recall:</strong> Of all the things it <em>should</em> have returned, how many did it find? [Penalizes missing info]</li>
+        <li><strong>F1 Score:</strong> Harmonic mean of both.</li>
+      </ul>
+      <div class="note"><span class="tag">Technical Example - Entity Extraction Task on Bedrock</span>
+        <p><strong>Task:</strong> Extract all invoice amounts from a document.</p>
+        <p>Document has 5 true amounts: <code>[ $100, $250, $400, $50, $75 ]</code></p>
+        <p>Model returns: <code>[ $100, $250, $900, $50 ]</code></p>
+        <ul>
+          <li><strong>Precision = 3/4 = 75%</strong> - It returned 4, but $900 is wrong [false positive].</li>
+          <li><strong>Recall = 3/5 = 60%</strong> - It only found 3 of the 5 true amounts. Missed $400 and $75 [false negatives].</li>
+          <li>This tells you immediately: The model is both hallucinating and missing data. You need to improve your RAG retriever or prompt.</li>
+        </ul>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-task-quality">
+    <div class="inner">
+      <h2>2. Response Quality Assessment - Was the response actually helpful?</h2>
+      <p><strong>What it measures:</strong> For generative tasks like chat and summarization, precision/recall is not enough. We evaluate Coherence, Relevance, Helpfulness, and Faithfulness to user intent. We now use <strong>LLM-as-a-Judge</strong> for this.</p>
+      <div class="note"><span class="tag">Technical Example - Summarization Task</span>
+        <p><strong>User Intent:</strong> <code>Summarize this 20-page escalation for a VP, focus on customer impact and next steps.</code></p>
+        <p><strong>Model A Output:</strong> A 500-word summary that is factually correct but includes all the technical logs. [High Precision, Low Relevance]</p>
+        <p><strong>Model B Output:</strong> A 3-bullet summary: "Impact: 200 users blocked. Root Cause: API timeout. Next Step: Rollback deployed."</p>
+        <p>Using <strong>Amazon Bedrock Model Evaluation with LLM-as-a-Judge</strong>, Model B scores: <code>Helpfulness: 4.8/5, Relevance: 4.9/5, Coherence: 5/5</code> while Model A scores <code>Helpfulness: 2.5/5</code>. This is what matters for business adoption.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-task-efficiency">
+    <div class="inner">
+      <h2>3. Efficiency Metrics - Can it scale in production?</h2>
+      <p><strong>What it measures:</strong> Computational cost to perform the task - response time, throughput, and resource usage under load.</p>
+      <ul>
+        <li><strong>TTFT [Time to First Token]:</strong> For real-time chat.</li>
+        <li><strong>Tokens/sec &amp; Latency p95:</strong> For batch processing.</li>
+        <li><strong>Cost per Task:</strong> $ per 1,000 tasks completed.</li>
+      </ul>
+      <div class="note"><span class="tag">Technical Example</span>
+        <p>You have a task to classify 1 Million support tickets overnight.</p>
+        <p><strong>Model A:</strong> 95% accuracy, 2.1 sec/ticket, $0.015 / 1K tokens = 24 hours + $450<br><strong>Model B:</strong> 93% accuracy, 0.4 sec/ticket, $0.0008 / 1K tokens = 4.5 hours + $24</p>
+        <p>A 2% accuracy drop for 5x speed and 18x cost saving is a better business trade-off. We track this in Bedrock via latency and cost metrics.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-task-leaderboards">
+    <div class="inner">
+      <h2>Key Leaderboards for Task-Specific Analysis</h2>
+      <p><strong>1. MT-Bench [Multi-Turn Benchmark]:</strong> The gold standard for <strong>conversational and instruction-following tasks</strong>. It tests 8-turn conversations - writing, role-play, reasoning. It uses GPT-4 as a judge, which correlates 85%+ with human preference. It measures both Precision/Recall and Response Quality.</p>
+      <div class="note"><span class="tag">Example</span><p>Turn 1: <code>Write a Python script to analyze S3 logs.</code> Turn 2: <code>Now modify it to handle Parquet and add error handling.</code> If the model forgets Turn 1 context in Turn 2, it fails MT-Bench. This is critical if you are building an agent on <strong>Bedrock Agents</strong>.</p></div>
+      <p><strong>2. HumanEval+ and MBPP+ [Coding Benchmarks]:</strong> The gold standard for <strong>code generation tasks</strong>. Original HumanEval had only 7 tests per problem. HumanEval+ has 80x more tests to catch edge cases. It measures function completion, bug fixing, and algorithm implementation across Python, Java, etc.</p>
+      <div class="note"><span class="tag">Example Prompt</span><p><code>def get_presigned_url(bucket, key, expiry=3600):</code> A model may pass 1 basic test but fail HumanEval+ because it didn't handle <code>expiry &lt;=0</code> or <code>key with special characters</code>. HumanEval+ score of 85%+ means the code is actually production-ready, not just demo-ready. We use this to select models for <strong>Amazon Q Developer</strong> use cases.</p></div>
+      <p><strong>3. GSM8K and MATH:</strong> The gold standard for <strong>mathematical reasoning tasks</strong>. GSM8K = 8.5K grade-school math word problems requiring step-by-step chain-of-thought. MATH = 12.5K competition-level problems. They measure precision in quantitative tasks.</p>
+      <div class="note"><span class="tag">Example</span><p><code>Janet has 3x more apples than Tom. Tom has 5. If she gives 4 away, how many left?</code> We don't just check the final answer <code>11</code>. We evaluate the chain-of-thought: <code>Tom=5, Janet=3*5=15, 15-4=11</code>. A model that gets 11 by guessing fails MATH. For finance or pricing use cases, this reasoning trace is mandatory for audit.</p></div>
+      <p><strong>4. BIG-Bench Hard [BBH]:</strong> The gold standard for <strong>complex, multi-step reasoning edge cases</strong>. It takes the 23 hardest tasks from BigBench that previous models failed. It tests logical deduction, sarcasm, causal reasoning.</p>
+      <div class="note"><span class="tag">Example Task - Causal Reasoning</span><p><code>The following are 3 events: A) It rained, B) The ground is wet, C) People used umbrellas. What is the causal chain?</code> A weak model says <code>B -&gt; A</code>. A strong reasoning model correctly identifies <code>A -&gt; B and A -&gt; C</code>. If your use case is root-cause analysis or fraud detection, you need a high BBH score.</p></div>
+    </div>
+  </template>
+
+  <template id="help-task-recommend">
+    <div class="inner">
+      <h2>Architect's Recommendation on AWS</h2>
+      <p>Don't mix metrics. Map Task -&gt; Metric -&gt; Leaderboard -&gt; Bedrock Tool:</p>
+      <div class="tbl"><table>
+        <tr><th>Your Task</th><th>Metric to Track</th><th>Leaderboard to Check</th><th>AWS Tool</th></tr>
+        <tr><td>Extraction / Classification</td><td>Precision, Recall, F1</td><td>GLUE / Custom</td><td>Bedrock Evaluation - Accuracy</td></tr>
+        <tr><td>Chatbot / Summarization</td><td>Helpfulness, Faithfulness</td><td>MT-Bench</td><td>Bedrock Evaluation - LLM-as-a-Judge</td></tr>
+        <tr><td>Code Generation</td><td>pass@k</td><td>HumanEval+</td><td>Bedrock Evaluation - Code</td></tr>
+        <tr><td>Cost at Scale</td><td>TTFT, $/task</td><td>-</td><td>CloudWatch + Bedrock Metrics</td></tr>
+      </table></div>
+    </div>
+  </template>
+
+  <!-- ===== PART 7 TEMPLATES ===== -->
+  <template id="help-mm-coherence">
+    <div class="inner">
+      <h2>1. Cross-Modal Coherence Evaluation</h2>
+      <p><strong>What it measures:</strong> Consistency of information when it moves from one modality to another. Does the model's understanding of an image align with its understanding of the text about that same image?</p>
+      <div class="note"><span class="tag">Technical Example - Insurance Claim on Amazon Bedrock</span>
+        <p><strong>Inputs:</strong> Image = [Photo of a car with dented rear bumper], Text = Police report says "Front-end collision".</p>
+        <p><strong>Model with poor coherence:</strong> Generates report: "Vehicle shows front-end damage as per police report." It ignored the image and just trusted the text - hallucination.</p>
+        <p><strong>Model with strong coherence:</strong> Flags inconsistency: "Alert: Visual evidence shows rear damage, but text report states front-end collision. Cross-modal conflict detected - requires human review."</p>
+        <p>This is what we measure on <strong>Claude 3.5 Sonnet and Amazon Nova Premier</strong> on Bedrock. Good coherence = unified understanding.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-mm-modal">
+    <div class="inner">
+      <h2>2. Modal-Specific Performance Metrics</h2>
+      <p><strong>What it measures:</strong> We apply specialized metrics to each modality to find the weakest link. A multimodal model is only as strong as its worst modality.</p>
+      <ul>
+        <li><strong>Vision:</strong> CIDEr, VQA Accuracy</li>
+        <li><strong>Audio:</strong> Word Error Rate [WER] for transcription</li>
+        <li><strong>Video:</strong> Temporal grounding accuracy</li>
+      </ul>
+      <div class="note"><span class="tag">Technical Example</span>
+        <p>You build a shop-floor safety assistant using video + audio. You test 100 samples:</p>
+        <ul>
+          <li>Text Q&amp;A Accuracy: 92%</li>
+          <li>Image Object Detection [hard hat]: 89%</li>
+          <li>Audio Transcription [worker shouting "help"] WER: 35%</li>
+        </ul>
+        <p>Your modal-specific metrics show the failure mode is Audio, not Vision. You need to add <strong>Amazon Transcribe</strong> as a pre-processor or choose a model with stronger audio encoder. Without this breakdown, you'd think the whole model is bad.[Poor]</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-mm-integration">
+    <div class="inner">
+      <h2>3. Integration Assessment</h2>
+      <p><strong>What it measures:</strong> How effectively the model <em>fuses</em> multiple modalities to perform reasoning that is impossible with a single modality alone, while preserving information integrity.</p>
+      <div class="note"><span class="tag">Technical Example - Technical Troubleshooting</span>
+        <p><strong>Input 1 :</strong> Technical diagram of an architecture with VPC-A peering to VPC-B</p>
+        <p><strong>Input 2 :</strong> "App in VPC-A cannot reach RDS in VPC-B, but ping works."</p>
+        <p><strong>Input 3 :</strong> Engineer says "Security group looks fine"</p>
+        <p><strong>Task:</strong> Diagnose the issue.</p>
+        <p>A single-modality model fails. A model with strong integration assessment reasons across all three: <code>Ping works = Network ACL and Routing OK. Image shows peering is correct. Audio + Text suggests SG issue, but ping uses ICMP, RDS uses TCP 3306. Conclusion: Security Group inbound rule for TCP 3306 is missing in VPC-B.</code></p>
+        <p>This is cross-modal reasoning. This is what we test.[Image][Text][Audio]</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-mm-leaderboards">
+    <div class="inner">
+      <h2>Key Leaderboards for Multimodal Assessment</h2>
+      <p><strong>1. MMMLU [Massive Multimodal Language Understanding]:</strong> Tests processing across text, images, audio, and video in a single task. It measures cross-modal coherence and information preservation - did information get lost when moving from image to text?</p>
+      <p><strong>2. LMSys Chatbot Arena - Multimodal Tracks:</strong> This is human preference for multimodal. It uses an <strong>Elo rating system</strong> based on millions of blind human comparisons. Users upload an image and ask a question, two models answer, humans vote which fusion was better. This is the closest to real-world user satisfaction for modal integration.</p>
+      <p><strong>3. MMMU [Massive Multi-discipline Multimodal Understanding]:</strong> The hardest professional test. It evaluates college-level tasks that <em>require</em> multimodal reasoning - reading technical diagrams, scientific charts, medical scans, financial tables. Example: An image of a circuit diagram + question "Calculate current through R3". It tests professional-level multimodal reasoning, not just captioning.</p>
+      <p><strong>4. MME [Multimodal Evaluation Benchmark]:</strong> The diagnostic benchmark. It <strong>separates Perception from Reasoning</strong> to identify specific strengths/weaknesses.</p>
+      <ul>
+        <li>Perception Score: Can it see the objects correctly?</li>
+        <li>Cognition Score: Can it reason about what it saw?</li>
+      </ul>
+      <div class="note"><span class="tag">Example</span><p>MME might show Model A has Perception 90% but Cognition 60% - it sees the X-ray correctly but fails to diagnose. Model B has Perception 70% but Cognition 85% - it struggles to see, but reasons well on what it does see. This tells you exactly what to fix.</p></div>
+    </div>
+  </template>
+
+  <template id="help-mm-recommend">
+    <div class="inner">
+      <h2>Architect's Recommendation on AWS</h2>
+      <p>On <strong>Amazon Bedrock</strong>, when you evaluate multimodal models like Claude 3.5 Sonnet, Nova Pro, or Llama 3.2 Vision:</p>
+      <ol>
+        <li><strong>Don't test modalities in isolation.</strong> Always create test cases that <em>require</em> 2+ modalities to answer.</li>
+        <li><strong>Create a Modal Scorecard:</strong>
+          <div class="tbl"><table>
+            <tr><th>Test Case</th><th>Modality Needed</th><th>Coherence Pass?</th><th>Result</th></tr>
+            <tr><td>Claim Verification</td><td>Image + Text</td><td>Yes/No</td><td>Flagged conflict correctly?</td></tr>
+          </table></div>
+        </li>
+        <li><strong>Use Bedrock's Multimodal Evaluation:</strong> Upload image+text pairs and use LLM-as-a-Judge to score Cross-Modal Faithfulness - "Is the text response grounded in both the image and the provided document?"</li>
+      </ol>
+      <p>A model is multimodally ready only when it preserves information across modalities and can reason across them to solve a task that single modality cannot.</p>
+    </div>
+  </template>
+
+
+<nav class="navbar">
+  <button class="btn" id="prevBtn" aria-label="Previous slide">← Prev</button>
+  <div class="counter"><b id="cur">1</b> / <span id="total">1</span></div>
+  <button class="btn" id="nextBtn" aria-label="Next slide">Next →</button>
+</nav>
+
+<div class="hint" id="hint">← → to move · C for contents · T for theme</div>
+
+<div class="menu" id="menu" hidden>
+  <div class="mwrap">
+    <h2>Contents</h2>
+    <ul class="mlist" id="mlist"></ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var idx = 0;
+  var deck = document.getElementById('deck');
+  var curEl = document.getElementById('cur');
+  var totalEl = document.getElementById('total');
+  var prog = document.getElementById('progress');
+  var menu = document.getElementById('menu');
+  var mlist = document.getElementById('mlist');
+  totalEl.textContent = total;
+
+  function idOf(i){ return slides[i].id; }
+
+  function render(){
+    slides.forEach(function(s,i){ s.hidden = (i!==idx); });
+    curEl.textContent = idx+1;
+    prog.style.width = ((idx)/(total-1)*100)+'%';
+    var active = slides[idx];
+    if(active){ active.scrollTop = 0; deck.setAttribute('data-accent', active.dataset.accent || 'orange'); }
+    try{ history.replaceState(null,'','#'+idOf(idx)); }catch(e){ location.hash = idOf(idx); }
+    Array.prototype.forEach.call(mlist.querySelectorAll('.mitem'), function(b){
+      b.classList.toggle('cur', +b.dataset.i === idx);
+    });
+  }
+  function go(i){ idx = Math.max(0, Math.min(total-1, i)); render(); }
+  function next(){ go(idx+1); }
+  function prev(){ go(idx-1); }
+
+  document.getElementById('nextBtn').addEventListener('click', next);
+  document.getElementById('prevBtn').addEventListener('click', prev);
+
+  slides.forEach(function(s,i){
+    var li = document.createElement('li');
+    var b = document.createElement('button');
+    b.className = 'mitem' + (s.dataset.section==='true' ? ' sec' : '');
+    b.dataset.i = i;
+    var title = s.dataset.title || s.id;
+    b.innerHTML = '<span class="mn">'+(i+1)+'</span><span>'+title+'</span>';
+    b.addEventListener('click', function(){ closeMenu(); go(i); });
+    li.appendChild(b);
+    mlist.appendChild(li);
+  });
+
+  function openMenu(){ menu.hidden=false; }
+  function closeMenu(){ menu.hidden=true; }
+  function toggleMenu(){ menu.hidden ? openMenu() : closeMenu(); }
+  document.getElementById('menuBtn').addEventListener('click', toggleMenu);
+  menu.addEventListener('click', function(e){ if(e.target===menu) closeMenu(); });
+
+  var root = document.documentElement;
+  var themeBtn = document.getElementById('themeBtn');
+  function currentTheme(){
+    var attr = root.getAttribute('data-theme');
+    if(attr) return attr;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  themeBtn.addEventListener('click', function(){
+    var t = currentTheme()==='dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', t);
+    try{ localStorage.setItem('poc-theme', t); }catch(e){}
+  });
+  try{ var saved = localStorage.getItem('poc-theme'); if(saved) root.setAttribute('data-theme', saved); }catch(e){}
+
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape'){ if(!menu.hidden){ closeMenu(); e.preventDefault(); } return; }
+    if(!menu.hidden) return;
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': case 'Spacebar': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp': prev(); e.preventDefault(); break;
+      case 'Home': go(0); e.preventDefault(); break;
+      case 'End': go(total-1); e.preventDefault(); break;
+      case 'c': case 'C': toggleMenu(); e.preventDefault(); break;
+      case 't': case 'T': themeBtn.click(); e.preventDefault(); break;
+    }
+  });
+
+  var sx=0, sy=0;
+  deck.addEventListener('touchstart', function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; }, {passive:true});
+  deck.addEventListener('touchend', function(e){
+    var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)){ dx<0 ? next() : prev(); }
+  }, {passive:true});
+
+  var h = (location.hash||'').replace('#','');
+  if(h){ var found = slides.findIndex(function(s){ return s.id===h; }); if(found>=0) idx=found; }
+
+  setTimeout(function(){ var el=document.getElementById('hint'); if(el) el.style.opacity='0'; }, 4500);
+
+  // ---- Help / deep-dive popover ----
+  var helpPop = document.getElementById('helpPop');
+  var helpBody = document.getElementById('helpBody');
+  function openHelp(btn){
+    var tpl = document.getElementById('help-' + btn.dataset.help);
+    if(!tpl) return;
+    helpBody.innerHTML = '';
+    helpBody.appendChild(tpl.content.cloneNode(true));
+    helpBody.scrollTop = 0;
+    // Match the deep dive's accent to the slide it was opened from.
+    helpPop.setAttribute('data-accent', deck.getAttribute('data-accent') || 'orange');
+    helpPop.hidden = false;
+  }
+  function closeHelp(){ helpPop.hidden = true; helpBody.innerHTML = ''; }
+  Array.prototype.forEach.call(document.querySelectorAll('.help-btn'), function(b){
+    b.addEventListener('click', function(e){ e.preventDefault(); openHelp(b); });
+  });
+  document.getElementById('helpClose').addEventListener('click', closeHelp);
+  helpPop.addEventListener('click', function(e){ if(e.target===helpPop) closeHelp(); });
+  // While a deep dive is open, swallow keys/swipes so the deck does not navigate.
+  document.addEventListener('keydown', function(e){
+    if(helpPop.hidden) return;
+    if(e.key==='Escape') closeHelp();
+    e.stopImmediatePropagation(); e.preventDefault();
+  }, true);
+  deck.addEventListener('touchstart', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+  deck.addEventListener('touchend', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+
+  render();
+})();
+</script>
+
+</body></html>
