@@ -1,0 +1,1749 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+  /* ---- Help icon + deep-dive popover ---- */
+  .q-inline{display:inline-flex;align-items:center;justify-content:center;width:1.15em;height:1.15em;border-radius:50%;font-weight:700;font-size:.85em;background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);vertical-align:middle}
+  .help-list{list-style:none;padding:0;margin:14px 0 4px;display:flex;flex-direction:column;gap:9px;max-width:78ch}
+  .help-list-item{display:flex;align-items:flex-start;gap:12px;background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--local-accent,var(--accent));border-radius:11px;padding:12px 15px;box-shadow:var(--shadow)}
+  .help-list-item span{font-size:clamp(14.5px,1.4vw,17px);line-height:1.45;color:var(--text);font-weight:500;padding-top:2px}
+  .help-btn{appearance:none;flex:none;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-weight:700;font-size:15px;line-height:1;border-radius:50%;cursor:pointer;border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));transition:transform .15s,background .15s,color .15s}
+  .help-btn:hover,.help-btn:focus-visible{background:var(--local-accent,var(--accent));color:#fff;transform:scale(1.12);outline:none}
+  .help-btn:focus-visible{outline:2px solid var(--local-accent,var(--accent));outline-offset:2px}
+
+  /* Deep dive: full-viewport overlay with an opaque surface so the slide never shows through;
+     close button pinned to the top-right corner above everything. Accent is copied from the
+     active slide onto the popover via --pop-accent (set in openHelp). */
+  .help-popover{--pop-accent:var(--accent);--local-accent:var(--pop-accent);position:fixed;top:calc(60px + env(safe-area-inset-top,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));left:14px;right:14px;max-width:1300px;margin-inline:auto;z-index:100;display:flex;flex-direction:column;background:linear-gradient(color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),linear-gradient(90deg, color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--pop-accent) 14%,transparent), transparent 45%),radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),var(--surface);background-size:46px 46px,46px 46px,auto,auto,auto;border:1px solid var(--border);border-top:4px solid var(--pop-accent);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;animation:helpPop .28s cubic-bezier(.16,1,.3,1)}
+  @media (max-width:600px){.help-popover{left:8px;right:8px}}
+  .help-popover[hidden]{display:none}
+  .help-popover[data-accent="orange"]{--pop-accent:var(--c-orange)}
+  .help-popover[data-accent="teal"]{--pop-accent:var(--c-teal)}
+  .help-popover[data-accent="purple"]{--pop-accent:var(--c-purple)}
+  .help-popover[data-accent="green"]{--pop-accent:var(--c-green)}
+  .help-popover[data-accent="blue"]{--pop-accent:var(--c-blue)}
+  .help-popover[data-accent="pink"]{--pop-accent:var(--c-pink)}
+  .help-popover[data-accent="red"]{--pop-accent:var(--c-red)}
+  .help-popover[data-accent="amber"]{--pop-accent:var(--c-amber)}
+  @keyframes helpPop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.help-popover{animation:none}}
+  .help-popover-close{position:absolute;top:14px;right:16px;z-index:101;width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:50%;cursor:pointer;color:var(--pop-accent);border:1px solid color-mix(in srgb,var(--pop-accent) 45%,transparent);background:color-mix(in srgb,var(--pop-accent) 14%,var(--surface))}
+  .help-popover-close:hover{background:var(--pop-accent);color:#fff;border-color:var(--pop-accent)}
+  .help-popover-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:64px 24px 40px;display:flex;justify-content:center}
+  .help-popover-body .inner{margin:0}
+
+</style></head><body>
+<title>Circuit Breaker Patterns with AWS Step Functions</title>
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#DEE4EC; --surface:#FFFFFF; --surface-2:#F1F4F8;
+    --text:#152230; --muted:#4C5A69; --faint:#7A8899;
+    --accent:#C2570B; --accent-soft:#F4E4D5; --accent2:#0E6E7D; --accent2-soft:#DDEEF0;
+    --c-orange:#C2570B; --c-teal:#0E6E7D; --c-purple:#7C3AED; --c-green:#1F8A4C;
+    --c-blue:#1E63C4; --c-pink:#C0357E; --c-red:#CB4335; --c-amber:#B7791F;
+    --border:#D4DBE3; --code-bg:#F1F4F8; --code-text:#152230; --deck-bg:#eaeef2;
+    --shadow:0 1px 3px rgba(20,34,48,.08),0 8px 30px rgba(20,34,48,.06); --shadow-lg:0 6px 16px rgba(20,34,48,.12),0 20px 50px rgba(20,34,48,.16);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+      --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+      --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+      --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+      --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+      --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+      --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+    --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+    --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+    --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+    --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+    --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'IBM Plex Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  code,pre,.mono{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace}
+
+  #progress{position:fixed; top:0; left:0; height:3px; background:var(--accent); width:0; z-index:60; transition:width .25s ease}
+  @media (prefers-reduced-motion: reduce){#progress{transition:none}}
+
+  .topbar{
+    position:fixed; left:0; right:0; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 18px; padding-top:calc(10px + env(safe-area-inset-top,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex; align-items:center; gap:10px; min-width:0}
+  .brand .dot{width:12px;height:12px;border-radius:3px;background:var(--accent);flex:none}
+  .brand b{font-weight:600; font-size:14px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .brand span{color:var(--faint); font-size:13px; white-space:nowrap}
+  .tools{display:flex; align-items:center; gap:8px; flex:none}
+  .btn{
+    appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--text);
+    font:inherit; font-size:13px; font-weight:500; padding:7px 12px; border-radius:9px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; line-height:1;
+  }
+  .btn:hover{border-color:var(--accent)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .btn.icon{padding:7px 9px}
+
+  /* The deck is a card floating on the (darker) page, holding one slide at a time. */
+  .deck{
+    --slide-accent:var(--accent); --local-accent:var(--slide-accent);
+    position:fixed;
+    top:calc(60px + env(safe-area-inset-top,0px));
+    bottom:calc(60px + env(safe-area-inset-bottom,0px));
+    left:14px; right:14px;
+    background:var(--deck-bg);
+    border:1px solid var(--border);
+    border-top:4px solid var(--slide-accent);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    transition:border-top-color .25s ease;
+  }
+  .deck[data-accent="orange"]{--slide-accent:var(--c-orange)}
+  .deck[data-accent="teal"]{--slide-accent:var(--c-teal)}
+  .deck[data-accent="purple"]{--slide-accent:var(--c-purple)}
+  .deck[data-accent="green"]{--slide-accent:var(--c-green)}
+  .deck[data-accent="blue"]{--slide-accent:var(--c-blue)}
+  .deck[data-accent="pink"]{--slide-accent:var(--c-pink)}
+  .deck[data-accent="red"]{--slide-accent:var(--c-red)}
+  .deck[data-accent="amber"]{--slide-accent:var(--c-amber)}
+  @media (max-width:600px){.deck{left:8px; right:8px}}
+
+  .slide{
+    --local-accent:var(--accent);
+    position:absolute; inset:0; overflow-y:auto; overflow-x:hidden;
+    padding:32px 30px calc(28px + env(safe-area-inset-bottom,0px));
+    display:flex; justify-content:center;
+    background:transparent;
+  }
+  .slide[data-accent="orange"]{--local-accent:var(--c-orange)}
+  .slide[data-accent="teal"]{--local-accent:var(--c-teal)}
+  .slide[data-accent="purple"]{--local-accent:var(--c-purple)}
+  .slide[data-accent="green"]{--local-accent:var(--c-green)}
+  .slide[data-accent="blue"]{--local-accent:var(--c-blue)}
+  .slide[data-accent="pink"]{--local-accent:var(--c-pink)}
+  .slide[data-accent="red"]{--local-accent:var(--c-red)}
+  .slide[data-accent="amber"]{--local-accent:var(--c-amber)}
+  .slide:not([hidden]){animation:fade .3s ease both}
+  @media (prefers-reduced-motion: reduce){.slide:not([hidden]){animation:none}}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  .inner{width:100%; max-width:1000px; margin:auto 0; padding-block:8px}
+  /* Content card: distinct --surface, floats on the --surface-2 deck backdrop */
+  .slide .inner{
+    background:
+      linear-gradient(color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--local-accent) 14%,transparent), transparent 45%),
+      radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),
+      var(--surface);
+    background-size:46px 46px,46px 46px,auto,auto,auto;
+    border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-lg); padding:28px 32px;
+    width:100%; max-width:1300px; aspect-ratio:16 / 9; max-height:100%; overflow-y:auto; overflow-x:hidden}
+
+  .kicker{
+    font-size:12.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase;
+    color:var(--local-accent,var(--accent)); margin:0 0 14px;
+  }
+  h1{font-size:clamp(30px,5vw,56px); line-height:1.05; font-weight:700; margin:0 0 18px; letter-spacing:-.02em; text-wrap:balance}
+  h2{font-size:clamp(23px,3.1vw,38px); line-height:1.12; font-weight:600; margin:0 0 16px; letter-spacing:-.01em; text-wrap:balance; color:var(--local-accent,var(--text))}
+  h3{font-size:clamp(16px,1.85vw,21px); font-weight:600; margin:22px 0 9px; color:var(--text)}
+  p{font-size:clamp(14.5px,1.45vw,17.5px); line-height:1.55; color:var(--muted); margin:0 0 12px; max-width:76ch}
+  p strong,li strong,td strong{color:var(--text); font-weight:600}
+  .lead{font-size:clamp(16px,1.85vw,21px); line-height:1.5; color:var(--text)}
+  ul,ol{margin:0 0 12px; padding-left:22px; max-width:78ch}
+  li{font-size:clamp(14.5px,1.4vw,17px); line-height:1.5; color:var(--muted); margin:0 0 7px}
+  em{font-style:italic}
+  hr.div{border:none; border-top:1px solid var(--border); margin:20px 0}
+
+  code:not(pre code){
+    background:var(--surface-2); border:1px solid var(--border); border-radius:6px;
+    padding:.08em .4em; font-size:.85em; color:var(--text); word-break:break-word;
+  }
+  pre{
+    background:color-mix(in srgb,var(--local-accent,var(--accent)) 6%,var(--code-bg)); color:var(--code-text);
+    border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 22%,var(--border));
+    border-left:3px solid var(--local-accent,var(--accent));
+    border-radius:12px; margin:6px 0 16px;
+    padding:16px 18px; overflow-x:auto;
+    font-size:clamp(11.5px,1.2vw,13.5px); line-height:1.55;
+  }
+  pre code{color:inherit; white-space:pre}
+
+  .tbl{overflow-x:auto; margin:8px 0 16px; border:1px solid var(--border); border-radius:12px}
+  table{border-collapse:collapse; width:100%; font-size:clamp(13px,1.25vw,15px)}
+  th,td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:9px 12px; text-align:left; vertical-align:top; color:var(--muted)}
+  th{background:var(--surface-2); color:var(--text); font-weight:600; white-space:nowrap}
+  tr td:last-child,tr th:last-child{border-right:none}
+  tbody tr:last-child td{border-bottom:none}
+
+  .note{
+    background:var(--surface-2); border:1px solid var(--border); border-left:4px solid var(--accent2);
+    border-radius:12px; padding:16px 18px; margin:10px 0 14px; box-shadow:var(--shadow);
+  }
+  .note .tag{display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent2); margin-bottom:6px}
+  .note p:last-child{margin-bottom:0}
+  .note.tip{border-left-color:var(--local-accent,var(--accent))}
+  .note.tip .tag{color:var(--local-accent,var(--accent))}
+  .quote{
+    border-left:3px solid var(--accent2); padding:4px 0 4px 18px; margin:0 0 12px;
+    color:var(--text); font-size:clamp(14px,1.45vw,17px); line-height:1.5;
+  }
+  .badge{display:inline-block; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; background:var(--accent2-soft); color:var(--accent2); margin-bottom:12px}
+
+  #cover .inner{max-width:1000px}
+  #cover .meta{font-size:13px; color:var(--faint); letter-spacing:2px; text-transform:uppercase; margin-top:16px}
+  #cover .src{font-size:12px; color:var(--faint); letter-spacing:0; text-transform:none; margin-top:10px; word-break:break-all}
+  #cover .src a{color:var(--faint)}
+  .divider{background:transparent}
+  .divider .num{font-size:13px; font-weight:700; letter-spacing:3px; color:var(--local-accent); text-transform:uppercase; margin-bottom:14px}
+
+  .navbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    padding:12px 18px; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-top:1px solid var(--border);
+  }
+  .counter{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; min-width:64px; text-align:center}
+  .counter b{color:var(--text); font-weight:600}
+
+  .menu{
+    position:fixed; inset:0; z-index:70; background:color-mix(in srgb,var(--bg) 92%,transparent);
+    backdrop-filter:blur(6px); padding:calc(70px + env(safe-area-inset-top,0px)) 18px 30px; overflow-y:auto;
+  }
+  .menu .mwrap{max-width:860px; margin:0 auto}
+  .menu h2{font-size:20px; margin-bottom:16px}
+  .mlist{list-style:none; padding:0; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:2px 28px; align-content:start}
+  @media (max-width:600px){.mlist{grid-template-columns:1fr}}
+  .mitem{
+    width:100%; text-align:left; display:flex; gap:12px; align-items:baseline;
+    background:none; border:none; border-radius:9px; color:var(--text); font:inherit; padding:9px 12px; cursor:pointer;
+  }
+  .mitem:hover{background:var(--surface)}
+  .mitem .mn{color:var(--faint); font-size:12.5px; font-variant-numeric:tabular-nums; min-width:26px}
+  .mitem.sec{font-weight:600; margin-top:6px}
+  .mitem.sec .mn{color:var(--accent)}
+  .mitem.cur{background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--border)}
+  .hint{position:fixed; bottom:70px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--faint); z-index:40; pointer-events:none; transition:opacity .5s}
+  @media (max-width:600px){.hint{display:none}}
+</style>
+<style>
+  /* ================================================================
+     v2 presentation layer — layout, visuals, popover polish
+     ================================================================ */
+  :root{--hl-kw:var(--c-purple);--hl-str:var(--c-green);--hl-com:var(--faint);--hl-num:var(--c-amber);--hl-fn:var(--c-blue);--hl-attr:var(--c-teal);--hl-bi:var(--c-orange)}
+  [data-accent="orange"]{--a:var(--c-orange)} [data-accent="teal"]{--a:var(--c-teal)} [data-accent="purple"]{--a:var(--c-purple)}
+  [data-accent="green"]{--a:var(--c-green)} [data-accent="blue"]{--a:var(--c-blue)} [data-accent="pink"]{--a:var(--c-pink)}
+  [data-accent="red"]{--a:var(--c-red)} [data-accent="amber"]{--a:var(--c-amber)}
+
+  #progress{background:var(--a,var(--accent)); box-shadow:0 0 12px color-mix(in srgb,var(--a,var(--accent)) 60%,transparent)}
+  .brand .dot{background:var(--a,var(--accent)); transition:background .3s}
+  .deck{box-shadow:var(--shadow-lg)}
+  .slide .inner{position:relative; padding:36px 44px}
+  .slide .inner > *{position:relative}
+
+  /* ---------- Progressive build-in ---------- */
+  .slide:not([hidden]) .stagger > *,
+  .slide:not([hidden]) .help-list-item{animation:rise .6s cubic-bezier(.16,1,.3,1) both; animation-delay:calc(var(--i,0) * 70ms + 120ms)}
+  @keyframes rise{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+
+  /* ---------- Cover / hero ---------- */
+  #cover .inner.hero{max-width:1300px; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); align-items:center; gap:24px 40px}
+  .hero-copy .num{display:inline-flex; align-items:center; gap:10px; padding:6px 14px; border-radius:999px; background:color-mix(in srgb,var(--local-accent) 12%,transparent); border:1px solid color-mix(in srgb,var(--local-accent) 35%,transparent)}
+  .hero-copy .num::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--local-accent); box-shadow:0 0 0 4px color-mix(in srgb,var(--local-accent) 22%,transparent)}
+  .hero h1{font-size:clamp(40px,6.2vw,80px); line-height:1; margin:18px 0 22px; letter-spacing:-.035em;
+    background:linear-gradient(100deg,var(--text) 0%,var(--text) 40%,var(--local-accent) 75%,var(--c-purple) 100%); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero h1::after{content:""; display:block; width:88px; height:5px; border-radius:5px; margin-top:22px; background:linear-gradient(90deg,var(--local-accent),var(--c-purple))}
+  .hero .lead{font-size:clamp(18px,2.2vw,26px); line-height:1.4; font-weight:500; max-width:28ch; color:var(--text)}
+  #cover .hero .meta{letter-spacing:.2px; text-transform:none; font-size:13.5px; color:var(--muted); margin-top:26px; line-height:2.1}
+  kbd{display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:24px; padding:0 7px; margin:0 1px; border-radius:7px;
+    font:600 12px 'JetBrains Mono',ui-monospace,monospace; color:var(--text); background:var(--surface); border:1px solid var(--border); box-shadow:0 2px 0 var(--border); vertical-align:middle}
+  #cover .hero .src{grid-column:1 / -1; margin:6px 0 0; font-size:11.5px; opacity:.75}
+  .hero-art{width:100%; height:auto; max-height:430px; overflow:visible}
+  .hero-art .ln{fill:none; stroke:color-mix(in srgb,var(--text) 18%,transparent); stroke-width:2}
+  .hero-art .pulse{fill:none; stroke-width:3; stroke-linecap:round; stroke-dasharray:14 400; animation:flowdash 3.2s linear infinite}
+  .hero-art .route{animation:routeglow 6.4s ease-in-out infinite}
+  .hero-art .m{fill:var(--surface); stroke-width:2}
+  .hero-art .hb{opacity:.55}
+  .hero-art .router-ring{fill:none; stroke:var(--local-accent); stroke-width:2; opacity:.4; transform-origin:250px 200px; animation:ring 3s ease-out infinite}
+  @keyframes flowdash{from{stroke-dashoffset:414} to{stroke-dashoffset:0}}
+  @keyframes ring{from{transform:scale(1); opacity:.5} to{transform:scale(1.55); opacity:0}}
+  @keyframes routeglow{0%,100%{opacity:.35} 12%,30%{opacity:1}}
+
+  /* ---------- Part slides ---------- */
+  .part-mark{position:absolute!important; bottom:6px; right:28px; z-index:0; font-size:clamp(90px,13vw,170px); font-weight:700; line-height:1; letter-spacing:-.05em;
+    color:transparent; -webkit-text-stroke:1.5px color-mix(in srgb,var(--local-accent) 30%,transparent); pointer-events:none; user-select:none}
+  .part-grid{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:30px 40px; align-items:start}
+  .part-main > .num{display:inline-block; padding:5px 12px; border-radius:8px; background:color-mix(in srgb,var(--local-accent) 12%,transparent); margin-bottom:18px; font-size:12px}
+  .part-main > p:not(.num){color:var(--text); opacity:.88}
+  .pull{font-size:clamp(17px,1.9vw,22px)!important; line-height:1.4!important; color:var(--text)!important; opacity:1!important; font-weight:500;
+    border-left:4px solid var(--local-accent); padding:4px 0 4px 16px; margin:16px 0 18px!important}
+  .pull strong{color:var(--local-accent)!important}
+  .part-side{position:sticky; top:0; padding:20px; border-radius:16px; background:color-mix(in srgb,var(--local-accent) 5%,var(--surface-2)); border:1px solid color-mix(in srgb,var(--local-accent) 20%,var(--border))}
+  .side-label{display:flex; align-items:center; justify-content:space-between; font-size:11.5px!important; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--local-accent)!important; margin:0 0 12px!important}
+  .side-label .cnt{letter-spacing:0; font-size:11.5px; padding:3px 9px; border-radius:999px; background:color-mix(in srgb,var(--local-accent) 15%,transparent)}
+  .part-side > p:not(.side-label){font-size:14.5px; color:var(--muted); margin-bottom:12px}
+
+  /* deep-dive cards */
+  .part-side .help-list{margin:0; gap:10px; max-width:none}
+  .part-side .help-list-item{position:relative; align-items:center; gap:14px; padding:14px 14px 14px 14px; cursor:pointer;
+    background:var(--surface); border:1px solid var(--border); border-radius:13px; box-shadow:var(--shadow);
+    transition:transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s, border-color .2s}
+  .part-side .help-list-item:hover,.part-side .help-list-item:focus-within{transform:translateY(-2px); border-color:color-mix(in srgb,var(--local-accent) 60%,var(--border)); box-shadow:var(--shadow-lg)}
+  .help-list-item .dd-disc{flex:none; width:36px; height:36px; padding:0; border-radius:11px; display:grid; place-items:center; font-size:14px; font-weight:700;
+    color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 14%,transparent); border:1px solid color-mix(in srgb,var(--local-accent) 30%,transparent); font-variant-numeric:tabular-nums}
+  .help-list-item .dd-body{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; padding:0}
+  .help-list-item .dd-body .dd-title{font-size:clamp(14px,1.3vw,16px); font-weight:600; line-height:1.35; color:var(--text); padding:0}
+  .help-list-item .dd-body .dd-meta{font-size:11.5px; font-weight:600; letter-spacing:.6px; text-transform:uppercase; color:var(--faint); padding:0; transition:color .2s}
+  .help-list-item:hover .dd-meta{color:var(--local-accent)}
+  .part-side .help-btn{order:3; width:32px; height:32px; transform:none!important; position:static}
+  .part-side .help-btn::after{content:""; position:absolute; inset:0; border-radius:13px}
+  .part-side .help-btn svg{width:15px; height:15px; transition:transform .2s}
+  .part-side .help-list-item:hover .help-btn{background:var(--local-accent); color:var(--surface)}
+  .part-side .help-list-item:hover .help-btn svg{transform:translateX(2px)}
+
+  /* Static vs Dynamic */
+  .versus{display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:stretch; gap:10px; margin:12px 0 16px}
+  .versus .note{margin:0; display:flex; flex-direction:column}
+  .vs-static{border-left-color:var(--c-red)!important; background:color-mix(in srgb,var(--c-red) 5%,var(--surface-2))!important}
+  .vs-static .tag{color:var(--c-red)!important}
+  .vs-dynamic{background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))!important; box-shadow:0 0 0 1px color-mix(in srgb,var(--local-accent) 30%,transparent),var(--shadow-lg)!important}
+  .vs-badge{align-self:center; width:40px; height:40px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:800; letter-spacing:1px;
+    color:var(--surface); background:linear-gradient(135deg,var(--c-red),var(--local-accent)); box-shadow:var(--shadow)}
+
+  /* Part 05 tiles */
+  ol.tiles{list-style:none; padding:0; margin:12px 0 4px; display:grid; gap:10px; counter-reset:tile; max-width:none}
+  ol.tiles li{counter-increment:tile; position:relative; margin:0; padding:14px 16px 14px 62px; border-radius:13px; background:var(--surface-2); border:1px solid var(--border); color:var(--muted); box-shadow:var(--shadow)}
+  ol.tiles li::before{content:counter(tile,decimal-leading-zero); position:absolute; left:14px; top:50%; transform:translateY(-50%); width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+    font-weight:700; font-size:13px; color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 14%,transparent)}
+  ol.tiles li strong{display:block; font-size:1.06em; color:var(--text); margin-bottom:2px}
+
+  /* ---------- Flow diagrams (built from the note text) ---------- */
+  .note{container-type:inline-size}
+  .flow{display:flex; align-items:stretch; margin:8px 0 12px}
+  .flow-node{flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px 10px; border-radius:11px;
+    background:var(--surface); border:1px solid var(--border); font-size:12.5px; font-weight:600; line-height:1.3; color:var(--text); box-shadow:var(--shadow);
+    animation:rise .5s cubic-bezier(.16,1,.3,1) both; animation-delay:calc(var(--i,0) * 110ms + 250ms)}
+  .flow-node.key{border-color:var(--local-accent); color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 11%,var(--surface))}
+  .flow-arrow{flex:0 0 26px; align-self:center; position:relative; height:2px; background:color-mix(in srgb,var(--local-accent) 45%,transparent); overflow:visible}
+  .flow-arrow::after{content:""; position:absolute; right:-1px; top:-4px; border:5px solid transparent; border-left:7px solid color-mix(in srgb,var(--local-accent) 70%,transparent); border-right:0}
+  .flow-arrow i{position:absolute; top:-2px; left:0; width:6px; height:6px; border-radius:50%; background:var(--local-accent); animation:travel 1.8s ease-in-out infinite; animation-delay:calc(var(--i,0) * 220ms)}
+  @keyframes travel{0%{left:0; opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{left:calc(100% - 6px); opacity:0}}
+  @container (max-width:540px){
+    .flow{flex-direction:column; align-items:stretch}
+    .flow-arrow{flex:0 0 20px; width:2px; height:auto; align-self:center}
+    .flow-arrow::after{right:auto; top:auto; bottom:-1px; left:-4px; border:5px solid transparent; border-top:7px solid color-mix(in srgb,var(--local-accent) 70%,transparent); border-bottom:0}
+    .flow-arrow i{left:-2px; animation-name:travelY}
+  }
+  @keyframes travelY{0%{top:0; opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{top:calc(100% - 6px); opacity:0}}
+  .flow-caption{font-size:12.5px!important; color:var(--faint)!important; margin:0!important; font-style:italic}
+  .flow-caption strong{color:var(--muted)!important}
+  p.quote.flow-caption{border:none; padding:0}
+
+  /* figure + lightbox */
+  .fig{margin:4px 0 6px}
+  .fig-btn{appearance:none; display:block; width:100%; padding:10px; border-radius:14px; cursor:zoom-in; background:#fff; border:1px solid var(--border); box-shadow:var(--shadow); position:relative; transition:box-shadow .2s, transform .2s}
+  .fig-btn:hover{box-shadow:var(--shadow-lg); transform:translateY(-1px)}
+  .fig-btn:focus-visible{outline:2px solid var(--local-accent); outline-offset:3px}
+  .fig-btn img{display:block; width:100%; height:auto; border-radius:6px}
+  .fig-btn .zoom{position:absolute; right:10px; bottom:10px; width:30px; height:30px; border-radius:9px; display:grid; place-items:center; background:var(--local-accent); color:#fff; font-size:15px; box-shadow:var(--shadow)}
+  .lightbox{position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center; padding:70px 20px 30px; background:color-mix(in srgb,var(--bg) 88%,transparent); backdrop-filter:blur(10px); cursor:zoom-out; animation:helpPop .25s ease}
+  .lightbox[hidden]{display:none}
+  .lightbox img{max-width:min(1500px,100%); max-height:100%; border-radius:12px; background:#fff; padding:14px; box-shadow:var(--shadow-lg)}
+  .lightbox .help-popover-close{position:fixed; top:16px; right:18px; --pop-accent:var(--a,var(--accent))}
+
+  /* ---------- Deep-dive popover ---------- */
+  .help-popover-close{position:static; flex:none}
+  .pop-head{flex:none; display:flex; align-items:center; gap:14px; padding:12px 14px 12px 22px; border-bottom:1px solid var(--border); background:color-mix(in srgb,var(--surface) 86%,transparent); backdrop-filter:blur(8px); z-index:2}
+  .pop-crumb{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
+  .pop-part{font-size:11.5px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--pop-accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .pop-count{font-size:12.5px; color:var(--faint); font-variant-numeric:tabular-nums}
+  .pop-pips{display:flex; gap:5px; margin-top:3px}
+  .pop-pips i{width:18px; height:4px; border-radius:4px; background:var(--border); transition:background .2s,width .2s}
+  .pop-pips i.on{background:var(--pop-accent); width:30px}
+  .pop-nav{display:flex; gap:8px}
+  .pop-nav .btn:disabled{opacity:.4; cursor:default; border-color:var(--border)}
+  .pop-progress{flex:none; height:3px; background:color-mix(in srgb,var(--pop-accent) 12%,transparent)}
+  .pop-progress i{display:block; height:100%; width:0; background:var(--pop-accent); transition:width .1s linear}
+  .help-popover-body{padding:34px 28px 56px; scroll-behavior:smooth}
+  .help-popover-body:focus{outline:none}
+  .help-popover-body .inner{max-width:900px}
+  .help-popover-body .inner > *{animation:rise .5s cubic-bezier(.16,1,.3,1) both}
+  .help-popover-body h2{font-size:clamp(25px,3.2vw,40px); padding-bottom:16px; margin-bottom:22px; border-bottom:1px solid var(--border); position:relative}
+  .help-popover-body h2::after{content:""; position:absolute; left:0; bottom:-2px; width:72px; height:3px; border-radius:3px; background:var(--pop-accent)}
+  .help-popover-body h3{display:flex; align-items:center; gap:10px; font-size:clamp(17px,1.9vw,22px); margin-top:30px}
+  .help-popover-body h3::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--pop-accent); transform:rotate(45deg)}
+  .help-popover-body p,.help-popover-body ul,.help-popover-body ol{max-width:72ch}
+  .help-popover-body li::marker{color:var(--pop-accent); font-weight:700}
+  @media (max-width:600px){.pop-nav .lbl{display:none} .help-popover-body{padding:24px 16px 40px} .pop-head{padding-left:14px}}
+
+  /* labelled paragraphs */
+  .eyebrow-p{margin-top:22px!important}
+  .eyebrow-p strong{display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--local-accent)!important}
+  .eyebrow-p strong::before{content:""; width:16px; height:2px; background:currentColor}
+  .lbl-problem,.lbl-static,.lbl-dynamic,.lbl-result{padding:12px 16px; border-radius:11px; border:1px solid var(--border); background:var(--surface-2)}
+  .lbl-problem{border-left:4px solid var(--c-amber)} .lbl-problem > strong:first-child{color:var(--c-amber)}
+  .lbl-static{border-left:4px solid var(--c-red)} .lbl-static > strong:first-child{color:var(--c-red)}
+  .lbl-dynamic{border-left:4px solid var(--c-green)} .lbl-dynamic > strong:first-child{color:var(--c-green)}
+  .lbl-result{border-left:4px solid var(--local-accent); background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))}
+  .lbl-result > strong:first-child{color:var(--local-accent)}
+  p.lbl-dynamic:only-child,p.lbl-static:only-child{padding:0; border:none; background:none}
+
+  /* example cards & callouts */
+  .note.example{border-left-color:var(--local-accent); background:linear-gradient(180deg,color-mix(in srgb,var(--local-accent) 6%,var(--surface-2)),var(--surface-2))}
+  .note.example .tag{color:var(--local-accent); display:inline-flex; align-items:center; gap:8px}
+  .note.example .tag::before{content:"</>"; font:700 11px 'JetBrains Mono',monospace; padding:3px 6px; border-radius:6px; background:var(--local-accent); color:var(--surface); letter-spacing:0}
+  .quote.callout{border-left:none; padding:12px 16px 12px 46px; border-radius:11px; background:var(--surface); border:1px dashed color-mix(in srgb,var(--local-accent) 45%,var(--border)); position:relative; font-size:clamp(13.5px,1.35vw,16px)}
+  .quote.callout::before{content:"⇢"; position:absolute; left:14px; top:11px; font-size:20px; color:var(--local-accent); line-height:1}
+
+  /* steppers */
+  ol.steps,.steps-p{position:relative; list-style:none; padding-left:0; counter-reset:st}
+  ol.steps > li,.steps-p > p{counter-increment:st; position:relative; padding:2px 0 14px 50px; margin:0}
+  .steps-p > ul{margin:-6px 0 14px 50px; padding:12px 16px 4px 34px; border-radius:11px; background:var(--surface-2); border:1px solid var(--border)}
+  ol.steps > li::before{content:counter(st); position:absolute; left:0; top:0; width:32px; height:32px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:14px;
+    color:var(--local-accent); background:var(--surface); border:2px solid var(--local-accent); box-shadow:0 0 0 5px color-mix(in srgb,var(--local-accent) 12%,transparent); z-index:1}
+  .steps-p > p::before{content:""; position:absolute; left:9px; top:4px; width:14px; height:14px; border-radius:50%; background:var(--local-accent); box-shadow:0 0 0 5px color-mix(in srgb,var(--local-accent) 16%,transparent); z-index:1}
+  ol.steps::before,.steps-p::before{content:""; position:absolute; left:15px; top:16px; bottom:24px; width:2px; background:linear-gradient(var(--local-accent),color-mix(in srgb,var(--local-accent) 15%,transparent))}
+
+  /* param grid (a/b/c/d) */
+  .param-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:6px 0 18px; max-width:880px}
+  .param-grid p{margin:0; padding:14px 16px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); border-top:3px solid var(--local-accent); max-width:none}
+  .param-grid p code{display:inline-block; margin-top:6px}
+  @media (max-width:600px){.param-grid{grid-template-columns:1fr}}
+
+  /* tables */
+  .tbl{box-shadow:var(--shadow); background:var(--surface)}
+  table tr:nth-child(odd) td{background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
+  table tr:hover td{background:color-mix(in srgb,var(--local-accent) 7%,transparent)}
+  th{font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--local-accent)!important; background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))!important}
+  td:first-child strong{color:var(--text)}
+  .tier-table tr td:first-child{border-left:4px solid var(--tc,transparent)}
+  .tier-table tr:nth-child(2){--tc:var(--c-purple)} .tier-table tr:nth-child(3){--tc:var(--c-teal)}
+  .tier-table tr:nth-child(4){--tc:var(--c-pink)} .tier-table tr:nth-child(5){--tc:var(--c-amber)}
+
+  /* code blocks */
+  .code-wrap{position:relative; margin:8px 0 18px; border-radius:12px; overflow:hidden; border:1px solid color-mix(in srgb,var(--local-accent) 22%,var(--border)); box-shadow:var(--shadow)}
+  .code-wrap pre{margin:0; border:none; border-radius:0; border-left:3px solid var(--local-accent)}
+  .code-bar{display:flex; align-items:center; gap:10px; padding:7px 10px 7px 14px; background:color-mix(in srgb,var(--local-accent) 10%,var(--code-bg)); border-bottom:1px solid color-mix(in srgb,var(--local-accent) 18%,var(--border))}
+  .code-bar .dots{display:flex; gap:5px} .code-bar .dots i{width:9px; height:9px; border-radius:50%; background:var(--border)}
+  .code-bar .dots i:nth-child(1){background:#ff5f57} .code-bar .dots i:nth-child(2){background:#febc2e} .code-bar .dots i:nth-child(3){background:#28c840}
+  .code-bar .lang{flex:1; font:600 11px 'JetBrains Mono',monospace; letter-spacing:1px; text-transform:uppercase; color:var(--muted)}
+  .copy-btn{appearance:none; font:600 11.5px 'IBM Plex Sans',sans-serif; padding:5px 10px; border-radius:7px; cursor:pointer; color:var(--text); background:var(--surface); border:1px solid var(--border)}
+  .copy-btn:hover{border-color:var(--local-accent); color:var(--local-accent)}
+  .copy-btn.ok{background:var(--c-green); border-color:var(--c-green); color:#fff}
+  .hljs-keyword,.hljs-literal,.hljs-meta{color:var(--hl-kw); font-weight:500}
+  .hljs-string{color:var(--hl-str)}
+  .hljs-comment{color:var(--hl-com); font-style:italic}
+  .hljs-number{color:var(--hl-num)}
+  .hljs-title,.hljs-title.function_,.hljs-function .hljs-title{color:var(--hl-fn)}
+  .hljs-attr,.hljs-property,.hljs-params{color:var(--hl-attr)}
+  .hljs-built_in,.hljs-type{color:var(--hl-bi)}
+  .hljs-subst{color:inherit}
+
+  /* ---------- Data visuals ---------- */
+  .viz{margin:12px 0 18px; padding:16px 18px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow); max-width:860px}
+  .viz-h{font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--faint); margin-bottom:10px; display:flex; justify-content:space-between; gap:10px}
+  .viz-row{display:grid; grid-template-columns:80px minmax(0,1fr); align-items:center; gap:12px; margin:8px 0}
+  .viz-lbl{font-size:12.5px; font-weight:600; color:var(--muted)}
+  .split{display:flex; height:34px; border-radius:9px; overflow:hidden; background:var(--surface-2); gap:2px}
+  .seg{width:var(--w); background:var(--c); color:#fff; display:flex; align-items:center; gap:6px; padding:0 10px; font-size:12px; white-space:nowrap; overflow:hidden; transform-origin:left; animation:grow .9s cubic-bezier(.16,1,.3,1) both .2s}
+  :root[data-theme="dark"] .seg{color:#0b1118}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg{color:#0b1118}}
+  .bar{position:relative; height:30px; border-radius:9px; background:var(--surface-2); display:flex; align-items:center}
+  .bar i{display:block; height:100%; width:var(--w); border-radius:9px; background:var(--c); transform-origin:left; animation:grow 1s cubic-bezier(.16,1,.3,1) both .35s}
+  .bar b{position:absolute; left:calc(var(--w) + 10px); font-size:14px; color:var(--text); font-variant-numeric:tabular-nums}
+  .bar.full b{left:auto; right:10px; color:#fff}
+  :root[data-theme="dark"] .bar.full b{color:#0b1118}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bar.full b{color:#0b1118}}
+  @keyframes grow{from{transform:scaleX(0)} to{transform:none}}
+  .legend{display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:10px; font-size:12px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .legend span::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--c)}
+  .delta{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; color:var(--c-green); background:color-mix(in srgb,var(--c-green) 14%,transparent)}
+  .lat-row{display:grid; grid-template-columns:120px minmax(0,1fr); gap:12px; align-items:center; margin:9px 0}
+  .lat-name{font-size:12.5px; font-weight:600; color:var(--text); line-height:1.2}
+  .lat-name small{display:block; font-weight:500; color:var(--faint); font-size:11px}
+  .lat-track{position:relative; height:22px; border-radius:6px; background:repeating-linear-gradient(90deg,var(--surface-2) 0 calc(20% - 1px),var(--border) calc(20% - 1px) 20%)}
+  .lat-track i{position:absolute; top:3px; bottom:3px; left:var(--l); width:var(--w); border-radius:5px; background:var(--c); transform-origin:left; animation:grow .9s cubic-bezier(.16,1,.3,1) both .25s}
+  .lat-track i.open{background:linear-gradient(90deg,var(--c) 60%,transparent)}
+  .lat-axis{display:grid; grid-template-columns:120px minmax(0,1fr); gap:12px}
+  .lat-axis div{display:flex; justify-content:space-between; font:500 10.5px 'JetBrains Mono',monospace; color:var(--faint)}
+  @media (max-width:600px){.lat-row,.lat-axis{grid-template-columns:84px minmax(0,1fr)} .viz-row{grid-template-columns:64px minmax(0,1fr)}}
+
+  /* ---------- Chrome: dots, keys overlay, menu ---------- */
+  .dots-nav{display:flex; align-items:center; gap:7px}
+  .dot-btn{appearance:none; border:none; padding:0; width:9px; height:9px; border-radius:99px; cursor:pointer; background:color-mix(in srgb,var(--a) 30%,var(--border)); transition:width .3s cubic-bezier(.16,1,.3,1), background .3s}
+  .dot-btn:hover{background:var(--a)}
+  .dot-btn.cur{width:28px; background:var(--a)}
+  .dot-btn:focus-visible{outline:2px solid var(--a); outline-offset:3px}
+  @media (max-width:520px){.dots-nav{display:none}}
+  .keys{position:fixed; inset:0; z-index:110; display:flex; align-items:center; justify-content:center; padding:20px; background:color-mix(in srgb,var(--bg) 80%,transparent); backdrop-filter:blur(8px)}
+  .keys[hidden]{display:none}
+  .keys-card{width:min(440px,100%); padding:24px 26px; border-radius:16px; background:var(--surface); border:1px solid var(--border); border-top:4px solid var(--a,var(--accent)); box-shadow:var(--shadow-lg); animation:helpPop .25s ease}
+  .keys-card h2{font-size:20px; color:var(--text); margin-bottom:14px}
+  .keys-card dl{display:grid; grid-template-columns:auto 1fr; gap:10px 18px; margin:0; font-size:14px; color:var(--muted); align-items:center}
+  .keys-card dt{white-space:nowrap}
+  .keys-card dd{margin:0}
+  .mitem .mn{color:var(--a,var(--faint))}
+  .msub{list-style:none; margin:0 0 8px 38px; padding:0 0 0 12px; border-left:2px solid color-mix(in srgb,var(--a) 35%,var(--border))}
+  .msub .mitem{padding:6px 10px; font-size:13.5px; color:var(--muted)}
+  .msub .mitem:hover{color:var(--text)}
+  .mlist{grid-template-columns:1fr 1fr}
+  .mlist > li{break-inside:avoid}
+
+  code,pre{font-variant-ligatures:none}
+  .versus code{box-decoration-break:clone; -webkit-box-decoration-break:clone}
+  .mlist > li .mitem.sec .mn{color:var(--a)}
+  @media (max-width:600px){.brand span{display:none} #keysBtn{display:none}}
+
+  /* ---------- Small screens: let slides flow ---------- */
+  @media (max-width:900px){
+    .slide .inner{aspect-ratio:auto; max-height:none; overflow:visible; padding:26px 22px}
+    .part-grid,#cover .inner.hero{grid-template-columns:1fr}
+    .part-side{position:static}
+    .hero-art{max-height:240px; order:-1}
+    .versus{grid-template-columns:1fr} .vs-badge{justify-self:center}
+    .part-mark{display:none}
+  }
+  @media (max-width:600px){.slide{padding:16px 10px 20px}}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important; transition:none!important}
+    .help-popover-body{scroll-behavior:auto}
+  }
+</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<div id="progress"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <b>Circuit Breaker Patterns with AWS Step Functions</b>
+    <span>· AWS Generative AI · Ch.05</span>
+  </div>
+  <div class="tools">
+    <button class="btn" id="menuBtn" aria-haspopup="true">☰ Contents</button>
+    <button class="btn icon" id="keysBtn" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">⌨</button>
+    <button class="btn icon" id="fsBtn" title="Fullscreen (F)" aria-label="Toggle fullscreen">⛶</button>
+    <button class="btn icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+  </div>
+</header>
+
+<main class="deck" id="deck">
+
+  <!-- Cover -->
+  <section class="slide divider" id="cover" data-accent="orange" data-title="Circuit Breaker Patterns with AWS Step Functions" data-section="true">
+    <div class="inner hero">
+      <div class="hero-copy stagger">
+      <p class="num">Course 02 · Chapter 05</p>
+      <h1>Circuit Breaker Patterns with AWS Step Functions</h1>
+      <p class="lead">Think of a Circuit Breaker as an electrical breaker for your AI calls.</p>
+      <p class="meta"><kbd>←</kbd> <kbd>→</kbd> or <kbd>Space</kbd> to navigate · Press <kbd>C</kbd> for contents · <kbd>T</kbd> for theme</p>
+      </div>
+      <svg class="hero-art" viewBox="0 0 520 400" aria-hidden="true" focusable="false">
+        <defs><radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--c-orange)" stop-opacity=".35"/><stop offset="1" stop-color="var(--c-orange)" stop-opacity="0"/></radialGradient></defs>
+        <circle cx="250" cy="200" r="120" fill="url(#rg)"/>
+        <path class="ln" d="M70 200 H204"/>
+        <path class="ln" d="M296 200 C360 200 360 70 410 70"/><path class="ln" d="M296 200 C360 200 360 157 410 157"/>
+        <path class="ln" d="M296 200 C360 200 360 243 410 243"/><path class="ln" d="M296 200 C360 200 360 330 410 330"/>
+        <path class="pulse" stroke="var(--c-orange)" d="M70 200 H204"/>
+        <g class="route" style="animation-delay:0s"><path class="pulse" stroke="var(--c-purple)" d="M296 200 C360 200 360 70 410 70"/><rect class="m" x="410" y="48" width="96" height="44" rx="12" stroke="var(--c-purple)"/><rect class="hb" x="426" y="63" width="50" height="5" rx="2.5" fill="var(--c-purple)"/><rect class="hb" x="426" y="74" width="32" height="5" rx="2.5" fill="var(--c-purple)"/></g>
+        <g class="route" style="animation-delay:1.6s"><path class="pulse" stroke="var(--c-teal)" d="M296 200 C360 200 360 157 410 157" style="animation-delay:.4s"/><rect class="m" x="410" y="135" width="96" height="44" rx="12" stroke="var(--c-teal)"/><rect class="hb" x="426" y="150" width="56" height="5" rx="2.5" fill="var(--c-teal)"/><rect class="hb" x="426" y="161" width="38" height="5" rx="2.5" fill="var(--c-teal)"/></g>
+        <g class="route" style="animation-delay:3.2s"><path class="pulse" stroke="var(--c-green)" d="M296 200 C360 200 360 243 410 243" style="animation-delay:.8s"/><rect class="m" x="410" y="221" width="96" height="44" rx="12" stroke="var(--c-green)"/><rect class="hb" x="426" y="236" width="44" height="5" rx="2.5" fill="var(--c-green)"/><rect class="hb" x="426" y="247" width="60" height="5" rx="2.5" fill="var(--c-green)"/></g>
+        <g class="route" style="animation-delay:4.8s"><path class="pulse" stroke="var(--c-blue)" d="M296 200 C360 200 360 330 410 330" style="animation-delay:1.2s"/><rect class="m" x="410" y="308" width="96" height="44" rx="12" stroke="var(--c-blue)"/><rect class="hb" x="426" y="323" width="52" height="5" rx="2.5" fill="var(--c-blue)"/><rect class="hb" x="426" y="334" width="30" height="5" rx="2.5" fill="var(--c-blue)"/></g>
+        <circle cx="52" cy="200" r="18" fill="var(--surface)" stroke="var(--c-orange)" stroke-width="2"/><circle cx="52" cy="200" r="6" fill="var(--c-orange)"/>
+        <circle class="router-ring" cx="250" cy="200" r="46"/>
+        <circle cx="250" cy="200" r="46" fill="var(--surface)" stroke="var(--c-orange)" stroke-width="2.5"/>
+        <path d="M232 188 h22 l-6 -6 M268 212 h-22 l6 6 M232 212 h10 M258 188 h10" stroke="var(--c-orange)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p class="src"><a href="https://www.meta.ai/prompt/ab47664a-3e1f-49b3-aa51-51c163199432">https://www.meta.ai/prompt/ab47664a-3e1f-49b3-aa51-51c163199432</a></p>
+    </div>
+  </section>
+
+  <!-- ===== PART 1: CIRCUIT BREAKER FOR GENAI ===== -->
+  <section class="slide" id="cb" data-accent="orange" data-title="Circuit Breaker for GenAI">
+    <div class="inner">
+      <div class="stagger">
+      <p class="kicker">Part 01</p>
+      <h2>Circuit Breaker for GenAI</h2>
+      <p class="pull">Think of a Circuit Breaker as an electrical breaker for your AI calls. Instead of continuously hammering a failing service, it detects failure, trips, and routes traffic to a safe fallback until the service recovers.</p>
+      <p>In Generative AI, failures are common: <code>ThrottlingException</code> from Amazon Bedrock, model latency &gt; 5s, embedding store timeout, or content filter blocks. Without a breaker, one slow model can bring down your entire app.</p>
+      <h3>The 3 States</h3>
+      <ol class="tiles">
+        <li><strong>CLOSED - Normal:</strong> All requests go to the LLM. Failure count is tracked.</li>
+        <li><strong>OPEN - Tripped:</strong> After threshold breach, calls are blocked immediately. Fallback is served.</li>
+        <li><strong>HALF-OPEN - Probing:</strong> After a cool-down, it allows 1-2 test requests to check if the LLM has recovered.</li>
+      </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 2: BENEFITS ===== -->
+  <section class="slide divider" id="ben" data-accent="teal" data-title="Part 02 · Benefits for GenAI Applications" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">02</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 02 · Benefits for GenAI Applications</p>
+      <ol class="tiles" aria-hidden="true">
+        <li><strong>Failure Isolation:</strong> Stop one failure from causing a cascade</li>
+        <li><strong>Resource Protection:</strong> Stop paying for requests that will fail</li>
+        <li><strong>Automatic Recovery:</strong> Self-heal without manual intervention</li>
+        <li><strong>Graceful Degradation:</strong> Maintain partial functionality</li>
+      </ol>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ben-lead" aria-label="Open deep dive: 1. Failure Isolation: Stop one failure from causing a cascade">?</button><span>1. Failure Isolation: Stop one failure from causing a cascade</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ben-resource" aria-label="Open deep dive: 2. Resource Protection: Stop paying for requests that will fail">?</button><span>2. Resource Protection: Stop paying for requests that will fail</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ben-recovery" aria-label="Open deep dive: 3. Automatic Recovery: Self-heal without manual intervention">?</button><span>3. Automatic Recovery: Self-heal without manual intervention</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ben-degrade" aria-label="Open deep dive: 4. Graceful Degradation: Maintain partial functionality">?</button><span>4. Graceful Degradation: Maintain partial functionality</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 3: TECHNICAL EXAMPLE END TO END ===== -->
+  <section class="slide divider" id="e2e" data-accent="purple" data-title="Part 03 · Technical Example - End to End on AWS" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">03</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 03 · Technical Example - End to End on AWS</p>
+      <p data-flow><strong>Use Case:</strong> Customer Support Assistant built with API Gateway -&gt; Lambda -&gt; Bedrock + Bedrock Knowledge Base.</p>
+      <p><strong>Scenario Without Breaker:</strong> Bedrock starts throttling at peak. Each Lambda retries 3 times. 500 concurrent users = 1500 failing Bedrock calls. Lambda throttles, API Gateway 504s, entire support portal goes down, CloudWatch costs spike.</p>
+      <p><strong>Scenario With Breaker on AWS:</strong></p>
+      <p><strong>Architecture:</strong></p>
+      <p class="quote" data-flow><code>API Gateway -&gt; Lambda (with pybreaker + Lambda Powertools) -&gt; Breaker State in DynamoDB -&gt; Primary: Bedrock Claude -&gt; Fallback: ElastiCache Semantic Cache / Bedrock Titan Lite</code></p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="e2e-lead" aria-label="Open deep dive: Implementation Pattern">?</button><span>Implementation Pattern</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 4: STEP FUNCTIONS FOR CIRCUIT BREAKER ===== -->
+  <section class="slide divider" id="sf" data-accent="green" data-title="Part 04 · Step Functions for Circuit Breaker Implementation:" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">04</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 04 · Step Functions for Circuit Breaker Implementation:</p>
+      <p>AWS Step Functions is the most robust way to implement circuit breaker for GenAI on AWS. Instead of writing breaker logic inside your Lambda code, you build a durable, visual state machine that controls the flow, tracks health, and decides whether to call the LLM or serve a fallback.</p>
+      <p class="pull">This prevents a failing AI provider like Amazon Bedrock from causing cascading failures across your entire architecture.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <p>Here are the 4 pillars of this implementation, simplified:</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sf-lead" aria-label="Open deep dive: 1. State Machine Design - The Foundation">?</button><span>1. State Machine Design - The Foundation</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sf-errors" aria-label="Open deep dive: 2. Error Detection and Thresholds - When to Trip">?</button><span>2. Error Detection and Thresholds - When to Trip</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sf-timeout" aria-label="Open deep dive: 3. Timeout and Recovery Logic - How to Heal Safely">?</button><span>3. Timeout and Recovery Logic - How to Heal Safely</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sf-persist" aria-label="Open deep dive: 4. State Persistence - Making the Breaker Distributed">?</button><span>4. State Persistence - Making the Breaker Distributed</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 5: STEP FUNCTION CONFIGURATION ===== -->
+  <section class="slide divider" id="cfg" data-accent="blue" data-title="Part 05 · Step Function Configuration for AI Circuit Breaker" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">05</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 05 · Step Function Configuration for AI Circuit Breaker</p>
+      <p>In GenAI, your model call to Amazon Bedrock is your most fragile dependency. It can throttle, time out, or degrade in quality. A systematic Step Functions configuration gives you a durable, serverless circuit breaker that protects your entire workflow.</p>
+      <p class="pull">Think of Step Functions as the control plane for your AI resilience.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cfg-lead" aria-label="Open deep dive: 1. Define Service Health Checks">?</button><span>1. Define Service Health Checks</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cfg-errors" aria-label="Open deep dive: 2. Implement Error Tracking">?</button><span>2. Implement Error Tracking</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cfg-threshold" aria-label="Open deep dive: 3. Configure Threshold Logic">?</button><span>3. Configure Threshold Logic</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cfg-transitions" aria-label="Open deep dive: 4. Set Up State Transitions">?</button><span>4. Set Up State Transitions</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 6: FALLBACK PATHS ===== -->
+  <section class="slide divider" id="fb" data-accent="pink" data-title="Part 06 · Implementing Fallback Paths" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">06</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 06 · Implementing Fallback Paths</p>
+      <p class="pull">A circuit breaker without a fallback is just a failure detector.</p>
+      <p>True resilience means when you OPEN the circuit for your primary LLM, you have a well-defined alternate path that keeps the business running.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <p>I design fallback in 3 tiers for all production GenAI workloads.</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="fb-lead" aria-label="Open deep dive: 1. Alternate Model Routing - Same Capability, Different Model">?</button><span>1. Alternate Model Routing - Same Capability, Different Model</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="fb-degraded" aria-label="Open deep dive: 2. Degraded Functionality - Reduced Capability, Core Business Intact">?</button><span>2. Degraded Functionality - Reduced Capability, Core Business Intact</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="fb-region" aria-label="Open deep dive: 3. Cross-Region Failover - Protection Against Regional Outage">?</button><span>3. Cross-Region Failover - Protection Against Regional Outage</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 7: MONITORING AND OPTIMIZING ===== -->
+  <section class="slide divider" id="mon" data-accent="red" data-title="Part 07 · Monitoring and Optimizing Circuit Breaker Performance" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">07</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 07 · Monitoring and Optimizing Circuit Breaker Performance</p>
+      <p class="pull">In production, a circuit breaker you cannot see is as risky as no circuit breaker.</p>
+      <p>Comprehensive monitoring is what lets you tune thresholds and prove that your fallback actually works. We do this natively with Amazon CloudWatch.</p>
+      <h3>Why Monitor?</h3>
+      <p>Your thresholds on Day 1 will be wrong. You might trip too early during low traffic, or too late when Bedrock is already throttling. Monitoring gives you the data to optimize <code>fail_max</code>, <code>reset_timeout</code>, and your fallback strategy.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <p>We track 4 golden metrics for every GenAI circuit breaker.</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mon-lead" aria-label="Open deep dive: The 4 Key Metrics to Monitor">?</button><span>The 4 Key Metrics to Monitor</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mon-prod" aria-label="Open deep dive: Prod-Level Real World Example">?</button><span>Prod-Level Real World Example</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 8: IMPLEMENTATION BEST PRACTICES ===== -->
+  <section class="slide divider" id="bp" data-accent="amber" data-title="Part 08 · Implementation Best Practices - Monitoring for Circuit Breaker" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">08</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 08 · Implementation Best Practices - Monitoring for Circuit Breaker</p>
+      <p class="pull">A circuit breaker is not a set-and-forget pattern.</p>
+      <p>In production GenAI, you need monitoring that tells you <em>when</em> it opened, <em>why</em> it opened, <em>what was the impact to the user</em>, and <em>how to tune it next week</em>.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <p>These 4 best practices are what we implement for enterprise workloads.</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="bp-lead" aria-label="Open deep dive: 1. Configure CloudWatch Alarms for Proactive Alerting">?</button><span>1. Configure CloudWatch Alarms for Proactive Alerting</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="bp-metrics" aria-label="Open deep dive: 2. Use Custom Metrics for Business Impact, Not Just Infra Metrics">?</button><span>2. Use Custom Metrics for Business Impact, Not Just Infra Metrics</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="bp-dash" aria-label="Open deep dive: 3. Implement Unified Dashboards for Real-Time Visibility">?</button><span>3. Implement Unified Dashboards for Real-Time Visibility</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="bp-trend" aria-label="Open deep dive: 4. Include Trend Analysis to Optimize Configuration Over Time">?</button><span>4. Include Trend Analysis to Optimize Configuration Over Time</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="bp-prod" aria-label="Open deep dive: Prod-Level Real World Example">?</button><span>Prod-Level Real World Example</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 9: SECURITY HUB INTEGRATION ===== -->
+  <section class="slide divider" id="sec" data-accent="orange" data-title="Part 09 · AWS Security Hub Integration for AI Resilience" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">09</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 09 · AWS Security Hub Integration for AI Resilience</p>
+      <p>For Prod GenAI workloads, resilience is not just about handling <code>ThrottlingException</code>. It is also about security. What if your Bedrock model starts getting anomalous access, or your fallback model in another Region does not meet PCI-DSS controls?</p>
+      <p>AWS Security Hub acts as the security brain that talks to your circuit breaker.</p>
+      <p class="pull">Think of it like this: Circuit Breaker protects you from <em>performance failures</em>. Security Hub protects you from <em>security failures</em>, and it can tell your circuit breaker to trip when there is a security risk.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-lead" aria-label="Open deep dive: 1. Near-Real-Time Risk Analytics - Security Can Trip Your Circuit">?</button><span>1. Near-Real-Time Risk Analytics - Security Can Trip Your Circuit</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-prio" aria-label="Open deep dive: 2. Improved Prioritization for AI Workloads - Focus on What Matters">?</button><span>2. Improved Prioritization for AI Workloads - Focus on What Matters</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-fallback" aria-label="Open deep dive: 3. Security-Aware Fallback Strategies - Don't Failover to an Insecure Region">?</button><span>3. Security-Aware Fallback Strategies - Don't Failover to an Insecure Region</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-impl" aria-label="Open deep dive: 4. Implementation Considerations - How to Wire It">?</button><span>4. Implementation Considerations - How to Wire It</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-prod" aria-label="Open deep dive: Prod-Level Real World Example - FinTech in India">?</button><span>Prod-Level Real World Example - FinTech in India</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Help popover: full-viewport overlay (kept outside the deck so it can't be clipped/trapped) -->
+<div class="help-popover" id="helpPop" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
+  <div class="pop-head">
+    <div class="pop-crumb"><span class="pop-part" id="popPart"></span><span class="pop-count" id="popCount"></span><span class="pop-pips" id="popPips" aria-hidden="true"></span></div>
+    <div class="pop-nav">
+      <button class="btn" id="popPrev" type="button" aria-label="Previous deep dive">← <span class="lbl">Prev</span></button>
+      <button class="btn" id="popNext" type="button" aria-label="Next deep dive"><span class="lbl">Next</span> →</button>
+    </div>
+    <button class="help-popover-close" id="helpClose" type="button" aria-label="Close deep dive">&times;</button>
+  </div>
+  <div class="pop-progress" aria-hidden="true"><i id="popProg"></i></div>
+  <div class="help-popover-body" id="helpBody" tabindex="-1"></div>
+</div>
+
+<!-- Deep-dive content (verbatim copies of the source sub-sections) -->
+
+  <template id="help-ben-lead">
+    <div class="inner">
+      <h2>1. Failure Isolation: Stop one failure from causing a cascade</h2>
+      <ul>
+        <li><strong>What it means:</strong> Prevents a failing downstream AI component from taking down upstream services like API Gateway, Lambda concurrency, or UI threads.</li>
+        <li><strong>Why it matters for GenAI:</strong> LLM inference is much slower and more failure-prone than normal microservices.</li>
+      </ul>
+      <div class="note"><span class="tag">Example</span>
+        <p>Your RAG chatbot calls Bedrock, OpenSearch Serverless, and a translation API. If Bedrock Claude is throttling, the breaker isolates Bedrock calls only. Your OpenSearch retrieval and user session management continue to work.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-ben-resource">
+    <div class="inner">
+      <h2>2. Resource Protection: Stop paying for requests that will fail</h2>
+      <ul>
+        <li><strong>What it means:</strong> Avoids wasting expensive resources - GPU time, Lambda execution time, and token costs - on doomed calls.</li>
+        <li><strong>Why it matters for GenAI:</strong> Every LLM call costs tokens and 3-10 seconds of Lambda time. Retrying in a loop is expensive.</li>
+      </ul>
+      <div class="note"><span class="tag">Example</span>
+        <p>If Bedrock returns 5 consecutive <code>ModelTimeoutException</code>, the breaker opens. Instead of invoking the model for the next 1,000 users and burning cost and Lambda concurrency, you immediately return a cached response from ElastiCache Serverless.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-ben-recovery">
+    <div class="inner">
+      <h2>3. Automatic Recovery: Self-heal without manual intervention</h2>
+      <ul>
+        <li><strong>What it means:</strong> The system automatically tests recovery and resumes normal operation.</li>
+        <li><strong>Why it matters for GenAI:</strong> Bedrock throttling is often transient. You do not want an engineer to manually flip a switch.</li>
+      </ul>
+      <div class="note"><span class="tag">Example</span>
+        <p>Breaker is <code>OPEN</code> for 60 seconds. After that, it enters <code>HALF-OPEN</code> and allows 1 test request. If that request succeeds with latency &lt; 2s, it transitions back to <code>CLOSED</code>. This is fully automated using DynamoDB TTL or ElastiCache to store breaker state across Lambda invocations.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-ben-degrade">
+    <div class="inner">
+      <h2>4. Graceful Degradation: Maintain partial functionality</h2>
+      <ul>
+        <li><strong>What it means:</strong> Your app continues to deliver value, even if at reduced quality, instead of showing a hard 500 error.</li>
+        <li><strong>Why it matters for GenAI:</strong> A degraded answer is better than no answer for user experience.</li>
+      </ul>
+      <div class="note"><span class="tag">Example</span>
+        <p>When breaker is <code>OPEN</code>, you fallback to:</p>
+        <div class="param-grid">
+        <p><strong>a) Semantic cache</strong> - return similar previous answer from ElastiCache</p>
+        <p><strong>b) Smaller/faster model</strong> - fallback from Anthropic Claude 3.5 Sonnet to Amazon Titan Text Lite on Bedrock</p>
+        <p><strong>c) Static response</strong> - "I'm experiencing high demand, here's a summary from our knowledge base without AI generation."</p>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-e2e-lead">
+    <div class="inner">
+      <h2>Implementation Pattern</h2>
+<pre><code>import pybreaker
+import boto3
+from aws_lambda_powertools import Tracer
+
+# Shared state across Lambdas - use DynamoDB or Redis
+breaker = pybreaker.CircuitBreaker(
+    fail_max=5,              # Trip after 5 failures
+    reset_timeout=60,        # Try Half-Open after 60s
+    listeners=[]
+)
+
+bedrock = boto3.client('bedrock-runtime')
+
+@breaker
+def invoke_primary_llm(prompt):
+    return bedrock.invoke_model(
+        modelId='anthropic.claude-3-5-sonnet-20240620-v1:0',
+        body=prompt
+    )
+
+def lambda_handler(event, context):
+    try:
+        response = invoke_primary_llm(event['prompt'])
+        return {"answer": response, "source": "primary-llm"}
+
+    except pybreaker.CircuitBreakerError:
+        # OPEN state - Graceful Degradation
+        # Fallback 1: Check semantic cache
+        # Fallback 2: Invoke smaller model
+        return {
+            "answer": get_from_cache_or_titan_lite(event['prompt']),
+            "source": "fallback-cache",
+            "note": "Primary model is recovering, serving degraded response"
+        }</code></pre>
+      <p><strong>Observability:</strong> Emit custom metrics to Amazon CloudWatch: <code>CircuitBreakerState</code>, <code>FallbackInvocations</code>, <code>BedrockThrottles</code>. Create a CloudWatch Alarm when state is <code>OPEN</code> &gt; 5 minutes. Trace with AWS X-Ray to see time saved.</p>
+      <div class="note tip"><span class="tag">Best Practice from AWS Well-Architected</span><p>Combine circuit breaker with Timeout + Retry with exponential backoff + jitter. Breaker is the outer protection. Retries happen inside <code>CLOSED</code> state only.</p></div>
+    </div>
+  </template>
+
+  <template id="help-sf-lead">
+    <div class="inner">
+      <h2>1. State Machine Design - The Foundation</h2>
+      <p><strong>What it means:</strong> Step Functions provides native states to model the circuit breaker lifecycle. You don't just call Bedrock, you orchestrate the call.</p>
+      <p><strong>Refined Implementation:</strong> Design your state machine with explicit states:</p>
+      <ol class="steps">
+        <li><strong>CheckCircuitState [Task State]:</strong> Reads current breaker status from DynamoDB.</li>
+        <li><strong>ClosedState [Choice + Task State]:</strong> Normal path. Calls Amazon Bedrock via Lambda / Bedrock SDK integration.</li>
+        <li><strong>OpenState [Choice + Pass State]:</strong> Circuit is tripped. Skips the LLM call and routes directly to fallback.</li>
+        <li><strong>HalfOpenState [Task + Wait State]:</strong> Probing path. Allows one test request to check if the LLM has recovered.</li>
+      </ol>
+      <div class="note tip"><span class="tag">Best Practice</span><p>Keep your business logic (prompt building) separate from your resiliency logic (breaker states). Use a <code>Choice</code> state after every Bedrock call to evaluate the result and update the circuit.</p></div>
+    </div>
+  </template>
+
+  <template id="help-sf-errors">
+    <div class="inner">
+      <h2>2. Error Detection and Thresholds - When to Trip</h2>
+      <p><strong>What it means:</strong> Don't trip on a single failure. Define intelligent thresholds based on real GenAI failure types.</p>
+      <p><strong>Refined Implementation:</strong> Your error detection Lambda should classify errors:</p>
+      <div class="versus">
+      <div class="note tip vs-dynamic"><span class="tag">Retriable</span><p><code>ThrottlingException</code>, <code>ModelTimeoutException</code>, <code>ServiceUnavailable</code> (HTTP 429, 500, 504)</p></div>
+      <span class="vs-badge" aria-hidden="true">VS</span>
+      <div class="note vs-static"><span class="tag">Non-Retriable</span><p><code>ValidationException</code>, <code>AccessDeniedException</code> (should not trip the breaker)</p></div>
+      </div>
+      <p>Track these in a sliding window, for example: 5 failures in last 2 minutes OR 50% failure rate in last 20 calls.</p>
+      <div class="note tip"><span class="tag">Best Practice</span><p>Implement a sliding window in DynamoDB, not just a simple counter. This avoids false positives from a single bad request. Use Step Functions <code>Retry</code> with exponential backoff for transient errors before you count it as a breaker failure.</p></div>
+      <div class="note"><span class="tag">Technical Example</span>
+        <p>For a RAG chatbot, your state machine calls <code>Bedrock InvokeModel</code>. If it fails 5 times consecutively within 60 seconds, you write to DynamoDB: <code>circuit_status = OPEN</code>, <code>opened_at = timestamp</code>, <code>failure_count = 5</code>. The next execution will see OPEN and will not call Bedrock.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-sf-timeout">
+    <div class="inner">
+      <h2>3. Timeout and Recovery Logic - How to Heal Safely</h2>
+      <p><strong>What it means:</strong> How long you stay OPEN and how you test recovery is critical. If you test too aggressively, you will overwhelm a recovering LLM.</p>
+      <p><strong>Refined Implementation:</strong> Use <code>Wait</code> state and exponential backoff.</p>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>Time spent OPEN</span></div>
+        <div class="viz-row"><span class="viz-lbl">1st trip</span><div class="bar" style="--w:25%"><i style="--c:var(--c-amber)"></i><b>60s</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">2nd trip</span><div class="bar" style="--w:50%"><i style="--c:var(--c-orange)"></i><b>120s</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">3rd trip</span><div class="bar full" style="--w:100%"><i style="--c:var(--c-red)"></i><b>240s</b></div></div>
+      </div>
+      <ul>
+        <li>First trip: Stay OPEN for 60 seconds</li>
+        <li>Second consecutive trip: Stay OPEN for 120 seconds</li>
+        <li>Third trip: Stay OPEN for 240 seconds</li>
+      </ul>
+      <p>In HALF-OPEN, Step Functions sends only ONE probe request via a <code>Task</code> state. If it succeeds with latency &lt; 2s, transition to CLOSED. If it fails, go back to OPEN.</p>
+      <div class="note tip"><span class="tag">Best Practice</span><p>Use exponential backoff for timeouts for repeatedly failing services, but use a faster recovery for intermittent 429 throttling. Step Functions makes this easy with <code>Wait</code> state using <code>SecondsPath</code> from your DynamoDB record.</p></div>
+    </div>
+  </template>
+
+  <template id="help-sf-persist">
+    <div class="inner">
+      <h2>4. State Persistence - Making the Breaker Distributed</h2>
+      <p><strong>What it means:</strong> Lambda is stateless. Step Functions executions are independent. You need a central store for breaker state so all invocations know the circuit is OPEN.</p>
+      <p><strong>Refined Implementation:</strong> Use Amazon DynamoDB as your single source of truth.</p>
+      <p><strong>Table: <code>genai-circuit-breaker-state</code></strong></p>
+      <ul>
+        <li><code>PK: service_name</code> (e.g., <code>bedrock-claude-sonnet</code>)</li>
+        <li><code>circuit_state: CLOSED | OPEN | HALF_OPEN</code></li>
+        <li><code>failure_count, success_count, last_failure_time, opened_at, timeout_seconds</code></li>
+        <li><code>TTL</code> enabled to auto-reset stuck OPEN circuits.</li>
+      </ul>
+      <p>Every Step Functions execution starts with a <code>DynamoDB GetItem</code> Task, and ends with a <code>DynamoDB PutItem</code> Task to update the state.</p>
+      <div class="note tip"><span class="tag">Best Practice</span><p>Use DynamoDB conditional writes for atomic updates and enable Point-in-Time Recovery. Emit metrics to Amazon CloudWatch: <code>CircuitOpenCount</code>, <code>FallbackInvocationCount</code> for dashboards and alarms.</p></div>
+      <p><strong>End-to-End Flow Example:</strong></p>
+      <p class="quote" data-flow><code>API Gateway -&gt; Step Functions (CheckCircuit from DynamoDB) -&gt; Choice: If OPEN -&gt; Pass to Fallback (Return cached answer from ElastiCache Serverless or call Titan Lite) | If CLOSED -&gt; Call Bedrock -&gt; On Success -&gt; Update DynamoDB (reset failure_count) -&gt; On Throttling Failure -&gt; Update DynamoDB (increment failure_count, set OPEN if threshold breached) -&gt; Return fallback.</code></p>
+      <p>This pattern is far more resilient than in-code <code>pybreaker</code> because it is visual, durable, survives Lambda timeouts, and provides full audit trail in Step Functions execution history.</p>
+    </div>
+  </template>
+
+  <template id="help-cfg-lead">
+    <div class="inner">
+      <h2>1. Define Service Health Checks</h2>
+      <p><strong>What it means in simple terms:</strong> Before you send a costly, full-prompt request to the LLM, quickly check if the service is actually healthy.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Create a dedicated <code>Task</code> state called <code>HealthCheck</code>. This should be a lightweight probe, not a full generation.</p>
+      <ul>
+        <li><strong>Availability Check:</strong> Does Bedrock respond at all? Handle <code>ThrottlingException</code>, <code>ServiceUnavailable</code>.</li>
+        <li><strong>Quality Check:</strong> Is it responding slowly? If p95 latency &gt; 3 seconds, treat it as degraded.</li>
+      </ul>
+      <p><strong>Example:</strong> A Lambda function that does a cheap health check:</p>
+<pre><code># health_check_lambda
+bedrock.invoke_model(
+  modelId='anthropic.claude-3-haiku-20240307-v1:0',
+  body='{"max_tokens": 1, "messages": [{"role":"user","content":"ping"}]}'
+)</code></pre>
+      <p>This costs &lt; 10 tokens but tells you if the model endpoint is alive. Store result in DynamoDB.</p>
+      <div class="note tip"><span class="tag">Best Practice</span><p>Use Amazon Bedrock <code>Converse</code> API with <code>max_tokens: 1</code> and a 2-second timeout. This validates both connectivity and performance without burning tokens.</p></div>
+    </div>
+  </template>
+
+  <template id="help-cfg-errors">
+    <div class="inner">
+      <h2>2. Implement Error Tracking</h2>
+      <p><strong>What it means:</strong> You need memory. Lambda is stateless, so you must track failures centrally to decide when to trip.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Design two states:</p>
+      <ul>
+        <li><code>RecordFailure [Task - DynamoDB PutItem]</code>: After every failed Bedrock call, update a central table.</li>
+        <li><code>RecordSuccess [Task - DynamoDB PutItem]</code>: On success, reset counters.</li>
+      </ul>
+      <p><strong>DynamoDB Table <code>ai-circuit-state</code> design:</strong><br>
+      <code>PK: bedrock-claude-sonnet</code><br>
+      <code>Attributes: failure_count, success_count, total_requests, last_5_minute_window, last_failure_type, avg_latency</code></p>
+      <p>Use Step Functions built-in <code>Catch</code> and <code>Retry</code> to categorize failures:</p>
+      <ul>
+        <li><code>Catch: States.ALL</code> with <code>ResultPath: $.error</code> -&gt; Go to <code>CategorizeError</code> Choice state</li>
+        <li>If error is <code>ThrottlingException</code> -&gt; Count as retriable failure</li>
+        <li>If error is <code>ValidationException</code> -&gt; Do NOT count, it's a client bug</li>
+      </ul>
+      <div class="note tip"><span class="tag">Best Practice</span><p>Don't just count absolute failures. Track sliding window. Store a list of last 20 request outcomes in DynamoDB as a JSON array for trend analysis.</p></div>
+    </div>
+  </template>
+
+  <template id="help-cfg-threshold">
+    <div class="inner">
+      <h2>3. Configure Threshold Logic</h2>
+      <p><strong>What it means:</strong> This is the brain that decides when to OPEN the circuit. It must be smart enough to avoid tripping during low traffic.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Use a <code>Choice</code> state called <code>EvaluateThreshold</code>.</p>
+      <p>Logic inside a Lambda or with JSONata in Step Functions:</p>
+<pre><code>IF failure_count &gt;= 5 in 2 minutes
+   OR failure_rate &gt; 50% AND total_requests &gt; 10
+THEN -&gt; Go to OpenCircuit
+ELSE -&gt; Go to ClosedState</code></pre>
+      <p>This handles two scenarios: Absolute count for sudden outages, and percentage-based for degraded quality.</p>
+      <div class="note"><span class="tag">Example</span>
+        <p>At 3 AM you have 2 requests, both fail. Failure rate is 100% but absolute count is only 2. You should NOT trip. So your rule says <code>total_requests &gt; 10</code> is required for percentage logic. This avoids premature circuit activation during low-traffic periods.</p>
+      </div>
+      <div class="note tip"><span class="tag">Best Practice</span><p>Implement dual thresholds in your <code>Choice</code> state. Always check request volume before evaluating percentage.</p></div>
+    </div>
+  </template>
+
+  <template id="help-cfg-transitions">
+    <div class="inner">
+      <h2>4. Set Up State Transitions</h2>
+      <p data-flow><strong>What it means:</strong> Define how you move between CLOSED -&gt; OPEN -&gt; HALF-OPEN -&gt; CLOSED with proper delays and validation.</p>
+      <p><strong>Technical Implementation in ASL:</strong></p>
+      <ul>
+        <li><strong>CLOSED to OPEN:</strong> <code>Choice</code> state detects threshold breach -&gt; <code>Task: UpdateDynamoDB to OPEN, set opened_at = timestamp, timeout = 60s</code> -&gt; <code>Pass: ServeFallback</code></li>
+        <li><strong>OPEN to HALF-OPEN:</strong> Next execution starts with <code>Task: GetCircuitState</code>. If <code>state == OPEN AND current_time - opened_at &gt; timeout</code>, then go to <code>Wait: 1 second</code> + <code>Task: ProbeBedrock</code> (one test call). This is HALF-OPEN.</li>
+        <li><strong>HALF-OPEN to CLOSED / OPEN:</strong> <code>Choice</code> state: If probe succeeds -&gt; <code>Task: Set state to CLOSED, reset counters</code>. If probe fails -&gt; <code>Task: Set state to OPEN, double timeout with exponential backoff: 60s -&gt; 120s -&gt; 240s</code>.</li>
+      </ul>
+      <p><strong>End-to-End Technical Example:</strong></p>
+      <p>User asks a question to your Support Bot.</p>
+      <div class="steps-p">
+      <p><strong>Flow 1 - Healthy:</strong> Step Functions -&gt; <code>GetState (CLOSED)</code> -&gt; <code>Invoke Bedrock Claude</code> -&gt; Success -&gt; <code>Reset Counters in DynamoDB</code> -&gt; Return Answer.</p>
+      <p><strong>Flow 2 - Bedrock Throttling:</strong> Step Functions -&gt; <code>GetState (CLOSED)</code> -&gt; <code>Invoke Bedrock</code> fails 5 times. On 5th failure -&gt; <code>UpdateState to OPEN</code> -&gt; Return Fallback answer from ElastiCache semantic cache + emit CloudWatch Metric <code>CircuitBreakerOpen=1</code>.</p>
+      <p><strong>Flow 3 - Recovery:</strong> 60 seconds later, new user request -&gt; <code>GetState (OPEN but timeout expired)</code> -&gt; Enters HALF-OPEN -&gt; Sends 1 probe request to Bedrock. If 200 OK and latency &lt; 1.5s -&gt; <code>UpdateState to CLOSED</code> -&gt; Normal operation resumes.</p>
+      </div>
+      <p>This gives you a fully resilient, observable, and self-healing GenAI workflow without any custom daemon or sidecar to manage.</p>
+    </div>
+  </template>
+
+  <template id="help-fb-lead">
+    <div class="inner">
+      <h2>1. Alternate Model Routing - Same Capability, Different Model</h2>
+      <p><strong>What it means in simple terms:</strong> If your premium model fails, automatically route to a cheaper, faster model that can still do the job.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Don't hardcode fallbacks. Configure a model mapping table in DynamoDB or AppConfig.</p>
+      <p>This mapping considers capability, context window, and cost.</p>
+      <p><strong>Model Mapping Example Table <code>genai-fallback-map</code>:</strong></p>
+      <p class="quote" data-flow><code>Primary: anthropic.claude-3-5-sonnet-20240620-v1:0</code> -&gt; <code>Fallback Tier 1: anthropic.claude-3-haiku-20240307-v1:0</code> -&gt; <code>Fallback Tier 2: amazon.titan-text-lite-v1</code></p>
+      <div class="note tip"><span class="tag">Refined Best Practice</span><p>In your Step Functions <code>OpenState</code>, add a <code>Task</code> state <code>RouteToFallbackModel</code>. Before routing, implement a quality check. For example, if the original task was complex reasoning, Haiku may not be suitable, so you should skip to degraded functionality. If it was summarization, Haiku is perfectly acceptable.</p></div>
+      <div class="note"><span class="tag">Technical Example</span>
+        <p>Your customer support bot uses Claude Sonnet for complex troubleshooting. Bedrock returns <code>ThrottlingException</code>. The circuit opens. The state machine reads the mapping and invokes Haiku with the same prompt. You add a system prompt: <code>You are a fallback model. Provide a concise answer. If unsure, say you will escalate.</code><br>
+        This maintains continuity with 10x lower latency and cost.</p>
+        <p>You can implement this with a <code>Choice</code> state in Step Functions:<br>
+        <code>If $.error = ThrottlingException AND $.task_type = SUMMARIZATION -&gt; Invoke Haiku</code><br>
+        <code>If $.error = ThrottlingException AND $.task_type = COMPLEX_REASONING -&gt; Go to Degraded Functionality</code></p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-fb-degraded">
+    <div class="inner">
+      <h2>2. Degraded Functionality - Reduced Capability, Core Business Intact</h2>
+      <p><strong>What it means:</strong> When even fallback models are failing, don't return a 500 error. Return a reduced but useful response.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Build 3 types of degraded paths:</p>
+      <div class="param-grid">
+      <p><strong>a) Semantic Cache:</strong> Use Amazon ElastiCache Serverless or OpenSearch Serverless k-NN. Before calling Bedrock, check if a semantically similar question was answered in last 24 hours. If circuit is OPEN, serve directly from cache. Hit rate for support bots is typically 30-40%.</p>
+      <p><strong>b) Rule-Based / Retrieval-Only:</strong> Skip the LLM entirely. Return raw results from Bedrock Knowledge Bases. For example: "AI generation is temporarily under high load. Here are the top 3 relevant documents from our knowledge base."</p>
+      <p><strong>c) Static Response with Transparency:</strong> Maintain trust by communicating status.</p>
+      </div>
+      <p><strong>Technical Example:</strong></p>
+      <p>State machine enters <code>DegradedState</code>:</p>
+<pre><code>{
+  "answer": "We found relevant information in our docs: [Doc 1, Doc 2]",
+  "mode": "degraded-retrieval-only",
+  "user_message": "AI summarization is temporarily unavailable, showing search results only."
+}</code></pre>
+      <p>In the frontend, you show a yellow banner. The user still gets value, and you avoid a complete outage. Log this event to CloudWatch with metric <code>DegradedFallbackCount</code>.</p>
+      <div class="note tip"><span class="tag">Best Practice</span><p>Always tell the user you are in degraded mode. Never silently serve a low-quality answer as if it came from your premium model.</p></div>
+    </div>
+  </template>
+
+  <template id="help-fb-region">
+    <div class="inner">
+      <h2>3. Cross-Region Failover - Protection Against Regional Outage</h2>
+      <p><strong>What it means:</strong> What if Bedrock in <code>us-east-1</code> is down completely? Your fallback models in the same Region will also fail. You need geographic redundancy.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Use <strong>Amazon Bedrock Cross-Region Inference</strong>. Instead of calling a model directly, you call an Inference Profile.</p>
+      <p>An inference profile like <code>us.anthropic.claude-3-5-sonnet-20240620-v1:0</code> automatically routes your request to a healthy Region among <code>us-east-1</code>, <code>us-west-2</code>, etc., managed by AWS.</p>
+      <p>For more control, implement custom logic in Step Functions:</p>
+      <div class="steps-p">
+      <p><strong>Step 1:</strong> Try <code>us-east-1</code> Bedrock</p>
+      <p><strong>Step 2:</strong> On <code>ServiceUnavailable</code>, <code>Task: Update Region to us-west-2</code> and retry with a <code>Wait</code> state of 2 seconds.</p>
+      <p><strong>Step 3:</strong> Store region health in DynamoDB to avoid repeated calls to a bad Region.</p>
+      </div>
+      <p><strong>Technical Example:</strong></p>
+      <p>Your primary Region is Mumbai <code>ap-south-1</code>. You have enabled cross-region inference profile <code>apac.anthropic.claude-3-5-sonnet-20240620-v1:0</code> which can failover to <code>ap-northeast-1</code> Tokyo.</p>
+      <p>Step Functions logic:</p>
+<pre><code>Invoke in ap-south-1 -&gt; Fails with 500 -&gt; Choice: If error is regional -&gt; Lambda: Invoke Bedrock client in ap-northeast-1 with same prompt -&gt; Success -&gt; Update DynamoDB: ap-south-1 health = degraded -&gt; Return answer with metadata: failover_region: ap-northeast-1</code></pre>
+      <p><strong>Best Practice for Region Selection:</strong> Don't just failover blindly. Your selection logic in Lambda should consider:</p>
+      <ul>
+        <li><strong>Latency:</strong> Failover to the nearest Region for your users.</li>
+        <li><strong>Model Availability:</strong> Not all models are available in all Regions. Check via Bedrock <code>ListFoundationModels</code>.</li>
+        <li><strong>Cost:</strong> Cross-region inference has slightly higher cost. Use it as Tier 3 fallback, not Tier 1.</li>
+      </ul>
+      <p><strong>Final Architect View:</strong> Your resilience ladder should be:</p>
+      <p class="quote" data-flow><strong>CLOSED:</strong> Primary Model in Primary Region -&gt; <strong>OPEN Tier 1:</strong> Fallback Model in Same Region -&gt; <strong>OPEN Tier 2:</strong> Semantic Cache / Retrieval-Only -&gt; <strong>OPEN Tier 3:</strong> Cross-Region Inference Profile.</p>
+      <p>This ensures 99.9% availability for your GenAI application even when a foundation model provider is degraded.</p>
+    </div>
+  </template>
+
+  <template id="help-mon-lead">
+    <div class="inner">
+      <h2>The 4 Key Metrics to Monitor</h2>
+      <h3>1. Circuit State Transitions - When and how often does it trip?</h3>
+      <p><em>What it means:</em> Count every CLOSED -&gt; OPEN, OPEN -&gt; HALF-OPEN, HALF-OPEN -&gt; CLOSED transition.<br>
+      <em>Why it matters:</em> If your circuit opens 20 times a day, your threshold is too sensitive or your primary model is unstable. If it never opens but users see timeouts, your threshold is too lenient.</p>
+      <p><em>Implementation:</em> In your Step Functions or Lambda, emit a custom metric via CloudWatch Embedded Metric Format [EMF]:<br>
+      <code>PutMetric: CircuitState=OPEN, Service=bedrock-claude-sonnet, Count=1</code><br>
+      Create a CloudWatch dashboard widget showing state over time. Set an Alarm: <code>IF CircuitState=OPEN for &gt;10 mins -&gt; Notify on-call via SNS</code>.</p>
+
+      <h3>2. Error Rates and Types - Why did it trip?</h3>
+      <p><em>What it means:</em> Not all failures are equal. Track retriable vs non-retriable errors separately.<br>
+      <em>Why it matters:</em> <code>ThrottlingException [429]</code> should trip the breaker. <code>ValidationException [400]</code> should NOT. If you mix them, you will trip on a bad prompt.</p>
+      <p><em>Implementation:</em> In your <code>Catch</code> state, categorize:<br>
+      <code>ErrorType=Throttling, ErrorType=ModelTimeout, ErrorType=ServiceUnavailable</code><br>
+      Use CloudWatch Logs Insights to query:<br>
+      <code>filter @message like /CircuitBreaker/ | stats count() by ErrorType</code></p>
+
+      <h3>3. Response Times - Detect degradation BEFORE failure</h3>
+      <p><em>What it means:</em> Don't wait for a 504 timeout. If p95 latency goes from 1.2s to 4s, your user experience is already degraded.<br>
+      <em>Why it matters:</em> GenAI quality degrades before it fails. Slow responses should trigger early fallback.</p>
+      <p><em>Implementation:</em> Emit <code>BedrockLatency</code> as a histogram metric from Lambda. Set two thresholds:</p>
+      <ul>
+        <li>Hard threshold: <code>latency &gt; 5000ms = failure</code></li>
+        <li>Soft threshold: <code>p95 latency &gt; 2500ms for 5 mins = Alarm, start using fallback model Haiku</code></li>
+      </ul>
+      <p data-flow>Use AWS X-Ray to trace end-to-end latency: API Gateway -&gt; Step Functions -&gt; Bedrock.</p>
+
+      <h3>4. Fallback Usage and Effectiveness - Is your fallback actually helping?</h3>
+      <p><em>What it means:</em> Measure how often you used the fallback and whether the user was satisfied.<br>
+      <em>Why it matters:</em> A fallback that no one uses or that has 90% user thumbs-down is not resilience, it is a different failure.</p>
+      <p><em>Implementation:</em> Emit two metrics:<br>
+      <code>FallbackInvoked: FallbackTier=Cache / FallbackTier=SmallModel / FallbackTier=CrossRegion</code><br>
+      <code>FallbackSuccess: Did fallback return a valid answer? Did user give positive feedback?</code></p>
+      <p>If <code>FallbackInvoked</code> is 30% of traffic, your primary model capacity is under-provisioned.</p>
+    </div>
+  </template>
+
+  <template id="help-mon-prod">
+    <div class="inner">
+      <h2>Prod-Level Real World Example</h2>
+      <p><strong>Use Case: FinTech Loan Assistant at 10K requests/day</strong><br>
+      Architecture: <code>API Gateway -&gt; Step Functions -&gt; Lambda -&gt; Primary: Bedrock Claude 3.5 Sonnet in ap-south-1 [Mumbai] -&gt; Fallbacks -&gt; DynamoDB for circuit state -&gt; CloudWatch Dashboard</code></p>
+      <p><strong>What we observed in Week 1:</strong><br>
+      CloudWatch dashboard showed Circuit opened 18 times. Metric breakdown:</p>
+      <ul>
+        <li>Circuit State Transitions: 18 OPEN events, all between 3 PM - 5 PM IST</li>
+        <li>Error Rates: 95% were <code>ThrottlingException</code>, 5% <code>ModelTimeout</code></li>
+        <li>Response Times: p95 went from 1.3s to 4.8s just before tripping</li>
+        <li>Fallback Usage: 22% of traffic went to <code>Fallback Tier 1: Claude Haiku</code>, 8% went to <code>Tier 2: ElastiCache Semantic Cache</code></li>
+      </ul>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>Error types</span></div>
+        <div class="split"><span class="seg" style="--w:95%;--c:var(--c-red)"><b>95%</b> ThrottlingException</span><span class="seg" style="--w:5%;--c:var(--c-amber)"></span></div>
+        <div class="legend"><span style="--c:var(--c-red)">ThrottlingException · 95%</span><span style="--c:var(--c-amber)">ModelTimeout · 5%</span></div>
+      </div>
+      <p><strong>Optimization we did based on data:</strong></p>
+      <ol class="steps">
+        <li>We changed threshold from <code>fail_max=5 in 2 mins</code> to <code>fail_max=3 in 1 min AND p95 &gt; 3s</code>. This made the breaker trip 1 minute earlier, avoiding the slow 4.8s responses.</li>
+        <li>We saw Haiku fallback had 92% user acceptance, but Cache fallback had only 60%. We improved cache embedding model from Titan to Cohere Embed v3, raising cache acceptance to 85%.</li>
+        <li>We enabled Bedrock Cross-Region Inference Profile <code>ap.anthropic.claude-3-5-sonnet...</code> as Tier 3. After that, OPEN events dropped from 18 to 2 per week because traffic automatically spilled to <code>ap-northeast-1</code> during Mumbai throttling.</li>
+      </ol>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>User-facing error rate</span></div>
+        <div class="viz-row"><span class="viz-lbl">Before</span><div class="bar full" style="--w:100%"><i style="--c:var(--c-red)"></i><b>4.2%</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">After</span><div class="bar" style="--w:3.6%"><i style="--c:var(--c-green)"></i><b>0.15%</b></div></div>
+      </div>
+      <p><strong>Result:</strong> User-facing error rate went from 4.2% to 0.15%, average latency in fallback mode went from 4.8s to 0.9s [from cache], and we saved ~35% on Bedrock costs by not retrying failing calls.</p>
+      <p><strong>Best Practice Checklist:</strong></p>
+      <ol>
+        <li>Create a single CloudWatch Dashboard named <code>GenAI-CircuitBreaker-Health</code></li>
+        <li>Emit all 4 metrics using EMF from Lambda - zero extra API calls</li>
+        <li>Set Alarms on <code>Circuit OPEN &gt; 5 mins</code> and <code>Fallback Usage &gt; 20%</code></li>
+        <li>Review dashboard weekly to tune thresholds - this is a continuous optimization loop, not a one-time setup.</li>
+      </ol>
+    </div>
+  </template>
+
+  <template id="help-bp-lead">
+    <div class="inner">
+      <h2>1. Configure CloudWatch Alarms for Proactive Alerting</h2>
+      <p><strong>What it means:</strong> Don't let your users tell you the circuit is OPEN. Let CloudWatch tell your on-call team first.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Create actionable alarms, not noisy alarms.</p>
+      <div class="note vs-static"><span class="tag">Critical Alarm - Circuit OPEN too long</span>
+        <p>Metric: <code>CircuitState = OPEN</code><br>
+        Condition: <code>OPEN &gt; 10 minutes</code><br>
+        Action: SNS -&gt; PagerDuty / Slack. This means recovery logic failed.</p>
+      </div>
+      <div class="note"><span class="tag">Warning Alarm - Pre-failure Degradation</span>
+        <p>Metric: <code>BedrockErrorRate = ThrottlingException</code><br>
+        Condition: <code>&gt; 30% for 3 consecutive minutes</code><br>
+        Action: SNS -&gt; Auto Scaling action or email to SRE. This fires <em>before</em> the circuit opens.</p>
+      </div>
+      <div class="note"><span class="tag">Quality Alarm - Slow degradation</span>
+        <p>Metric: <code>p95 BedrockLatency</code><br>
+        Condition: <code>&gt; 3000ms for 5 minutes</code><br>
+        Action: Trigger Lambda to pre-warm fallback cache.</p>
+      </div>
+      <div class="note tip"><span class="tag">Best Practice</span><p>Use composite alarms. <code>IF ErrorRate &gt; 50% AND CircuitState = CLOSED</code> then alarm. This avoids alerting when circuit is already OPEN and protecting the system - that's expected behavior.</p></div>
+    </div>
+  </template>
+
+  <template id="help-bp-metrics">
+    <div class="inner">
+      <h2>2. Use Custom Metrics for Business Impact, Not Just Infra Metrics</h2>
+      <p><strong>What it means:</strong> Infra metrics tell you <em>what</em> failed. Business metrics tell you <em>if the user cared</em>.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Emit custom business metrics using CloudWatch Embedded Metric Format [EMF] from your Lambda, at zero extra cost.</p>
+      <p>Don't just track <code>BedrockFailures</code>. Track:</p>
+      <ul>
+        <li><code>UserExperienceImpact</code>: Did user retry? Did user abandon chat?</li>
+        <li><code>TaskCompletionRate</code>: In fallback mode, did user still complete the loan application / booking?</li>
+        <li><code>FallbackQualityScore</code>: Thumbs up/down on fallback answers vs primary model answers.</li>
+        <li><code>CostSaved</code>: How much token cost you saved by failing fast instead of retrying 3 times.</li>
+      </ul>
+      <p><strong>Example Code:</strong></p>
+<pre><code># Inside your fallback path
+metrics.put_metric("FallbackInvoked", 1, "Count")
+metrics.put_metric("FallbackTier", "Haiku") # dimension
+metrics.put_metric("TaskCompletionInFallback", 1 if user_completed else 0)</code></pre>
+      <p>Now your dashboard shows not just "Circuit OPEN 5 times" but "Circuit OPEN 5 times, but 92% of users still completed their task using Haiku fallback."</p>
+    </div>
+  </template>
+
+  <template id="help-bp-dash">
+    <div class="inner">
+      <h2>3. Implement Unified Dashboards for Real-Time Visibility</h2>
+      <p><strong>What it means:</strong> You run models in Mumbai, fallback in Singapore, cache in us-east-1. You need a single pane of glass.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Build one CloudWatch Dashboard: <code>GenAI-CircuitBreaker-Global-Health</code></p>
+      <p>Add 4 widgets:</p>
+      <ol class="tiles">
+        <li><strong>Widget 1 - State Map:</strong> Single-value widget per service/region: <code>bedrock-claude-sonnet [ap-south-1] = CLOSED [Green]</code>, <code>bedrock-claude-sonnet [ap-northeast-1] = CLOSED</code></li>
+        <li><strong>Widget 2 - Transitions Over Time:</strong> Line graph of <code>CLOSED -&gt; OPEN</code> events per hour.</li>
+        <li><strong>Widget 3 - Error Breakdown:</strong> Pie chart of <code>ErrorType</code>: Throttling vs Timeout vs ModelError.</li>
+        <li><strong>Widget 4 - Fallback Effectiveness:</strong> Stacked bar of <code>Primary vs Fallback Tier 1 vs Tier 2</code> traffic.</li>
+      </ol>
+      <p>Use CloudWatch Cross-Region dashboards to pull metrics from <code>ap-south-1</code> and <code>us-east-1</code> into one view.</p>
+      <div class="note tip"><span class="tag">Best Practice</span><p>Add a <code>Service Map</code> using AWS X-Ray so you can click from dashboard directly into the failing Step Functions execution.</p></div>
+    </div>
+  </template>
+
+  <template id="help-bp-trend">
+    <div class="inner">
+      <h2>4. Include Trend Analysis to Optimize Configuration Over Time</h2>
+      <p><strong>What it means:</strong> Your Day 1 thresholds are guesses. Week 4 thresholds should be data-driven.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Use CloudWatch Logs Insights and S3 + Athena for long-term trends.</p>
+      <ul>
+        <li><strong>Weekly Review Query in Logs Insights:</strong><br>
+        <code>filter @message like /CircuitBreaker/ | stats count() as trip_count, avg(latency) by bin(1h), model_id | sort trip_count desc</code><br>
+        This shows you which model trips most and at what hour.</li>
+        <li><strong>Trend Analysis:</strong> Export EMF metrics to S3 via Kinesis Firehose and query with Athena. Look for seasonality.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-bp-prod">
+    <div class="inner">
+      <h2>Prod-Level Real World Example</h2>
+      <p><strong>Customer: Large E-commerce in India - 25K GenAI requests/day for Product Q&amp;A</strong></p>
+      <p><strong>Architecture:</strong> <code>API Gateway -&gt; Step Functions -&gt; Primary: Bedrock Claude Sonnet in ap-south-1 -&gt; Fallbacks: Haiku, ElastiCache Serverless, Cross-Region to ap-southeast-1 -&gt; State in DynamoDB -&gt; Monitoring in CloudWatch</code></p>
+      <p><strong>What Monitoring Showed:</strong></p>
+      <ul>
+        <li>Dashboard showed OPEN events spiked every day at 7-9 PM IST during Big Billion Days sale.</li>
+        <li>Alarms: <code>ThrottlingException</code> alarm fired at 7:05 PM, but <code>Circuit OPEN</code> alarm fired at 7:12 PM - 7 minutes late. Users saw slow responses for 7 mins.</li>
+        <li>Custom Metric <code>TaskCompletionInFallback</code> showed Haiku fallback had 88% completion vs 94% for Sonnet, but cache fallback had only 55%.</li>
+        <li>Trend analysis in Logs Insights showed <code>p95 latency</code> crossed 2.5s <em>before</em> throttling started. Latency was a leading indicator.</li>
+      </ul>
+      <p><strong>Optimizations We Did:</strong></p>
+      <ol class="steps">
+        <li>Changed alarm to trigger on <code>p95 latency &gt; 2500ms</code> instead of waiting for error rate. Circuit now opens 5 minutes earlier, saving user experience.</li>
+        <li>Changed threshold from <code>5 failures in 2 mins</code> to <code>3 failures in 1 min during peak hours (6-10 PM)</code> using EventBridge Scheduler to update AppConfig.</li>
+        <li>Improved cache embeddings, raising cache task completion from 55% to 81%.</li>
+      </ol>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>User-facing timeouts</span></div>
+        <div class="viz-row"><span class="viz-lbl">Before</span><div class="bar full" style="--w:100%"><i style="--c:var(--c-red)"></i><b>3.8%</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">After</span><div class="bar" style="--w:5.3%"><i style="--c:var(--c-green)"></i><b>0.2%</b></div></div>
+        <div class="viz-h" style="margin-top:18px"><span>MTTR</span></div>
+        <div class="viz-row"><span class="viz-lbl">Before</span><div class="bar full" style="--w:100%"><i style="--c:var(--c-red)"></i><b>18 mins</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">After</span><div class="bar" style="--w:11.1%"><i style="--c:var(--c-green)"></i><b>2 mins</b></div></div>
+      </div>
+      <p><strong>Business Outcome:</strong> After optimization, user-facing timeouts dropped from 3.8% to 0.2%, MTTR [Mean Time To Recovery] went from 18 mins to 2 mins auto-recovery, and the SRE team gets only 1 actionable alarm per day instead of 15 noisy ones.</p>
+    </div>
+  </template>
+
+  <template id="help-sec-lead">
+    <div class="inner">
+      <h2>1. Near-Real-Time Risk Analytics - Security Can Trip Your Circuit</h2>
+      <p><strong>What it means in simple terms:</strong> Security Hub continuously analyzes your AI stack and can automatically open your circuit if it detects a threat.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Security Hub ingests findings from GuardDuty, Inspector, CloudTrail, and Config in ASFF format in near-real-time.</p>
+      <p>How it connects to circuit breaker:</p>
+      <ul>
+        <li><strong>Anomalous Access:</strong> GuardDuty detects <code>Anomalous API call - Bedrock InvokeModel from unusual IP</code>. Security Hub creates a Critical finding. An EventBridge rule <code>Security Hub Findings - Imported, Severity = CRITICAL, Resource = Bedrock</code> triggers a Lambda that writes to your DynamoDB circuit table: <code>circuit_state = OPEN, reason = SECURITY_RISK, opened_by = SecurityHub</code>.</li>
+        <li><strong>Real-Time Risk Scoring:</strong> Security Hub aggregates risk score. If risk score for your GenAI workload goes above 80/100, your Step Functions <code>CheckCircuit</code> state treats it as OPEN, even if Bedrock itself is healthy.</li>
+      </ul>
+      <div class="note tip"><span class="tag">Best Practice</span><p>Don't treat all security findings as circuit breaker triggers. Filter only for findings related to your AI resources: <code>ResourceType = AwsBedrockCustomModel, AwsBedrockFoundationModel, AwsIamRole</code> associated with your GenAI app.</p></div>
+    </div>
+  </template>
+
+  <template id="help-sec-prio">
+    <div class="inner">
+      <h2>2. Improved Prioritization for AI Workloads - Focus on What Matters</h2>
+      <p><strong>What it means:</strong> Security Hub has hundreds of findings. Which one should wake up your SRE at 2 AM? The one affecting your PII-heavy GenAI workload.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Security Hub does risk-based prioritization by correlating findings.</p>
+      <p>It considers:</p>
+      <ul>
+        <li><strong>Data Sensitivity:</strong> Is this Bedrock Knowledge Base connected to S3 bucket with PII? Security Hub tags it as <code>DataClassification: PII</code>.</li>
+        <li><strong>Business Criticality:</strong> Is this loan approval assistant Tier 1? You tag it in Config: <code>BusinessCriticality: High</code>.</li>
+        <li><strong>Scope of Impact:</strong> One IAM role compromised affecting 3 Regions vs one model.</li>
+      </ul>
+      <p class="quote">So instead of 100 low-severity findings, SRE sees: <code>Critical - Compromised IAM Role used for Bedrock Inference affecting High-criticality loan assistant handling PII data</code>.</p>
+      <div class="note"><span class="tag">Prod Example</span>
+        <p>Security Hub correlates 3 findings: GuardDuty <code>CredentialExfiltration</code>, CloudTrail <code>Bedrock InvokeModel without MFA</code>, and Config <code>S3 bucket public</code>. Alone they are Medium. Correlated, it becomes Critical and triggers immediate circuit open + auto-remediation.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-sec-fallback">
+    <div class="inner">
+      <h2>3. Security-Aware Fallback Strategies - Don't Failover to an Insecure Region</h2>
+      <p><strong>What it means:</strong> Your fallback must be as secure as your primary. You cannot failover from a compliant Region to a non-compliant one.</p>
+      <p><strong>Technical Implementation:</strong></p>
+      <p>Integrate Security Hub compliance checks into your fallback logic.</p>
+      <p>Before routing to a fallback model/Region, your Lambda does:</p>
+      <ol class="steps">
+        <li><strong>Check Security Posture:</strong> Call Security Hub <code>BatchGetSecurityControls</code> - Is fallback Region passing your custom standard <code>AI-Security-Standard</code>? Does it have GuardDuty enabled, KMS encryption, VPC endpoints?</li>
+        <li><strong>Verify Authentication:</strong> During failover, ensure IAM role assumption still enforces MFA and that Bedrock VPC endpoint policy is intact.</li>
+        <li><strong>Maintain Logging:</strong> Ensure CloudTrail, CloudWatch Logs, and Bedrock model invocation logging remain enabled in fallback path for audit. If fallback Region has logging disabled, Security Hub marks it non-compliant, and you should skip it.</li>
+      </ol>
+      <div class="note"><span class="tag">Example</span>
+        <p>Primary is <code>ap-south-1</code> with PCI-DSS enabled. Your circuit breaker wants to failover to <code>us-east-1</code>. But Security Hub shows <code>us-east-1</code> Bedrock is not using CMK KMS key as required by your standard. Your fallback logic then skips <code>us-east-1</code> and goes to <code>ap-northeast-1</code> which IS compliant, or serves from ElastiCache cache instead.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-sec-impl">
+    <div class="inner">
+      <h2>4. Implementation Considerations - How to Wire It</h2>
+      <div class="steps-p">
+      <p><strong>Step 1: Enable Foundational Logging</strong><br>
+      Enable CloudTrail for all Bedrock data events: <code>managementEvents + dataEvents for bedrock.amazonaws.com</code>. Enable GuardDuty, Config, and send all to Security Hub in your central security account.</p>
+      <p><strong>Step 2: Create Custom AI Security Standard</strong><br>
+      In Security Hub, create a custom standard <code>GenAI-Resilience-Standard</code> with controls like:</p>
+      <ul>
+        <li><code>Bedrock models must use KMS CMK</code></li>
+        <li><code>Bedrock Knowledge Base S3 must not be public</code></li>
+        <li><code>IAM Roles for Bedrock must require MFA</code></li>
+      </ul>
+      <p><strong>Step 3: Automated Response with Circuit Breaker</strong></p>
+      <p class="quote" data-flow><code>Security Hub Finding [CRITICAL] -&gt; EventBridge Rule -&gt; Lambda: OpenCircuitBreaker -&gt; Updates DynamoDB: state=OPEN, reason=SecurityFindingId -&gt; SNS -&gt; SRE Team</code></p>
+      <p>Your Step Functions state machine's first state <code>CheckCircuit</code> now checks both performance state AND security state from DynamoDB.</p>
+      <p><strong>Step 4: Unified Dashboard</strong><br>
+      Build a CloudWatch Dashboard that overlays two metrics:</p>
+      <ul>
+        <li>Line 1: <code>Circuit Breaker State Transitions</code></li>
+        <li>Line 2: <code>Security Hub Critical Findings Count for GenAI Workload</code></li>
+      </ul>
+      <p>This correlation shows you if a performance failure was actually caused by a security event.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-sec-prod">
+    <div class="inner">
+      <h2>Prod-Level Real World Example - FinTech in India</h2>
+      <p><strong>Customer:</strong> A bank running a GenAI Loan Underwriting Assistant on Bedrock Claude, processing PII, PCI data. Primary Region <code>ap-south-1</code>.</p>
+      <p><strong>Incident:</strong> At 2:30 PM, GuardDuty detected an IAM role <code>Bedrock-Inference-Role</code> being used from an unusual Tor IP to call <code>InvokeModel</code>. GuardDuty -&gt; Security Hub -&gt; Finding <code>UnauthorizedAccess: IAMUser/AnomalousBehavior</code>, Severity Critical, Risk Score 85.</p>
+      <p><strong>Automated Flow:</strong></p>
+      <ol class="steps">
+        <li>EventBridge triggered Lambda <code>SecurityAwareCircuitBreaker</code>.</li>
+        <li>Lambda immediately set DynamoDB <code>circuit_state=OPEN, reason=SECURITY_GUARD_DUTY_AnomalousAccess</code>.</li>
+        <li>Step Functions for all new loan requests started serving fallback: <code>Retrieval-only from Knowledge Base, no LLM generation</code> to avoid data exfiltration via LLM.</li>
+        <li>Simultaneously, Lambda revoked temporary credentials for that IAM role via IAM.</li>
+        <li>Security Hub dashboard showed circuit OPEN correlated with security finding. SRE investigated, confirmed compromise, rotated keys.</li>
+        <li>After Security Hub finding was resolved and risk score dropped to 10, a manual approval via Slack + EventBridge set circuit back to HALF-OPEN for testing.</li>
+      </ol>
+      <p><strong>Outcome:</strong> Instead of just retrying a compromised endpoint, the system automatically contained a potential data exfiltration. The fallback maintained audit logging and compliance, and the bank could prove to auditors that failover did not bypass security controls.</p>
+    </div>
+  </template>
+
+
+<nav class="navbar">
+  <button class="btn" id="prevBtn" aria-label="Previous slide">← Prev</button>
+  <div class="counter"><b id="cur">1</b> / <span id="total">1</span></div>
+  <div class="dots-nav" id="dots" role="group" aria-label="Slides"></div>
+  <button class="btn" id="nextBtn" aria-label="Next slide">Next →</button>
+</nav>
+
+<div class="hint" id="hint">← → to move · C for contents · T for theme</div>
+
+<div class="keys" id="keys" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" hidden>
+  <div class="keys-card">
+    <h2>Keyboard shortcuts</h2>
+    <dl>
+      <dt><kbd>←</kbd> <kbd>→</kbd> <kbd>Space</kbd></dt><dd>Previous / next slide</dd>
+      <dt><kbd>Enter</kbd></dt><dd>Open the first deep dive</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>In a deep dive: previous / next dive</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Close deep dive or menu</dd>
+      <dt><kbd>C</kbd></dt><dd>Contents</dd>
+      <dt><kbd>T</kbd></dt><dd>Toggle theme</dd>
+      <dt><kbd>F</kbd></dt><dd>Fullscreen</dd>
+      <dt><kbd>?</kbd></dt><dd>This panel</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Diagram" hidden>
+  <button class="help-popover-close" id="lbClose" type="button" aria-label="Close diagram">&times;</button>
+  <img id="lbImg" alt="">
+</div>
+
+<div class="menu" id="menu" hidden>
+  <div class="mwrap">
+    <h2>Contents</h2>
+    <ul class="mlist" id="mlist"></ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var each = function(list, fn){ Array.prototype.forEach.call(list, fn); };
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var idx = 0;
+  var root = document.documentElement;
+  var deck = $('deck'), curEl = $('cur'), totalEl = $('total'), prog = $('progress');
+  var menu = $('menu'), mlist = $('mlist'), dotsEl = $('dots'), keys = $('keys');
+  totalEl.textContent = total;
+
+  var ARROW = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>';
+
+  // ---------- Content enhancements (presentation only; text is never rewritten) ----------
+  function renderFlow(p){
+    if(p.previousElementSibling && p.previousElementSibling.classList.contains('flow')) return;
+    var keyText = Array.prototype.map.call(p.querySelectorAll('strong'), function(s){ return s.textContent.trim(); });
+    var parts = p.textContent.split('->').map(function(t){ return t.trim(); }).filter(Boolean);
+    if(parts.length < 2) return;
+    var flow = document.createElement('div');
+    flow.className = 'flow'; flow.setAttribute('aria-hidden','true');
+    parts.forEach(function(t, i){
+      if(i){ var a = document.createElement('span'); a.className='flow-arrow'; a.style.setProperty('--i', i); a.innerHTML='<i></i>'; flow.appendChild(a); }
+      var n = document.createElement('span');
+      n.className = 'flow-node' + (keyText.indexOf(t) >= 0 ? ' key' : '');
+      n.style.setProperty('--i', i); n.textContent = t; flow.appendChild(n);
+    });
+    p.parentNode.insertBefore(flow, p);
+    p.classList.add('flow-caption');
+  }
+
+  function enhance(scope){
+    each(scope.querySelectorAll('[data-flow]'), renderFlow);
+    each(scope.querySelectorAll('p'), function(p){
+      var f = p.firstChild;
+      if(!f || f.nodeType !== 1 || f.tagName !== 'STRONG') return;
+      var t = f.textContent.trim();
+      if(/^The Problem:/.test(t)) p.classList.add('lbl-problem');
+      else if(/^(Static Routing Fails:|With Static Routing:|Static Approach:)/.test(t)) p.classList.add('lbl-static');
+      else if(/^(Dynamic Routing Solution:|Dynamic Approach)/.test(t)) p.classList.add('lbl-dynamic');
+      else if(/^(Result:|Total =)/.test(t)) p.classList.add('lbl-result');
+      else if(p.childNodes.length === 1 && /:$/.test(t) && !p.closest('.steps-p,.param-grid')) p.classList.add('eyebrow-p');
+    });
+    each(scope.querySelectorAll('.note'), function(n){
+      var tag = n.querySelector('.tag');
+      if(tag && /Technical Example/.test(tag.textContent)) n.classList.add('example');
+    });
+    each(scope.querySelectorAll('p.quote'), function(q){ if(/Router Analysis/.test(q.textContent)) q.classList.add('callout'); });
+    each(scope.querySelectorAll('pre'), function(pre){
+      if(pre.parentNode.classList.contains('code-wrap')) return;
+      var code = pre.querySelector('code'); if(!code) return;
+      var src = code.textContent;
+      var lang = /^\s*[\{\[]/.test(src) ? 'json' : 'python';
+      if(window.hljs){ try{ code.innerHTML = window.hljs.highlight(src, {language:lang, ignoreIllegals:true}).value; }catch(e){} }
+      var wrap = document.createElement('div'); wrap.className = 'code-wrap';
+      var bar = document.createElement('div'); bar.className = 'code-bar';
+      bar.innerHTML = '<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="lang">'+lang+'</span>';
+      var btn = document.createElement('button'); btn.type='button'; btn.className='copy-btn'; btn.textContent='Copy';
+      btn.addEventListener('click', function(){
+        var done = function(){ btn.textContent='Copied ✓'; btn.classList.add('ok'); setTimeout(function(){ btn.textContent='Copy'; btn.classList.remove('ok'); }, 1600); };
+        try{ navigator.clipboard.writeText(src).then(done, fallback); }catch(e){ fallback(); }
+        function fallback(){ var ta=document.createElement('textarea'); ta.value=src; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); done(); }catch(e){} ta.remove(); }
+      });
+      bar.appendChild(btn);
+      pre.parentNode.insertBefore(wrap, pre); wrap.appendChild(bar); wrap.appendChild(pre);
+    });
+  }
+
+  // Deep-dive cards on the Part slides
+  slides.forEach(function(s){
+    each(s.querySelectorAll('.stagger'), function(g){ each(g.children, function(el, i){ el.style.setProperty('--i', i); }); });
+    var items = s.querySelectorAll('.help-list-item');
+    each(items, function(li, i){
+      li.style.setProperty('--i', i + 2);
+      var btn = li.querySelector('.help-btn'), span = li.querySelector('span');
+      var disc = document.createElement('span'); disc.className = 'dd-disc';
+      var m = span.firstChild && span.firstChild.nodeType === 3 && span.firstChild.nodeValue.match(/^(\d+\.)\s*/);
+      if(m){ disc.textContent = m[1]; span.firstChild.nodeValue = span.firstChild.nodeValue.slice(m[0].length); }
+      else { disc.textContent = String(i + 1).padStart(2, '0'); disc.setAttribute('aria-hidden', 'true'); }
+      var body = document.createElement('span'); body.className = 'dd-body';
+      span.className = 'dd-title';
+      var meta = document.createElement('span'); meta.className = 'dd-meta'; meta.setAttribute('aria-hidden','true'); meta.textContent = 'Deep dive';
+      li.insertBefore(disc, li.firstChild); li.insertBefore(body, span); body.appendChild(span); body.appendChild(meta);
+      btn.innerHTML = ARROW;
+    });
+    var cnt = s.querySelector('.side-label .cnt'); if(cnt) cnt.textContent = items.length;
+  });
+  enhance(deck);
+
+  // ---------- Slide engine ----------
+  function setAccent(a){ root.setAttribute('data-accent', a); deck.setAttribute('data-accent', a); }
+  function render(){
+    slides.forEach(function(s,i){ s.hidden = (i!==idx); });
+    curEl.textContent = idx+1;
+    prog.style.width = (total > 1 ? idx/(total-1)*100 : 100)+'%';
+    var active = slides[idx];
+    if(active){ active.scrollTop = 0; var inr = active.querySelector('.inner'); if(inr) inr.scrollTop = 0; setAccent(active.dataset.accent || 'orange'); }
+    try{ history.replaceState(null,'','#'+slides[idx].id); }catch(e){}
+    each(mlist.querySelectorAll('.mitem[data-i]'), function(b){ b.classList.toggle('cur', +b.dataset.i === idx); });
+    each(dotsEl.children, function(d, i){ d.classList.toggle('cur', i === idx); d.setAttribute('aria-current', i === idx ? 'step' : 'false'); });
+  }
+  function go(i){ idx = Math.max(0, Math.min(total-1, i)); render(); }
+  function next(){ go(idx+1); }
+  function prev(){ go(idx-1); }
+  $('nextBtn').addEventListener('click', next);
+  $('prevBtn').addEventListener('click', prev);
+
+  // Dots + contents menu (with nested deep dives)
+  slides.forEach(function(s,i){
+    var d = document.createElement('button');
+    d.type = 'button'; d.className = 'dot-btn'; d.dataset.accent = s.dataset.accent || 'orange';
+    d.setAttribute('aria-label', 'Slide '+(i+1)+': '+(s.dataset.title || s.id));
+    d.title = s.dataset.title || s.id;
+    d.addEventListener('click', function(){ go(i); });
+    dotsEl.appendChild(d);
+
+    var li = document.createElement('li'); li.dataset.accent = s.dataset.accent || 'orange';
+    var b = document.createElement('button');
+    b.className = 'mitem' + (s.dataset.section==='true' ? ' sec' : '');
+    b.dataset.i = i;
+    b.innerHTML = '<span class="mn">'+String(i+1).padStart(2,'0')+'</span><span></span>';
+    b.lastChild.textContent = s.dataset.title || s.id;
+    b.addEventListener('click', function(){ closeMenu(); go(i); });
+    li.appendChild(b);
+    var dives = s.querySelectorAll('.help-btn');
+    if(dives.length){
+      var sub = document.createElement('ul'); sub.className = 'msub';
+      each(dives, function(hb){
+        var sl = document.createElement('li'), sb = document.createElement('button');
+        var card = hb.closest('li'), disc = card.querySelector('.dd-disc'), t = card.querySelector('.dd-title').textContent.trim();
+        sb.className = 'mitem'; sb.textContent = disc.hasAttribute('aria-hidden') ? t : disc.textContent + ' ' + t;
+        sb.addEventListener('click', function(){ closeMenu(); go(i); openHelp(hb); });
+        sl.appendChild(sb); sub.appendChild(sl);
+      });
+      li.appendChild(sub);
+    }
+    mlist.appendChild(li);
+  });
+
+  function openMenu(){ menu.hidden=false; var c = mlist.querySelector('.mitem.cur'); if(c) c.focus(); }
+  function closeMenu(){ menu.hidden=true; }
+  function toggleMenu(){ menu.hidden ? openMenu() : closeMenu(); }
+  $('menuBtn').addEventListener('click', toggleMenu);
+  menu.addEventListener('click', function(e){ if(e.target===menu) closeMenu(); });
+
+  // Theme
+  var themeBtn = $('themeBtn');
+  function currentTheme(){
+    var attr = root.getAttribute('data-theme'); if(attr) return attr;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  themeBtn.addEventListener('click', function(){
+    var t = currentTheme()==='dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', t);
+    try{ localStorage.setItem('poc-theme', t); }catch(e){}
+  });
+  try{ var saved = localStorage.getItem('poc-theme'); if(saved) root.setAttribute('data-theme', saved); }catch(e){}
+
+  // Fullscreen + keyboard overlay
+  var fsBtn = $('fsBtn');
+  function toggleFs(){
+    try{ if(document.fullscreenElement) document.exitFullscreen(); else root.requestFullscreen(); }catch(e){}
+  }
+  if(!root.requestFullscreen) fsBtn.hidden = true;
+  fsBtn.addEventListener('click', toggleFs);
+  function toggleKeys(){ keys.hidden = !keys.hidden; }
+  $('keysBtn').addEventListener('click', toggleKeys);
+  keys.addEventListener('click', function(e){ if(e.target===keys || e.target.closest('[data-close]')) keys.hidden = true; });
+
+  document.addEventListener('keydown', function(e){
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    if(e.key==='Escape'){ if(!menu.hidden){ closeMenu(); e.preventDefault(); } return; }
+    if(!menu.hidden) return;
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': case 'Spacebar': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp': prev(); e.preventDefault(); break;
+      case 'Home': go(0); e.preventDefault(); break;
+      case 'End': go(total-1); e.preventDefault(); break;
+      case 'c': case 'C': toggleMenu(); e.preventDefault(); break;
+      case 't': case 'T': themeBtn.click(); e.preventDefault(); break;
+      case 'f': case 'F': toggleFs(); e.preventDefault(); break;
+      case '?': toggleKeys(); e.preventDefault(); break;
+      case 'Enter': {
+        var first = slides[idx].querySelector('.help-btn');
+        if(first && document.activeElement === document.body){ openHelp(first); e.preventDefault(); }
+        break;
+      }
+    }
+  });
+
+  var sx=0, sy=0;
+  deck.addEventListener('touchstart', function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; }, {passive:true});
+  deck.addEventListener('touchend', function(e){
+    var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)){ dx<0 ? next() : prev(); }
+  }, {passive:true});
+
+  var h = (location.hash||'').replace('#','');
+  if(h){ var found = slides.findIndex(function(s){ return s.id===h; }); if(found>=0) idx=found; }
+  setTimeout(function(){ var el=$('hint'); if(el) el.style.opacity='0'; }, 4500);
+
+  // ---------- Deep-dive popover ----------
+  var helpPop = $('helpPop'), helpBody = $('helpBody');
+  var popPart = $('popPart'), popCount = $('popCount'), popPips = $('popPips'), popProg = $('popProg');
+  var popPrev = $('popPrev'), popNext = $('popNext');
+  var dives = [], diveIdx = 0;
+  function updProg(){
+    var max = helpBody.scrollHeight - helpBody.clientHeight;
+    popProg.style.width = (max > 0 ? Math.min(100, helpBody.scrollTop / max * 100) : 100) + '%';
+  }
+  helpBody.addEventListener('scroll', updProg, {passive:true});
+  function openHelp(btn){
+    var tpl = $('help-' + btn.dataset.help);
+    if(!tpl) return;
+    var slide = btn.closest('.slide');
+    dives = Array.prototype.slice.call(slide.querySelectorAll('.help-btn'));
+    diveIdx = dives.indexOf(btn);
+    helpBody.innerHTML = '';
+    helpBody.appendChild(tpl.content.cloneNode(true));
+    enhance(helpBody);
+    var h2 = helpBody.querySelector('h2'); if(h2) h2.id = 'helpTitle';
+    popPart.textContent = slide.dataset.title || '';
+    popCount.textContent = 'Deep dive ' + (diveIdx+1) + ' of ' + dives.length;
+    popPips.innerHTML = dives.map(function(_, i){ return '<i class="'+(i===diveIdx?'on':'')+'"></i>'; }).join('');
+    popPrev.disabled = diveIdx <= 0;
+    popNext.disabled = diveIdx >= dives.length-1;
+    helpPop.setAttribute('data-accent', slide.dataset.accent || 'orange');
+    helpPop.hidden = false;
+    helpBody.scrollTop = 0; updProg();
+    helpBody.focus({preventScroll:true});
+  }
+  function stepHelp(d){ var n = diveIdx + d; if(n >= 0 && n < dives.length) openHelp(dives[n]); }
+  function closeHelp(){
+    helpPop.hidden = true; helpBody.innerHTML = '';
+    var back = dives[diveIdx]; if(back) back.focus({preventScroll:true});
+  }
+  each(document.querySelectorAll('.help-btn'), function(b){
+    b.addEventListener('click', function(e){ e.preventDefault(); openHelp(b); });
+  });
+  popPrev.addEventListener('click', function(){ stepHelp(-1); });
+  popNext.addEventListener('click', function(){ stepHelp(1); });
+  $('helpClose').addEventListener('click', closeHelp);
+  helpPop.addEventListener('click', function(e){ if(e.target===helpPop) closeHelp(); });
+
+  // ---------- Image lightbox ----------
+  var lb = $('lightbox'), lbImg = $('lbImg'), lbFrom = null;
+  each(document.querySelectorAll('[data-zoom]'), function(b){
+    b.addEventListener('click', function(){ var img = b.querySelector('img'); lbImg.src = img.src; lbImg.alt = img.alt; lbFrom = b; lb.hidden = false; $('lbClose').focus(); });
+  });
+  function closeLb(){ lb.hidden = true; if(lbFrom) lbFrom.focus(); }
+  lb.addEventListener('click', closeLb);
+
+  function trap(e, box){
+    var f = Array.prototype.filter.call(box.querySelectorAll('button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])'), function(el){ return el.offsetParent !== null; });
+    if(!f.length) return;
+    var first = f[0], last = f[f.length-1];
+    if(e.shiftKey && (document.activeElement === first || !box.contains(document.activeElement))){ last.focus(); e.preventDefault(); }
+    else if(!e.shiftKey && document.activeElement === last){ first.focus(); e.preventDefault(); }
+  }
+  // Overlays own the keyboard while open, so the deck never navigates underneath them.
+  document.addEventListener('keydown', function(e){
+    if(!lb.hidden){
+      e.stopImmediatePropagation();
+      if(e.key==='Escape'){ closeLb(); e.preventDefault(); } else if(e.key!=='Tab'){ e.preventDefault(); }
+      return;
+    }
+    if(!keys.hidden){
+      e.stopImmediatePropagation();
+      if(e.key==='Escape' || e.key==='?'){ keys.hidden = true; e.preventDefault(); }
+      return;
+    }
+    if(helpPop.hidden) return;
+    e.stopImmediatePropagation();
+    if(e.key==='Escape'){ closeHelp(); e.preventDefault(); }
+    else if(e.key==='ArrowRight'){ stepHelp(1); e.preventDefault(); }
+    else if(e.key==='ArrowLeft'){ stepHelp(-1); e.preventDefault(); }
+    else if(e.key==='Tab'){ trap(e, helpPop); }
+  }, true);
+  deck.addEventListener('touchstart', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+  deck.addEventListener('touchend', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+
+  render();
+})();
+</script>
+
+</body></html>
