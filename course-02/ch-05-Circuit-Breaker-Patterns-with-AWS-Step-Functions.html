@@ -526,6 +526,48 @@
     .help-popover-body{scroll-behavior:auto}
   }
 </style>
+<style>
+  /* ---------- Mind-map toolkit (recall slides) ---------- */
+  .mm{position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.78fr) minmax(0,1fr); grid-auto-rows:1fr; row-gap:0; margin-top:4px}
+  .mm-wires{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible}
+  .mm-wires path{fill:none; stroke:var(--c); stroke-width:2.2; opacity:.6; vector-effect:non-scaling-stroke; stroke-linecap:round}
+  .mm-core{grid-column:2; grid-row:1 / span 4; align-self:center; justify-self:center; z-index:1; width:min(210px,88%); aspect-ratio:1; border-radius:50%; display:grid; place-content:center; text-align:center; padding:18px;
+    background:var(--surface); border:2.5px solid var(--local-accent); box-shadow:0 0 0 10px color-mix(in srgb,var(--local-accent) 12%,transparent),var(--shadow-lg)}
+  .mm-core small{display:block; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--local-accent); font-weight:700; margin-bottom:6px}
+  .mm-core b{font-size:clamp(16px,1.6vw,21px); line-height:1.2; color:var(--text); font-weight:700}
+  .mm-b{z-index:1; position:relative; margin:5px 0; padding:9px 12px; border-radius:12px; background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--c); box-shadow:var(--shadow); align-self:center}
+  .mm-b.l{border-left:1px solid var(--border); border-right:4px solid var(--c)}
+  .mm-b h4{margin:0 0 6px; font-size:13.5px; line-height:1.25; font-weight:700; color:var(--c)}
+  .mm-b h4 i{font-style:normal; font-weight:600; font-size:11px; letter-spacing:1px; color:var(--faint); margin-right:6px}
+  .mm-b ul{list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:4px 5px; max-width:none}
+  .mm-b li{margin:0; font-size:12px; line-height:1.3; padding:2px 8px; border-radius:999px; color:var(--text);
+    background:color-mix(in srgb,var(--c) 10%,var(--surface-2)); border:1px solid color-mix(in srgb,var(--c) 28%,transparent)}
+  .b1{grid-column:3; grid-row:1} .b2{grid-column:3; grid-row:2} .b3{grid-column:3; grid-row:3} .b4{grid-column:3; grid-row:4}
+  .b5{grid-column:1; grid-row:4} .b6{grid-column:1; grid-row:3} .b7{grid-column:1; grid-row:2} .b8{grid-column:1; grid-row:1}
+  .mm-note{font-size:13px; color:var(--faint); margin:10px 0 0; max-width:none}
+
+  .hooks{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:6px}
+  .hook{padding:12px 14px; border-radius:13px; background:var(--surface-2); border:1px solid var(--border); border-top:4px solid var(--c); box-shadow:var(--shadow)}
+  .hook .hk-part{font-size:10.5px; letter-spacing:1.4px; text-transform:uppercase; font-weight:700; color:var(--faint); margin:0 0 4px}
+  .hook .hk-mn{font-size:clamp(15px,1.45vw,19px); line-height:1.2; font-weight:700; color:var(--c); margin:0 0 6px}
+  .hook .hk-dec{font-size:12.5px; line-height:1.4; color:var(--muted); margin:0 0 6px}
+  .hook .hk-pic{font-size:12px; line-height:1.35; color:var(--text); margin:0; padding-top:6px; border-top:1px dashed var(--border)}
+  .hook .hk-pic::before{content:"Picture it: "; font-weight:700; color:var(--c)}
+
+  .recall details{border:1px solid var(--border); border-left:4px solid var(--pop-accent,var(--local-accent,var(--accent))); border-radius:12px; padding:10px 14px; margin:0 0 10px; background:var(--surface-2)}
+  .recall summary{cursor:pointer; font-weight:600; color:var(--text); font-size:clamp(14.5px,1.4vw,16.5px)}
+  .recall details[open] summary{margin-bottom:6px}
+  .recall details p{margin:0}
+
+  @media (max-width:900px){
+    .mm{grid-template-columns:1fr; grid-auto-rows:auto}
+    .mm-wires{display:none}
+    .mm-core{grid-column:auto; grid-row:auto; width:170px; margin:4px auto 10px}
+    .mm-b,.mm-b.l{grid-column:auto; grid-row:auto; border-left:4px solid var(--c); border-right:1px solid var(--border)}
+    .hooks{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media (max-width:600px){.hooks{grid-template-columns:1fr}}
+</style>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -784,6 +826,85 @@
         <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-fallback" aria-label="Open deep dive: 3. Security-Aware Fallback Strategies - Don't Failover to an Insecure Region">?</button><span>3. Security-Aware Fallback Strategies - Don't Failover to an Insecure Region</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-impl" aria-label="Open deep dive: 4. Implementation Considerations - How to Wire It">?</button><span>4. Implementation Considerations - How to Wire It</span></li>
         <li class="help-list-item"><button class="help-btn" type="button" data-help="sec-prod" aria-label="Open deep dive: Prod-Level Real World Example - FinTech in India">?</button><span>Prod-Level Real World Example - FinTech in India</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 10: MIND MAP TOOLKIT (recall aids built from the chapter) ===== -->
+  <section class="slide" id="mindmap" data-accent="teal" data-title="Chapter 05 Mind Map">
+    <div class="inner">
+      <div class="stagger">
+      <p class="kicker">Part 10 · Mind Map Toolkit</p>
+      <h2>Chapter 05 Mind Map</h2>
+      <div class="mm" role="img" aria-label="Mind map: Circuit Breaker for GenAI at the centre, with eight branches read clockwise from the top right: 3 states, benefits, AWS stack, Step Functions pillars, Step Functions configuration, fallback tiers, monitoring and tuning, Security Hub.">
+        <svg class="mm-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <path style="--c:var(--c-orange)" d="M50 50 C58 50 57 12.5 64.03 12.5"/>
+          <path style="--c:var(--c-teal)"   d="M50 50 C58 50 57 37.5 64.03 37.5"/>
+          <path style="--c:var(--c-purple)" d="M50 50 C58 50 57 62.5 64.03 62.5"/>
+          <path style="--c:var(--c-green)"  d="M50 50 C58 50 57 87.5 64.03 87.5"/>
+          <path style="--c:var(--c-blue)"   d="M50 50 C42 50 43 87.5 35.97 87.5"/>
+          <path style="--c:var(--c-pink)"   d="M50 50 C42 50 43 62.5 35.97 62.5"/>
+          <path style="--c:var(--c-red)"    d="M50 50 C42 50 43 37.5 35.97 37.5"/>
+          <path style="--c:var(--c-amber)"  d="M50 50 C42 50 43 12.5 35.97 12.5"/>
+        </svg>
+        <div class="mm-core"><small>Ch.05 · centre</small><b>Circuit Breaker for GenAI</b></div>
+        <div class="mm-b b1" style="--c:var(--c-orange)"><h4><i>01</i>3 States</h4><ul><li>CLOSED · count</li><li>OPEN · cut + fallback</li><li>HALF-OPEN · 1–2 probes</li></ul></div>
+        <div class="mm-b b2" style="--c:var(--c-teal)"><h4><i>02</i>Benefits</h4><ul><li>Isolation</li><li>Resource protection</li><li>Auto recovery</li><li>Graceful degradation</li></ul></div>
+        <div class="mm-b b3" style="--c:var(--c-purple)"><h4><i>03</i>AWS stack</h4><ul><li>API GW → Lambda</li><li>pybreaker 5 / 60s</li><li>State in DynamoDB</li><li>Claude → cache / Titan Lite</li></ul></div>
+        <div class="mm-b b4" style="--c:var(--c-green)"><h4><i>04</i>Step Functions pillars</h4><ul><li>State design</li><li>Retriable vs not</li><li>Wait 60→120→240s</li><li>DynamoDB persistence</li></ul></div>
+        <div class="mm-b l b5" style="--c:var(--c-blue)"><h4><i>05</i>SFN configuration</h4><ul><li>HealthCheck ping</li><li>Record failure / success</li><li>Dual threshold</li><li>Transitions in ASL</li></ul></div>
+        <div class="mm-b l b6" style="--c:var(--c-pink)"><h4><i>06</i>Fallback tiers</h4><ul><li>T1 alternate model</li><li>T2 cache / retrieval-only</li><li>T3 cross-Region</li><li>Tell the user</li></ul></div>
+        <div class="mm-b l b7" style="--c:var(--c-red)"><h4><i>07–08</i>Monitor &amp; tune</h4><ul><li>4 golden metrics</li><li>Actionable alarms</li><li>EMF business metrics</li><li>p95 = leading signal</li></ul></div>
+        <div class="mm-b l b8" style="--c:var(--c-amber)"><h4><i>09</i>Security Hub</h4><ul><li>Security can trip</li><li>Risk-based priority</li><li>Compliant failover only</li><li>EventBridge → Lambda</li></ul></div>
+      </div>
+      <p class="mm-note">Read clockwise from 1 o'clock. Each branch colour matches a part of the deck, and each chip is one keyword you should be able to expand from memory.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="hooks" data-accent="teal" data-title="Memory Hooks for Every Branch">
+    <div class="inner">
+      <div class="stagger">
+      <p class="kicker">Part 10 · Mind Map Toolkit</p>
+      <h2>Memory Hooks for Every Branch</h2>
+      <div class="hooks">
+        <div class="hook" style="--c:var(--c-orange)"><p class="hk-part">01 · 3 States</p><p class="hk-mn">Count · Cut · Check</p><p class="hk-dec">CLOSED counts failures, OPEN cuts calls and serves the fallback, HALF-OPEN checks with 1–2 probes.</p><p class="hk-pic">a light switch that is on, off, then flickering.</p></div>
+        <div class="hook" style="--c:var(--c-teal)"><p class="hk-part">02 · Benefits</p><p class="hk-mn">I-RAG</p><p class="hk-dec"><strong>I</strong>solation · <strong>R</strong>esource protection · <strong>A</strong>utomatic recovery · <strong>G</strong>raceful degradation.</p><p class="hk-pic">a fuse box that keeps the rest of the house lit.</p></div>
+        <div class="hook" style="--c:var(--c-purple)"><p class="hk-part">03 · AWS stack</p><p class="hk-mn">Door → Guard → Ledger → Brain → Spare</p><p class="hk-dec">API Gateway → Lambda + pybreaker → DynamoDB state → Bedrock Claude → cache / Titan Lite.</p><p class="hk-pic">a building whose guard checks the ledger before letting you in.</p></div>
+        <div class="hook" style="--c:var(--c-green)"><p class="hk-part">04 · Step Functions pillars</p><p class="hk-mn">The 4 D's</p><p class="hk-dec"><strong>D</strong>esign the states · <strong>D</strong>etect errors · <strong>D</strong>elay with Wait + backoff · <strong>D</strong>ynamoDB persistence.</p><p class="hk-pic">a stopwatch that doubles: 60 → 120 → 240.</p></div>
+        <div class="hook" style="--c:var(--c-blue)"><p class="hk-part">05 · SFN configuration</p><p class="hk-mn">Ping · Count · Judge · Move</p><p class="hk-dec">HealthCheck → RecordFailure / RecordSuccess → EvaluateThreshold → state transitions.</p><p class="hk-pic">a referee who blows the whistle only after 10+ plays.</p></div>
+        <div class="hook" style="--c:var(--c-pink)"><p class="hk-part">06 · Fallback tiers</p><p class="hk-mn">Swap · Shrink · Shift</p><p class="hk-dec">Swap to Haiku, shrink to cache or retrieval-only, shift to another Region last.</p><p class="hk-pic">a ladder you climb down one rung at a time.</p></div>
+        <div class="hook" style="--c:var(--c-red)"><p class="hk-part">07–08 · Monitor &amp; tune</p><p class="hk-mn">SERF · "A Map Drives Tuning"</p><p class="hk-dec">Metrics: <strong>S</strong>tate · <strong>E</strong>rrors · <strong>R</strong>esponse time · <strong>F</strong>allback. Practices: <strong>A</strong>larms · <strong>M</strong>etrics · <strong>D</strong>ashboards · <strong>T</strong>rends.</p><p class="hk-pic">a surfer reading the waves (p95) before they break.</p></div>
+        <div class="hook" style="--c:var(--c-amber)"><p class="hk-part">09 · Security Hub</p><p class="hk-mn">Trip · Rank · Vet · Wire</p><p class="hk-dec">Security can trip the circuit, rank findings by risk, vet the fallback Region, wire EventBridge → Lambda → DynamoDB.</p><p class="hk-pic">a security guard who can pull the breaker too.</p></div>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide divider" id="draw" data-accent="teal" data-title="Part 10 · Draw It Yourself" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">10</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 10 · Draw It Yourself</p>
+      <p class="pull">A mind map you draw yourself sticks far better than one you only read.</p>
+      <div class="steps-p">
+      <p><strong>1. Centre:</strong> On a blank landscape page, draw a small breaker switch and write <em>Circuit Breaker for GenAI</em>.</p>
+      <p><strong>2. Eight branches:</strong> Draw one curved branch per hook, clockwise from 1 o'clock, each in its own colour (as on the map slide).</p>
+      <p><strong>3. One keyword per line:</strong> Write the hook on the branch, then sub-branches for each letter. Put numbers in a separate colour so they stand out.</p>
+      <p><strong>4. Cross-link:</strong> Draw dotted lines wherever a concept shows up in two branches, for example DynamoDB, p95 latency or the HALF-OPEN probe.</p>
+      <p><strong>5. Recall, then check:</strong> Redraw from a blank page on Day 1, 3, 7 and 21. Check against the deck afterwards and fill the gaps in a different colour.</p>
+      </div>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <p>Use these while drawing and when you test yourself.</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="draw-lead" aria-label="Open deep dive: Numbers Worth Memorising">?</button><span>Numbers Worth Memorising</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="draw-links" aria-label="Open deep dive: Cross-Links Between Branches">?</button><span>Cross-Links Between Branches</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="draw-recall" aria-label="Open deep dive: Self-Test: Active Recall Questions">?</button><span>Self-Test: Active Recall Questions</span></li>
       </ul>
       </aside>
       </div>
@@ -1419,6 +1540,60 @@ metrics.put_metric("TaskCompletionInFallback", 1 if user_completed else 0)</code
         <li>After Security Hub finding was resolved and risk score dropped to 10, a manual approval via Slack + EventBridge set circuit back to HALF-OPEN for testing.</li>
       </ol>
       <p><strong>Outcome:</strong> Instead of just retrying a compromised endpoint, the system automatically contained a potential data exfiltration. The fallback maintained audit logging and compliance, and the bank could prove to auditors that failover did not bypass security controls.</p>
+    </div>
+  </template>
+
+
+  <template id="help-draw-lead">
+    <div class="inner">
+      <h2>Numbers Worth Memorising</h2>
+      <p>Write these in a separate colour on your map. Each number is anchored to the branch it belongs to.</p>
+      <div class="tbl"><table>
+        <tr><th>Branch</th><th>Number</th><th>What it controls</th></tr>
+        <tr><td><strong>03 · AWS stack</strong></td><td><code>fail_max=5</code>, <code>reset_timeout=60</code></td><td>pybreaker trips after 5 failures and tries HALF-OPEN after 60s</td></tr>
+        <tr><td><strong>04 · SFN pillars</strong></td><td>60s → 120s → 240s</td><td>How long it stays OPEN on the 1st, 2nd and 3rd consecutive trip</td></tr>
+        <tr><td><strong>04 · SFN pillars</strong></td><td>5 failures in 2 min OR 50% of last 20 calls</td><td>Sliding-window trip rule</td></tr>
+        <tr><td><strong>05 · SFN config</strong></td><td><code>failure_rate &gt; 50% AND total_requests &gt; 10</code></td><td>The volume guard against tripping at 3 AM on 2 requests</td></tr>
+        <tr><td><strong>05 · SFN config</strong></td><td><code>max_tokens: 1</code>, 2-second timeout, &lt; 10 tokens</td><td>A cheap health-check probe</td></tr>
+        <tr><td><strong>01 / 04 · Probe</strong></td><td>1–2 test requests, success if latency &lt; 2s</td><td>When HALF-OPEN goes back to CLOSED</td></tr>
+        <tr><td><strong>07 · Metrics</strong></td><td>Hard <code>&gt; 5000ms</code>, soft p95 <code>&gt; 2500ms for 5 mins</code></td><td>Latency counted as failure vs. early switch to fallback</td></tr>
+        <tr><td><strong>08 · Alarms</strong></td><td>OPEN &gt; 10 min · Throttling &gt; 30% for 3 min · p95 &gt; 3000ms for 5 min</td><td>Critical, warning and quality alarms</td></tr>
+        <tr><td><strong>06 · Fallback</strong></td><td>30–40% cache hit rate · 99.9% availability</td><td>Semantic cache for support bots · the target of the full ladder</td></tr>
+        <tr><td><strong>09 · Security</strong></td><td>Risk score &gt; 80/100</td><td><code>CheckCircuit</code> treats the circuit as OPEN</td></tr>
+      </table></div>
+      <div class="note tip"><span class="tag">Memory trick</span><p>Chunk the timing numbers into one sentence: <em>"Five fails in two, wait sixty, then double. Probe under two."</em></p></div>
+    </div>
+  </template>
+
+  <template id="help-draw-links">
+    <div class="inner">
+      <h2>Cross-Links Between Branches</h2>
+      <p>Linking concepts across branches is what turns a list into a map. Draw a dotted line for each one below. These are the links that exam-style questions usually test.</p>
+      <ul>
+        <li><strong>DynamoDB</strong> is the shared state store. It links 03 (pybreaker shared state), 04 (state persistence, <code>SecondsPath</code>), 05 (<code>RecordFailure</code> / <code>RecordSuccess</code>), 06 (Region health) and 09 (Security Hub writes <code>circuit_state = OPEN</code>).</li>
+        <li><strong>Retriable vs non-retriable</strong> appears in 04 (error detection), 05 (<code>CategorizeError</code>) and 07 (error rates and types). <code>ThrottlingException</code> trips the breaker; <code>ValidationException</code> never does.</li>
+        <li><strong>p95 latency</strong> appears in 05 (health check: p95 &gt; 3s means degraded), 07 (soft threshold of 2500ms), 08 (quality alarm, and the leading indicator in the e-commerce example) and the FinTech tuning (<code>p95 &gt; 3s</code>).</li>
+        <li><strong>The HALF-OPEN probe</strong> appears in 01 (1–2 test requests), 02 (automatic recovery, &lt; 2s), 04 (one probe via a <code>Task</code> state) and 05 (Flow 3: 200 OK and &lt; 1.5s).</li>
+        <li><strong>Fallback tiers</strong> link 06 (the resilience ladder), 07 (the <code>FallbackTier</code> metric dimension) and 09 (only fail over to a compliant Region).</li>
+        <li><strong>Exponential backoff</strong> links 03 (retry inside CLOSED only), 04 (Wait 60 → 120 → 240s) and 05 (double the timeout on a failed probe).</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-draw-recall">
+    <div class="inner recall">
+      <h2>Self-Test: Active Recall Questions</h2>
+      <p>Answer out loud or on paper before opening each one. A question you get wrong points to the branch you should redraw first.</p>
+      <details><summary>1. What does each of the 3 states do?</summary><p>CLOSED: all requests go to the LLM and failures are counted. OPEN: calls are blocked immediately and the fallback is served. HALF-OPEN: after a cool-down, 1–2 test requests check whether the LLM has recovered.</p></details>
+      <details><summary>2. Which errors must NOT trip the breaker, and why?</summary><p><code>ValidationException</code> and <code>AccessDeniedException</code> (400-class). They are client bugs, not service failures, so counting them would trip on a bad prompt.</p></details>
+      <details><summary>3. Why does the threshold rule require <code>total_requests &gt; 10</code>?</summary><p>At 3 AM, 2 failed requests give a 100% failure rate. The volume guard stops the circuit tripping too early during low traffic.</p></details>
+      <details><summary>4. How long does the circuit stay OPEN on the 1st, 2nd and 3rd trip?</summary><p>60s, 120s, 240s (exponential backoff). Intermittent 429 throttling should recover faster.</p></details>
+      <details><summary>5. Where does breaker state live, and why there?</summary><p>In DynamoDB. Lambda is stateless and Step Functions executions are independent, so every invocation needs one central source of truth. Use conditional writes, TTL and Point-in-Time Recovery.</p></details>
+      <details><summary>6. What are the three fallback tiers, in order, and why is cross-Region last?</summary><p>Swap (alternate model such as Haiku), Shrink (semantic cache or retrieval-only), Shift (cross-Region inference profile). Cross-Region inference costs slightly more, so it is Tier 3.</p></details>
+      <details><summary>7. Name the 4 golden metrics.</summary><p>SERF: circuit State transitions, Error rates and types, Response times, Fallback usage and effectiveness.</p></details>
+      <details><summary>8. What was the leading indicator in the e-commerce example?</summary><p>p95 latency crossed 2.5s <em>before</em> throttling started. Alarming on it made the circuit open 5 minutes earlier.</p></details>
+      <details><summary>9. How can a security event open the circuit?</summary><p>GuardDuty finding → Security Hub CRITICAL finding → EventBridge rule → Lambda writes <code>circuit_state = OPEN, reason = SECURITY_RISK</code> to DynamoDB → <code>CheckCircuit</code> serves the fallback.</p></details>
+      <details><summary>10. Why check Security Hub before failing over to another Region?</summary><p>The fallback must be as secure as the primary: KMS CMK, GuardDuty, VPC endpoints, MFA and logging. Skip a non-compliant Region, such as <code>us-east-1</code> without a CMK, and use a compliant one or the cache instead.</p></details>
     </div>
   </template>
 
