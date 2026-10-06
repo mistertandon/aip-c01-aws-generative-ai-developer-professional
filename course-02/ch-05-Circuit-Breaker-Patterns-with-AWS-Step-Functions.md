@@ -360,3 +360,283 @@ This ensures 99.9% availability for your GenAI application even when a foundatio
 
 ---
 ---
+
+### Monitoring and Optimizing Circuit Breaker Performance
+
+In production, a circuit breaker you cannot see is as risky as no circuit breaker. Comprehensive monitoring is what lets you tune thresholds and prove that your fallback actually works. We do this natively with Amazon CloudWatch.
+
+#### Why Monitor?
+
+Your thresholds on Day 1 will be wrong. You might trip too early during low traffic, or too late when Bedrock is already throttling. Monitoring gives you the data to optimize `fail_max`, `reset_timeout`, and your fallback strategy.
+
+We track 4 golden metrics for every GenAI circuit breaker.
+
+#### The 4 Key Metrics to Monitor
+
+**1. Circuit State Transitions - When and how often does it trip?**
+*What it means:* Count every CLOSED -> OPEN, OPEN -> HALF-OPEN, HALF-OPEN -> CLOSED transition.
+*Why it matters:* If your circuit opens 20 times a day, your threshold is too sensitive or your primary model is unstable. If it never opens but users see timeouts, your threshold is too lenient.
+
+*Implementation:* In your Step Functions or Lambda, emit a custom metric via CloudWatch Embedded Metric Format [EMF]:
+`PutMetric: CircuitState=OPEN, Service=bedrock-claude-sonnet, Count=1`
+Create a CloudWatch dashboard widget showing state over time. Set an Alarm: `IF CircuitState=OPEN for >10 mins -> Notify on-call via SNS`.
+
+**2. Error Rates and Types - Why did it trip?**
+*What it means:* Not all failures are equal. Track retriable vs non-retriable errors separately.
+*Why it matters:* `ThrottlingException [429]` should trip the breaker. `ValidationException [400]` should NOT. If you mix them, you will trip on a bad prompt.
+
+*Implementation:* In your `Catch` state, categorize:
+`ErrorType=Throttling, ErrorType=ModelTimeout, ErrorType=ServiceUnavailable`
+Use CloudWatch Logs Insights to query: 
+`filter @message like /CircuitBreaker/ | stats count() by ErrorType`
+
+**3. Response Times - Detect degradation BEFORE failure**
+*What it means:* Don't wait for a 504 timeout. If p95 latency goes from 1.2s to 4s, your user experience is already degraded.
+*Why it matters:* GenAI quality degrades before it fails. Slow responses should trigger early fallback.
+
+*Implementation:* Emit `BedrockLatency` as a histogram metric from Lambda. Set two thresholds:
+*   Hard threshold: `latency > 5000ms = failure`
+*   Soft threshold: `p95 latency > 2500ms for 5 mins = Alarm, start using fallback model Haiku`
+
+Use AWS X-Ray to trace end-to-end latency: API Gateway -> Step Functions -> Bedrock.
+
+**4. Fallback Usage and Effectiveness - Is your fallback actually helping?**
+*What it means:* Measure how often you used the fallback and whether the user was satisfied.
+*Why it matters:* A fallback that no one uses or that has 90% user thumbs-down is not resilience, it is a different failure.
+
+*Implementation:* Emit two metrics:
+`FallbackInvoked: FallbackTier=Cache / FallbackTier=SmallModel / FallbackTier=CrossRegion`
+`FallbackSuccess: Did fallback return a valid answer? Did user give positive feedback?`
+
+If `FallbackInvoked` is 30% of traffic, your primary model capacity is under-provisioned.
+
+#### Prod-Level Real World Example
+
+**Use Case: FinTech Loan Assistant at 10K requests/day**
+Architecture: `API Gateway -> Step Functions -> Lambda -> Primary: Bedrock Claude 3.5 Sonnet in ap-south-1 [Mumbai] -> Fallbacks -> DynamoDB for circuit state -> CloudWatch Dashboard`
+
+**What we observed in Week 1:**
+CloudWatch dashboard showed Circuit opened 18 times. Metric breakdown:
+*   Circuit State Transitions: 18 OPEN events, all between 3 PM - 5 PM IST
+*   Error Rates: 95% were `ThrottlingException`, 5% `ModelTimeout`
+*   Response Times: p95 went from 1.3s to 4.8s just before tripping
+*   Fallback Usage: 22% of traffic went to `Fallback Tier 1: Claude Haiku`, 8% went to `Tier 2: ElastiCache Semantic Cache`
+
+**Optimization we did based on data:**
+
+1.  We changed threshold from `fail_max=5 in 2 mins` to `fail_max=3 in 1 min AND p95 > 3s`. This made the breaker trip 1 minute earlier, avoiding the slow 4.8s responses.
+2.  We saw Haiku fallback had 92% user acceptance, but Cache fallback had only 60%. We improved cache embedding model from Titan to Cohere Embed v3, raising cache acceptance to 85%.
+3.  We enabled Bedrock Cross-Region Inference Profile `ap.anthropic.claude-3-5-sonnet...` as Tier 3. After that, OPEN events dropped from 18 to 2 per week because traffic automatically spilled to `ap-northeast-1` during Mumbai throttling.
+
+**Result:** User-facing error rate went from 4.2% to 0.15%, average latency in fallback mode went from 4.8s to 0.9s [from cache], and we saved ~35% on Bedrock costs by not retrying failing calls.
+
+**Best Practice Checklist:**
+1. Create a single CloudWatch Dashboard named `GenAI-CircuitBreaker-Health`
+2. Emit all 4 metrics using EMF from Lambda - zero extra API calls
+3. Set Alarms on `Circuit OPEN > 5 mins` and `Fallback Usage > 20%`
+4. Review dashboard weekly to tune thresholds - this is a continuous optimization loop, not a one-time setup.
+
+---
+---
+
+### Implementation Best Practices - Monitoring for Circuit Breaker
+
+A circuit breaker is not a set-and-forget pattern. In production GenAI, you need monitoring that tells you *when* it opened, *why* it opened, *what was the impact to the user*, and *how to tune it next week*. These 4 best practices are what we implement for enterprise workloads.
+
+#### 1. Configure CloudWatch Alarms for Proactive Alerting
+
+**What it means:** Don't let your users tell you the circuit is OPEN. Let CloudWatch tell your on-call team first.
+
+**Technical Implementation:**
+Create actionable alarms, not noisy alarms.
+
+*   **Critical Alarm - Circuit OPEN too long:**
+    Metric: `CircuitState = OPEN`
+    Condition: `OPEN > 10 minutes`
+    Action: SNS -> PagerDuty / Slack. This means recovery logic failed.
+
+*   **Warning Alarm - Pre-failure Degradation:**
+    Metric: `BedrockErrorRate = ThrottlingException`
+    Condition: `> 30% for 3 consecutive minutes`
+    Action: SNS -> Auto Scaling action or email to SRE. This fires *before* the circuit opens.
+
+*   **Quality Alarm - Slow degradation:**
+    Metric: `p95 BedrockLatency`
+    Condition: `> 3000ms for 5 minutes`
+    Action: Trigger Lambda to pre-warm fallback cache.
+
+**Best Practice:** Use composite alarms. `IF ErrorRate > 50% AND CircuitState = CLOSED` then alarm. This avoids alerting when circuit is already OPEN and protecting the system - that's expected behavior.
+
+#### 2. Use Custom Metrics for Business Impact, Not Just Infra Metrics
+
+**What it means:** Infra metrics tell you *what* failed. Business metrics tell you *if the user cared*.
+
+**Technical Implementation:**
+Emit custom business metrics using CloudWatch Embedded Metric Format [EMF] from your Lambda, at zero extra cost.
+
+Don't just track `BedrockFailures`. Track:
+
+*   `UserExperienceImpact`: Did user retry? Did user abandon chat?
+*   `TaskCompletionRate`: In fallback mode, did user still complete the loan application / booking?
+*   `FallbackQualityScore`: Thumbs up/down on fallback answers vs primary model answers.
+*   `CostSaved`: How much token cost you saved by failing fast instead of retrying 3 times.
+
+**Example Code:**
+```python
+# Inside your fallback path
+metrics.put_metric("FallbackInvoked", 1, "Count")
+metrics.put_metric("FallbackTier", "Haiku") # dimension
+metrics.put_metric("TaskCompletionInFallback", 1 if user_completed else 0)
+```
+
+Now your dashboard shows not just "Circuit OPEN 5 times" but "Circuit OPEN 5 times, but 92% of users still completed their task using Haiku fallback."
+
+#### 3. Implement Unified Dashboards for Real-Time Visibility
+
+**What it means:** You run models in Mumbai, fallback in Singapore, cache in us-east-1. You need a single pane of glass.
+
+**Technical Implementation:**
+Build one CloudWatch Dashboard: `GenAI-CircuitBreaker-Global-Health`
+
+Add 4 widgets:
+
+*   **Widget 1 - State Map:** Single-value widget per service/region: `bedrock-claude-sonnet [ap-south-1] = CLOSED [Green]`, `bedrock-claude-sonnet [ap-northeast-1] = CLOSED`
+*   **Widget 2 - Transitions Over Time:** Line graph of `CLOSED -> OPEN` events per hour.
+*   **Widget 3 - Error Breakdown:** Pie chart of `ErrorType`: Throttling vs Timeout vs ModelError.
+*   **Widget 4 - Fallback Effectiveness:** Stacked bar of `Primary vs Fallback Tier 1 vs Tier 2` traffic.
+
+Use CloudWatch Cross-Region dashboards to pull metrics from `ap-south-1` and `us-east-1` into one view.
+
+**Best Practice:** Add a `Service Map` using AWS X-Ray so you can click from dashboard directly into the failing Step Functions execution.
+
+#### 4. Include Trend Analysis to Optimize Configuration Over Time
+
+**What it means:** Your Day 1 thresholds are guesses. Week 4 thresholds should be data-driven.
+
+**Technical Implementation:**
+Use CloudWatch Logs Insights and S3 + Athena for long-term trends.
+
+*   **Weekly Review Query in Logs Insights:**
+    `filter @message like /CircuitBreaker/ | stats count() as trip_count, avg(latency) by bin(1h), model_id | sort trip_count desc`
+    This shows you which model trips most and at what hour.
+
+*   **Trend Analysis:** Export EMF metrics to S3 via Kinesis Firehose and query with Athena. Look for seasonality.
+
+#### Prod-Level Real World Example
+
+**Customer: Large E-commerce in India - 25K GenAI requests/day for Product Q&A**
+
+**Architecture:** `API Gateway -> Step Functions -> Primary: Bedrock Claude Sonnet in ap-south-1 -> Fallbacks: Haiku, ElastiCache Serverless, Cross-Region to ap-southeast-1 -> State in DynamoDB -> Monitoring in CloudWatch`
+
+**What Monitoring Showed:**
+
+*   Dashboard showed OPEN events spiked every day at 7-9 PM IST during Big Billion Days sale.
+*   Alarms: `ThrottlingException` alarm fired at 7:05 PM, but `Circuit OPEN` alarm fired at 7:12 PM - 7 minutes late. Users saw slow responses for 7 mins.
+*   Custom Metric `TaskCompletionInFallback` showed Haiku fallback had 88% completion vs 94% for Sonnet, but cache fallback had only 55%.
+*   Trend analysis in Logs Insights showed `p95 latency` crossed 2.5s *before* throttling started. Latency was a leading indicator.
+
+**Optimizations We Did:**
+
+1.  Changed alarm to trigger on `p95 latency > 2500ms` instead of waiting for error rate. Circuit now opens 5 minutes earlier, saving user experience.
+2.  Changed threshold from `5 failures in 2 mins` to `3 failures in 1 min during peak hours (6-10 PM)` using EventBridge Scheduler to update AppConfig.
+3.  Improved cache embeddings, raising cache task completion from 55% to 81%.
+
+**Business Outcome:** After optimization, user-facing timeouts dropped from 3.8% to 0.2%, MTTR [Mean Time To Recovery] went from 18 mins to 2 mins auto-recovery, and the SRE team gets only 1 actionable alarm per day instead of 15 noisy ones.
+
+---
+---
+
+### AWS Security Hub Integration for AI Resilience
+
+For Prod GenAI workloads, resilience is not just about handling `ThrottlingException`. It is also about security. What if your Bedrock model starts getting anomalous access, or your fallback model in another Region does not meet PCI-DSS controls? 
+
+AWS Security Hub acts as the security brain that talks to your circuit breaker.
+
+Think of it like this: Circuit Breaker protects you from *performance failures*. Security Hub protects you from *security failures*, and it can tell your circuit breaker to trip when there is a security risk.
+
+#### 1. Near-Real-Time Risk Analytics - Security Can Trip Your Circuit
+
+**What it means in simple terms:** Security Hub continuously analyzes your AI stack and can automatically open your circuit if it detects a threat.
+
+**Technical Implementation:**
+Security Hub ingests findings from GuardDuty, Inspector, CloudTrail, and Config in ASFF format in near-real-time.
+
+How it connects to circuit breaker:
+
+*   **Anomalous Access:** GuardDuty detects `Anomalous API call - Bedrock InvokeModel from unusual IP`. Security Hub creates a Critical finding. An EventBridge rule `Security Hub Findings - Imported, Severity = CRITICAL, Resource = Bedrock` triggers a Lambda that writes to your DynamoDB circuit table: `circuit_state = OPEN, reason = SECURITY_RISK, opened_by = SecurityHub`.
+
+*   **Real-Time Risk Scoring:** Security Hub aggregates risk score. If risk score for your GenAI workload goes above 80/100, your Step Functions `CheckCircuit` state treats it as OPEN, even if Bedrock itself is healthy.
+
+**Best Practice:** Don't treat all security findings as circuit breaker triggers. Filter only for findings related to your AI resources: `ResourceType = AwsBedrockCustomModel, AwsBedrockFoundationModel, AwsIamRole` associated with your GenAI app.
+
+#### 2. Improved Prioritization for AI Workloads - Focus on What Matters
+
+**What it means:** Security Hub has hundreds of findings. Which one should wake up your SRE at 2 AM? The one affecting your PII-heavy GenAI workload.
+
+**Technical Implementation:**
+Security Hub does risk-based prioritization by correlating findings.
+
+It considers:
+*   **Data Sensitivity:** Is this Bedrock Knowledge Base connected to S3 bucket with PII? Security Hub tags it as `DataClassification: PII`.
+*   **Business Criticality:** Is this loan approval assistant Tier 1? You tag it in Config: `BusinessCriticality: High`.
+*   **Scope of Impact:** One IAM role compromised affecting 3 Regions vs one model.
+
+So instead of 100 low-severity findings, SRE sees: `Critical - Compromised IAM Role used for Bedrock Inference affecting High-criticality loan assistant handling PII data`.
+
+**Prod Example:** Security Hub correlates 3 findings: GuardDuty `CredentialExfiltration`, CloudTrail `Bedrock InvokeModel without MFA`, and Config `S3 bucket public`. Alone they are Medium. Correlated, it becomes Critical and triggers immediate circuit open + auto-remediation.
+
+#### 3. Security-Aware Fallback Strategies - Don't Failover to an Insecure Region
+
+**What it means:** Your fallback must be as secure as your primary. You cannot failover from a compliant Region to a non-compliant one.
+
+**Technical Implementation:**
+Integrate Security Hub compliance checks into your fallback logic.
+
+Before routing to a fallback model/Region, your Lambda does:
+
+1.  **Check Security Posture:** Call Security Hub `BatchGetSecurityControls` - Is fallback Region passing your custom standard `AI-Security-Standard`? Does it have GuardDuty enabled, KMS encryption, VPC endpoints?
+2.  **Verify Authentication:** During failover, ensure IAM role assumption still enforces MFA and that Bedrock VPC endpoint policy is intact.
+3.  **Maintain Logging:** Ensure CloudTrail, CloudWatch Logs, and Bedrock model invocation logging remain enabled in fallback path for audit. If fallback Region has logging disabled, Security Hub marks it non-compliant, and you should skip it.
+
+**Example:** Primary is `ap-south-1` with PCI-DSS enabled. Your circuit breaker wants to failover to `us-east-1`. But Security Hub shows `us-east-1` Bedrock is not using CMK KMS key as required by your standard. Your fallback logic then skips `us-east-1` and goes to `ap-northeast-1` which IS compliant, or serves from ElastiCache cache instead.
+
+#### 4. Implementation Considerations - How to Wire It
+
+**Step 1: Enable Foundational Logging**
+Enable CloudTrail for all Bedrock data events: `managementEvents + dataEvents for bedrock.amazonaws.com`. Enable GuardDuty, Config, and send all to Security Hub in your central security account.
+
+**Step 2: Create Custom AI Security Standard**
+In Security Hub, create a custom standard `GenAI-Resilience-Standard` with controls like:
+*   `Bedrock models must use KMS CMK`
+*   `Bedrock Knowledge Base S3 must not be public`
+*   `IAM Roles for Bedrock must require MFA`
+
+**Step 3: Automated Response with Circuit Breaker**
+`Security Hub Finding [CRITICAL] -> EventBridge Rule -> Lambda: OpenCircuitBreaker -> Updates DynamoDB: state=OPEN, reason=SecurityFindingId -> SNS -> SRE Team`
+
+Your Step Functions state machine's first state `CheckCircuit` now checks both performance state AND security state from DynamoDB.
+
+**Step 4: Unified Dashboard**
+Build a CloudWatch Dashboard that overlays two metrics:
+*   Line 1: `Circuit Breaker State Transitions`
+*   Line 2: `Security Hub Critical Findings Count for GenAI Workload`
+This correlation shows you if a performance failure was actually caused by a security event.
+
+#### Prod-Level Real World Example - FinTech in India
+
+**Customer:** A bank running a GenAI Loan Underwriting Assistant on Bedrock Claude, processing PII, PCI data. Primary Region `ap-south-1`.
+
+**Incident:** At 2:30 PM, GuardDuty detected an IAM role `Bedrock-Inference-Role` being used from an unusual Tor IP to call `InvokeModel`. GuardDuty -> Security Hub -> Finding `UnauthorizedAccess: IAMUser/AnomalousBehavior`, Severity Critical, Risk Score 85.
+
+**Automated Flow:**
+1. EventBridge triggered Lambda `SecurityAwareCircuitBreaker`.
+2. Lambda immediately set DynamoDB `circuit_state=OPEN, reason=SECURITY_GUARD_DUTY_AnomalousAccess`.
+3. Step Functions for all new loan requests started serving fallback: `Retrieval-only from Knowledge Base, no LLM generation` to avoid data exfiltration via LLM.
+4. Simultaneously, Lambda revoked temporary credentials for that IAM role via IAM.
+5. Security Hub dashboard showed circuit OPEN correlated with security finding. SRE investigated, confirmed compromise, rotated keys.
+6. After Security Hub finding was resolved and risk score dropped to 10, a manual approval via Slack + EventBridge set circuit back to HALF-OPEN for testing.
+
+**Outcome:** Instead of just retrying a compromised endpoint, the system automatically contained a potential data exfiltration. The fallback maintained audit logging and compliance, and the bank could prove to auditors that failover did not bypass security controls.
+
+---
+---
