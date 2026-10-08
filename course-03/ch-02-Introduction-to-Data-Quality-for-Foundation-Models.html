@@ -1,0 +1,1447 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+  /* ---- Help icon + deep-dive popover ---- */
+  .q-inline{display:inline-flex;align-items:center;justify-content:center;width:1.15em;height:1.15em;border-radius:50%;font-weight:700;font-size:.85em;background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);vertical-align:middle}
+  .help-list{list-style:none;padding:0;margin:14px 0 4px;display:flex;flex-direction:column;gap:9px;max-width:78ch}
+  .help-list-item{display:flex;align-items:flex-start;gap:12px;background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--local-accent,var(--accent));border-radius:11px;padding:12px 15px;box-shadow:var(--shadow)}
+  .help-list-item span{font-size:clamp(14.5px,1.4vw,17px);line-height:1.45;color:var(--text);font-weight:500;padding-top:2px}
+  .help-btn{appearance:none;flex:none;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-weight:700;font-size:15px;line-height:1;border-radius:50%;cursor:pointer;border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));transition:transform .15s,background .15s,color .15s}
+  .help-btn:hover,.help-btn:focus-visible{background:var(--local-accent,var(--accent));color:#fff;transform:scale(1.12);outline:none}
+  .help-btn:focus-visible{outline:2px solid var(--local-accent,var(--accent));outline-offset:2px}
+
+  /* Deep dive: full-viewport overlay with an opaque surface so the slide never shows through;
+     close button pinned to the top-right corner above everything. Accent is copied from the
+     active slide onto the popover via --pop-accent (set in openHelp). */
+  .help-popover{--pop-accent:var(--accent);--local-accent:var(--pop-accent);position:fixed;top:calc(60px + env(safe-area-inset-top,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));left:14px;right:14px;max-width:1300px;margin-inline:auto;z-index:100;display:flex;flex-direction:column;background:linear-gradient(color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),linear-gradient(90deg, color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--pop-accent) 14%,transparent), transparent 45%),radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),var(--surface);background-size:46px 46px,46px 46px,auto,auto,auto;border:1px solid var(--border);border-top:4px solid var(--pop-accent);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;animation:helpPop .28s cubic-bezier(.16,1,.3,1)}
+  @media (max-width:600px){.help-popover{left:8px;right:8px}}
+  .help-popover[hidden]{display:none}
+  .help-popover[data-accent="orange"]{--pop-accent:var(--c-orange)}
+  .help-popover[data-accent="teal"]{--pop-accent:var(--c-teal)}
+  .help-popover[data-accent="purple"]{--pop-accent:var(--c-purple)}
+  .help-popover[data-accent="green"]{--pop-accent:var(--c-green)}
+  .help-popover[data-accent="blue"]{--pop-accent:var(--c-blue)}
+  .help-popover[data-accent="pink"]{--pop-accent:var(--c-pink)}
+  .help-popover[data-accent="red"]{--pop-accent:var(--c-red)}
+  .help-popover[data-accent="amber"]{--pop-accent:var(--c-amber)}
+  @keyframes helpPop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.help-popover{animation:none}}
+  .help-popover-close{position:absolute;top:14px;right:16px;z-index:101;width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:50%;cursor:pointer;color:var(--pop-accent);border:1px solid color-mix(in srgb,var(--pop-accent) 45%,transparent);background:color-mix(in srgb,var(--pop-accent) 14%,var(--surface))}
+  .help-popover-close:hover{background:var(--pop-accent);color:#fff;border-color:var(--pop-accent)}
+  .help-popover-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:64px 24px 40px;display:flex;justify-content:center}
+  .help-popover-body .inner{margin:0}
+
+</style></head><body>
+<title>Introduction to Data Quality for Foundation Models</title>
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#DEE4EC; --surface:#FFFFFF; --surface-2:#F1F4F8;
+    --text:#152230; --muted:#000000; --faint:#7A8899;
+    --accent:#C2570B; --accent-soft:#F4E4D5; --accent2:#0E6E7D; --accent2-soft:#DDEEF0;
+    --c-orange:#C2570B; --c-teal:#0E6E7D; --c-purple:#7C3AED; --c-green:#1F8A4C;
+    --c-blue:#1E63C4; --c-pink:#C0357E; --c-red:#CB4335; --c-amber:#B7791F;
+    --border:#D4DBE3; --code-bg:#F1F4F8; --code-text:#152230; --deck-bg:#eaeef2;
+    --shadow:0 1px 3px rgba(20,34,48,.08),0 8px 30px rgba(20,34,48,.06); --shadow-lg:0 6px 16px rgba(20,34,48,.12),0 20px 50px rgba(20,34,48,.16);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+      --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+      --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+      --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+      --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+      --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+      --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+    --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+    --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+    --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+    --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+    --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'IBM Plex Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  code,pre,.mono{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace}
+
+  #progress{position:fixed; top:0; left:0; height:3px; background:var(--accent); width:0; z-index:60; transition:width .25s ease}
+  @media (prefers-reduced-motion: reduce){#progress{transition:none}}
+
+  .topbar{
+    position:fixed; left:0; right:0; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 18px; padding-top:calc(10px + env(safe-area-inset-top,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex; align-items:center; gap:10px; min-width:0}
+  .brand .dot{width:12px;height:12px;border-radius:3px;background:var(--accent);flex:none}
+  .brand b{font-weight:600; font-size:14px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .brand span{color:var(--faint); font-size:13px; white-space:nowrap}
+  .tools{display:flex; align-items:center; gap:8px; flex:none}
+  .btn{
+    appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--text);
+    font:inherit; font-size:13px; font-weight:500; padding:7px 12px; border-radius:9px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; line-height:1;
+  }
+  .btn:hover{border-color:var(--accent)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .btn.icon{padding:7px 9px}
+
+  /* The deck is a card floating on the (darker) page, holding one slide at a time. */
+  .deck{
+    --slide-accent:var(--accent); --local-accent:var(--slide-accent);
+    position:fixed;
+    top:calc(60px + env(safe-area-inset-top,0px));
+    bottom:calc(60px + env(safe-area-inset-bottom,0px));
+    left:14px; right:14px;
+    background:var(--deck-bg);
+    border:1px solid var(--border);
+    border-top:4px solid var(--slide-accent);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    transition:border-top-color .25s ease;
+  }
+  .deck[data-accent="orange"]{--slide-accent:var(--c-orange)}
+  .deck[data-accent="teal"]{--slide-accent:var(--c-teal)}
+  .deck[data-accent="purple"]{--slide-accent:var(--c-purple)}
+  .deck[data-accent="green"]{--slide-accent:var(--c-green)}
+  .deck[data-accent="blue"]{--slide-accent:var(--c-blue)}
+  .deck[data-accent="pink"]{--slide-accent:var(--c-pink)}
+  .deck[data-accent="red"]{--slide-accent:var(--c-red)}
+  .deck[data-accent="amber"]{--slide-accent:var(--c-amber)}
+  @media (max-width:600px){.deck{left:8px; right:8px}}
+
+  .slide{
+    --local-accent:var(--accent);
+    position:absolute; inset:0; overflow-y:auto; overflow-x:hidden;
+    padding:32px 30px calc(28px + env(safe-area-inset-bottom,0px));
+    display:flex; justify-content:center;
+    background:transparent;
+  }
+  .slide[data-accent="orange"]{--local-accent:var(--c-orange)}
+  .slide[data-accent="teal"]{--local-accent:var(--c-teal)}
+  .slide[data-accent="purple"]{--local-accent:var(--c-purple)}
+  .slide[data-accent="green"]{--local-accent:var(--c-green)}
+  .slide[data-accent="blue"]{--local-accent:var(--c-blue)}
+  .slide[data-accent="pink"]{--local-accent:var(--c-pink)}
+  .slide[data-accent="red"]{--local-accent:var(--c-red)}
+  .slide[data-accent="amber"]{--local-accent:var(--c-amber)}
+  .slide:not([hidden]){animation:fade .3s ease both}
+  @media (prefers-reduced-motion: reduce){.slide:not([hidden]){animation:none}}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  .inner{width:100%; max-width:1000px; margin:auto 0; padding-block:8px}
+  /* Content card: distinct --surface, floats on the --surface-2 deck backdrop */
+  .slide .inner{
+    background:
+      linear-gradient(color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--local-accent) 14%,transparent), transparent 45%),
+      radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),
+      var(--surface);
+    background-size:46px 46px,46px 46px,auto,auto,auto;
+    border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-lg); padding:28px 32px;
+    width:100%; max-width:1300px; aspect-ratio:16 / 9; max-height:100%; overflow-y:auto; overflow-x:hidden}
+
+  .kicker{
+    font-size:12.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase;
+    color:var(--local-accent,var(--accent)); margin:0 0 14px;
+  }
+  h1{font-size:clamp(30px,5vw,56px); line-height:1.05; font-weight:700; margin:0 0 18px; letter-spacing:-.02em; text-wrap:balance}
+  h2{font-size:clamp(23px,3.1vw,38px); line-height:1.12; font-weight:600; margin:0 0 16px; letter-spacing:-.01em; text-wrap:balance; color:var(--local-accent,var(--text))}
+  h3{font-size:clamp(16px,1.85vw,21px); font-weight:600; margin:22px 0 9px; color:var(--text)}
+  p{font-size:clamp(14.5px,1.45vw,17.5px); line-height:1.55; color:var(--muted); margin:0 0 12px; max-width:76ch}
+  p strong,li strong,td strong{color:var(--text); font-weight:600}
+  .lead{font-size:clamp(16px,1.85vw,21px); line-height:1.5; color:var(--text)}
+  ul,ol{margin:0 0 12px; padding-left:22px; max-width:78ch}
+  li{font-size:clamp(14.5px,1.4vw,17px); line-height:1.5; color:var(--muted); margin:0 0 7px}
+  em{font-style:italic}
+  hr.div{border:none; border-top:1px solid var(--border); margin:20px 0}
+
+  code:not(pre code){
+    background:var(--surface-2); border:1px solid var(--border); border-radius:6px;
+    padding:.08em .4em; font-size:.85em; color:var(--text); word-break:break-word;
+  }
+  pre{
+    background:color-mix(in srgb,var(--local-accent,var(--accent)) 6%,var(--code-bg)); color:var(--code-text);
+    border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 22%,var(--border));
+    border-left:3px solid var(--local-accent,var(--accent));
+    border-radius:12px; margin:6px 0 16px;
+    padding:16px 18px; overflow-x:auto;
+    font-size:clamp(11.5px,1.2vw,13.5px); line-height:1.55;
+  }
+  pre code{color:inherit; white-space:pre}
+
+  .tbl{overflow-x:auto; margin:8px 0 16px; border:1px solid var(--border); border-radius:12px}
+  table{border-collapse:collapse; width:100%; font-size:clamp(13px,1.25vw,15px)}
+  th,td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:9px 12px; text-align:left; vertical-align:top; color:var(--muted)}
+  th{background:var(--surface-2); color:var(--text); font-weight:600; white-space:nowrap}
+  tr td:last-child,tr th:last-child{border-right:none}
+  tbody tr:last-child td{border-bottom:none}
+
+  .note{
+    background:var(--surface-2); border:1px solid var(--border); border-left:4px solid var(--accent2);
+    border-radius:12px; padding:16px 18px; margin:10px 0 14px; box-shadow:var(--shadow);
+  }
+  .note .tag{display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent2); margin-bottom:6px}
+  .note p:last-child{margin-bottom:0}
+  .note.tip{border-left-color:var(--local-accent,var(--accent))}
+  .note.tip .tag{color:var(--local-accent,var(--accent))}
+  .quote{
+    border-left:3px solid var(--accent2); padding:4px 0 4px 18px; margin:0 0 12px;
+    color:var(--text); font-size:clamp(14px,1.45vw,17px); line-height:1.5;
+  }
+  .badge{display:inline-block; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; background:var(--accent2-soft); color:var(--accent2); margin-bottom:12px}
+
+  #cover .inner{max-width:1000px}
+  #cover .meta{font-size:13px; color:var(--faint); letter-spacing:2px; text-transform:uppercase; margin-top:16px}
+  #cover .src{font-size:12px; color:var(--faint); letter-spacing:0; text-transform:none; margin-top:10px; word-break:break-all}
+  #cover .src a{color:var(--faint)}
+  .divider{background:transparent}
+  .divider .num{font-size:13px; font-weight:700; letter-spacing:3px; color:var(--local-accent); text-transform:uppercase; margin-bottom:14px}
+
+  .navbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    padding:12px 18px; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-top:1px solid var(--border);
+  }
+  .counter{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; min-width:64px; text-align:center}
+  .counter b{color:var(--text); font-weight:600}
+
+  .menu{
+    position:fixed; inset:0; z-index:70; background:color-mix(in srgb,var(--bg) 92%,transparent);
+    backdrop-filter:blur(6px); padding:calc(70px + env(safe-area-inset-top,0px)) 18px 30px; overflow-y:auto;
+  }
+  .menu .mwrap{max-width:860px; margin:0 auto}
+  .menu h2{font-size:20px; margin-bottom:16px}
+  .mlist{list-style:none; padding:0; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:2px 28px; align-content:start}
+  @media (max-width:600px){.mlist{grid-template-columns:1fr}}
+  .mitem{
+    width:100%; text-align:left; display:flex; gap:12px; align-items:baseline;
+    background:none; border:none; border-radius:9px; color:var(--text); font:inherit; padding:9px 12px; cursor:pointer;
+  }
+  .mitem:hover{background:var(--surface)}
+  .mitem .mn{color:var(--faint); font-size:12.5px; font-variant-numeric:tabular-nums; min-width:26px}
+  .mitem.sec{font-weight:600; margin-top:6px}
+  .mitem.sec .mn{color:var(--accent)}
+  .mitem.cur{background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--border)}
+  .hint{position:fixed; bottom:70px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--faint); z-index:40; pointer-events:none; transition:opacity .5s}
+  @media (max-width:600px){.hint{display:none}}
+</style>
+<style>
+  /* ================================================================
+     v2 presentation layer — layout, visuals, popover polish
+     ================================================================ */
+  :root{--hl-kw:var(--c-purple);--hl-str:var(--c-green);--hl-com:var(--faint);--hl-num:var(--c-amber);--hl-fn:var(--c-blue);--hl-attr:var(--c-teal);--hl-bi:var(--c-orange)}
+  [data-accent="orange"]{--a:var(--c-orange)} [data-accent="teal"]{--a:var(--c-teal)} [data-accent="purple"]{--a:var(--c-purple)}
+  [data-accent="green"]{--a:var(--c-green)} [data-accent="blue"]{--a:var(--c-blue)} [data-accent="pink"]{--a:var(--c-pink)}
+  [data-accent="red"]{--a:var(--c-red)} [data-accent="amber"]{--a:var(--c-amber)}
+
+  #progress{background:var(--a,var(--accent)); box-shadow:0 0 12px color-mix(in srgb,var(--a,var(--accent)) 60%,transparent)}
+  .brand .dot{background:var(--a,var(--accent)); transition:background .3s}
+  .deck{box-shadow:var(--shadow-lg)}
+  .slide .inner{position:relative; padding:36px 44px}
+  .slide .inner > *{position:relative}
+
+  /* ---------- Progressive build-in ---------- */
+  .slide:not([hidden]) .stagger > *,
+  .slide:not([hidden]) .help-list-item{animation:rise .6s cubic-bezier(.16,1,.3,1) both; animation-delay:calc(var(--i,0) * 70ms + 120ms)}
+  @keyframes rise{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+
+  /* ---------- Cover / hero ---------- */
+  #cover .inner.hero{max-width:1300px; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); align-items:center; gap:24px 40px}
+  .hero-copy .num{display:inline-flex; align-items:center; gap:10px; padding:6px 14px; border-radius:999px; background:color-mix(in srgb,var(--local-accent) 12%,transparent); border:1px solid color-mix(in srgb,var(--local-accent) 35%,transparent)}
+  .hero-copy .num::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--local-accent); box-shadow:0 0 0 4px color-mix(in srgb,var(--local-accent) 22%,transparent)}
+  .hero h1{font-size:clamp(40px,6.2vw,80px); line-height:1; margin:18px 0 22px; letter-spacing:-.035em;
+    background:linear-gradient(100deg,var(--text) 0%,var(--text) 40%,var(--local-accent) 75%,var(--c-purple) 100%); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero h1::after{content:""; display:block; width:88px; height:5px; border-radius:5px; margin-top:22px; background:linear-gradient(90deg,var(--local-accent),var(--c-purple))}
+  .hero .lead{font-size:clamp(18px,2.2vw,26px); line-height:1.4; font-weight:500; max-width:28ch; color:var(--text)}
+  #cover .hero .meta{letter-spacing:.2px; text-transform:none; font-size:13.5px; color:var(--muted); margin-top:26px; line-height:2.1}
+  kbd{display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:24px; padding:0 7px; margin:0 1px; border-radius:7px;
+    font:600 12px 'JetBrains Mono',ui-monospace,monospace; color:var(--text); background:var(--surface); border:1px solid var(--border); box-shadow:0 2px 0 var(--border); vertical-align:middle}
+  #cover .hero .src{grid-column:1 / -1; margin:6px 0 0; font-size:11.5px; opacity:.75}
+  .hero-art{width:100%; height:auto; max-height:430px; overflow:visible}
+  .hero-art .ln{fill:none; stroke:color-mix(in srgb,var(--text) 18%,transparent); stroke-width:2}
+  .hero-art .pulse{fill:none; stroke-width:3; stroke-linecap:round; stroke-dasharray:14 400; animation:flowdash 3.2s linear infinite}
+  .hero-art .route{animation:routeglow 6.4s ease-in-out infinite}
+  .hero-art .m{fill:var(--surface); stroke-width:2}
+  .hero-art .hb{opacity:.55}
+  .hero-art .router-ring{fill:none; stroke:var(--local-accent); stroke-width:2; opacity:.4; transform-origin:250px 200px; animation:ring 3s ease-out infinite}
+  @keyframes flowdash{from{stroke-dashoffset:414} to{stroke-dashoffset:0}}
+  @keyframes ring{from{transform:scale(1); opacity:.5} to{transform:scale(1.55); opacity:0}}
+  @keyframes routeglow{0%,100%{opacity:.35} 12%,30%{opacity:1}}
+
+  /* ---------- Part slides ---------- */
+  .part-mark{position:absolute!important; bottom:6px; right:28px; z-index:0; font-size:clamp(90px,13vw,170px); font-weight:700; line-height:1; letter-spacing:-.05em;
+    color:transparent; -webkit-text-stroke:1.5px color-mix(in srgb,var(--local-accent) 30%,transparent); pointer-events:none; user-select:none}
+  .part-grid{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:30px 40px; align-items:start}
+  .part-main > .num{display:inline-block; padding:5px 12px; border-radius:8px; background:color-mix(in srgb,var(--local-accent) 12%,transparent); margin-bottom:18px; font-size:12px}
+  .part-main > p:not(.num){color:var(--text); opacity:.88}
+  .pull{font-size:clamp(17px,1.9vw,22px)!important; line-height:1.4!important; color:var(--text)!important; opacity:1!important; font-weight:500;
+    border-left:4px solid var(--local-accent); padding:4px 0 4px 16px; margin:16px 0 18px!important}
+  .pull strong{color:var(--local-accent)!important}
+  .part-side{position:sticky; top:0; padding:20px; border-radius:16px; background:color-mix(in srgb,var(--local-accent) 5%,var(--surface-2)); border:1px solid color-mix(in srgb,var(--local-accent) 20%,var(--border))}
+  .side-label{display:flex; align-items:center; justify-content:space-between; font-size:11.5px!important; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--local-accent)!important; margin:0 0 12px!important}
+  .side-label .cnt{letter-spacing:0; font-size:11.5px; padding:3px 9px; border-radius:999px; background:color-mix(in srgb,var(--local-accent) 15%,transparent)}
+  .part-side > p:not(.side-label){font-size:14.5px; color:var(--muted); margin-bottom:12px}
+
+  /* deep-dive cards */
+  .part-side .help-list{margin:0; gap:10px; max-width:none}
+  .part-side .help-list-item{position:relative; align-items:center; gap:14px; padding:14px 14px 14px 14px; cursor:pointer;
+    background:var(--surface); border:1px solid var(--border); border-radius:13px; box-shadow:var(--shadow);
+    transition:transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s, border-color .2s}
+  .part-side .help-list-item:hover,.part-side .help-list-item:focus-within{transform:translateY(-2px); border-color:color-mix(in srgb,var(--local-accent) 60%,var(--border)); box-shadow:var(--shadow-lg)}
+  .help-list-item .dd-disc{flex:none; width:36px; height:36px; padding:0; border-radius:11px; display:grid; place-items:center; font-size:14px; font-weight:700;
+    color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 14%,transparent); border:1px solid color-mix(in srgb,var(--local-accent) 30%,transparent); font-variant-numeric:tabular-nums}
+  .help-list-item .dd-body{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; padding:0}
+  .help-list-item .dd-body .dd-title{font-size:clamp(14px,1.3vw,16px); font-weight:600; line-height:1.35; color:var(--text); padding:0}
+  .help-list-item .dd-body .dd-meta{font-size:11.5px; font-weight:600; letter-spacing:.6px; text-transform:uppercase; color:var(--faint); padding:0; transition:color .2s}
+  .help-list-item:hover .dd-meta{color:var(--local-accent)}
+  .part-side .help-btn{order:3; width:32px; height:32px; transform:none!important; position:static}
+  .part-side .help-btn::after{content:""; position:absolute; inset:0; border-radius:13px}
+  .part-side .help-btn svg{width:15px; height:15px; transition:transform .2s}
+  .part-side .help-list-item:hover .help-btn{background:var(--local-accent); color:var(--surface)}
+  .part-side .help-list-item:hover .help-btn svg{transform:translateX(2px)}
+
+  /* Static vs Dynamic */
+  .versus{display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:stretch; gap:10px; margin:12px 0 16px}
+  .versus .note{margin:0; display:flex; flex-direction:column}
+  .vs-static{border-left-color:var(--c-red)!important; background:color-mix(in srgb,var(--c-red) 5%,var(--surface-2))!important}
+  .vs-static .tag{color:var(--c-red)!important}
+  .vs-dynamic{background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))!important; box-shadow:0 0 0 1px color-mix(in srgb,var(--local-accent) 30%,transparent),var(--shadow-lg)!important}
+  .vs-badge{align-self:center; width:40px; height:40px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:800; letter-spacing:1px;
+    color:var(--surface); background:linear-gradient(135deg,var(--c-red),var(--local-accent)); box-shadow:var(--shadow)}
+
+  /* Part 05 tiles */
+  ol.tiles{list-style:none; padding:0; margin:12px 0 4px; display:grid; gap:10px; counter-reset:tile; max-width:none}
+  ol.tiles li{counter-increment:tile; position:relative; margin:0; padding:14px 16px 14px 62px; border-radius:13px; background:var(--surface-2); border:1px solid var(--border); color:var(--muted); box-shadow:var(--shadow)}
+  ol.tiles li::before{content:counter(tile,decimal-leading-zero); position:absolute; left:14px; top:50%; transform:translateY(-50%); width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+    font-weight:700; font-size:13px; color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 14%,transparent)}
+  ol.tiles li strong{display:block; font-size:1.06em; color:var(--text); margin-bottom:2px}
+
+  /* ---------- Flow diagrams (built from the note text) ---------- */
+  .note{container-type:inline-size}
+  .flow{display:flex; align-items:stretch; margin:8px 0 12px}
+  .flow-node{flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px 10px; border-radius:11px;
+    background:var(--surface); border:1px solid var(--border); font-size:12.5px; font-weight:600; line-height:1.3; color:var(--text); box-shadow:var(--shadow);
+    animation:rise .5s cubic-bezier(.16,1,.3,1) both; animation-delay:calc(var(--i,0) * 110ms + 250ms)}
+  .flow-node.key{border-color:var(--local-accent); color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 11%,var(--surface))}
+  .flow-arrow{flex:0 0 26px; align-self:center; position:relative; height:2px; background:color-mix(in srgb,var(--local-accent) 45%,transparent); overflow:visible}
+  .flow-arrow::after{content:""; position:absolute; right:-1px; top:-4px; border:5px solid transparent; border-left:7px solid color-mix(in srgb,var(--local-accent) 70%,transparent); border-right:0}
+  .flow-arrow i{position:absolute; top:-2px; left:0; width:6px; height:6px; border-radius:50%; background:var(--local-accent); animation:travel 1.8s ease-in-out infinite; animation-delay:calc(var(--i,0) * 220ms)}
+  @keyframes travel{0%{left:0; opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{left:calc(100% - 6px); opacity:0}}
+  @container (max-width:540px){
+    .flow{flex-direction:column; align-items:stretch}
+    .flow-arrow{flex:0 0 20px; width:2px; height:auto; align-self:center}
+    .flow-arrow::after{right:auto; top:auto; bottom:-1px; left:-4px; border:5px solid transparent; border-top:7px solid color-mix(in srgb,var(--local-accent) 70%,transparent); border-bottom:0}
+    .flow-arrow i{left:-2px; animation-name:travelY}
+  }
+  @keyframes travelY{0%{top:0; opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{top:calc(100% - 6px); opacity:0}}
+  .flow-caption{font-size:12.5px!important; color:var(--faint)!important; margin:0!important; font-style:italic}
+  .flow-caption strong{color:var(--muted)!important}
+  p.quote.flow-caption{border:none; padding:0}
+
+  /* figure + lightbox */
+  .fig{margin:4px 0 6px}
+  .fig-btn{appearance:none; display:block; width:100%; padding:10px; border-radius:14px; cursor:zoom-in; background:#fff; border:1px solid var(--border); box-shadow:var(--shadow); position:relative; transition:box-shadow .2s, transform .2s}
+  .fig-btn:hover{box-shadow:var(--shadow-lg); transform:translateY(-1px)}
+  .fig-btn:focus-visible{outline:2px solid var(--local-accent); outline-offset:3px}
+  .fig-btn img{display:block; width:100%; height:auto; border-radius:6px}
+  .fig-btn .zoom{position:absolute; right:10px; bottom:10px; width:30px; height:30px; border-radius:9px; display:grid; place-items:center; background:var(--local-accent); color:#fff; font-size:15px; box-shadow:var(--shadow)}
+  .lightbox{position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center; padding:70px 20px 30px; background:color-mix(in srgb,var(--bg) 88%,transparent); backdrop-filter:blur(10px); cursor:zoom-out; animation:helpPop .25s ease}
+  .lightbox[hidden]{display:none}
+  .lightbox img{max-width:min(1500px,100%); max-height:100%; border-radius:12px; background:#fff; padding:14px; box-shadow:var(--shadow-lg)}
+  .lightbox .help-popover-close{position:fixed; top:16px; right:18px; --pop-accent:var(--a,var(--accent))}
+
+  /* ---------- Deep-dive popover ---------- */
+  .help-popover-close{position:static; flex:none}
+  .pop-head{flex:none; display:flex; align-items:center; gap:14px; padding:12px 14px 12px 22px; border-bottom:1px solid var(--border); background:color-mix(in srgb,var(--surface) 86%,transparent); backdrop-filter:blur(8px); z-index:2}
+  .pop-crumb{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
+  .pop-part{font-size:11.5px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--pop-accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .pop-count{font-size:12.5px; color:var(--faint); font-variant-numeric:tabular-nums}
+  .pop-pips{display:flex; gap:5px; margin-top:3px}
+  .pop-pips i{width:18px; height:4px; border-radius:4px; background:var(--border); transition:background .2s,width .2s}
+  .pop-pips i.on{background:var(--pop-accent); width:30px}
+  .pop-nav{display:flex; gap:8px}
+  .pop-nav .btn:disabled{opacity:.4; cursor:default; border-color:var(--border)}
+  .pop-progress{flex:none; height:3px; background:color-mix(in srgb,var(--pop-accent) 12%,transparent)}
+  .pop-progress i{display:block; height:100%; width:0; background:var(--pop-accent); transition:width .1s linear}
+  .help-popover-body{padding:34px 28px 56px; scroll-behavior:smooth}
+  .help-popover-body:focus{outline:none}
+  .help-popover-body .inner{max-width:900px}
+  .help-popover-body .inner > *{animation:rise .5s cubic-bezier(.16,1,.3,1) both}
+  .help-popover-body h2{font-size:clamp(25px,3.2vw,40px); padding-bottom:16px; margin-bottom:22px; border-bottom:1px solid var(--border); position:relative}
+  .help-popover-body h2::after{content:""; position:absolute; left:0; bottom:-2px; width:72px; height:3px; border-radius:3px; background:var(--pop-accent)}
+  .help-popover-body h3{display:flex; align-items:center; gap:10px; font-size:clamp(17px,1.9vw,22px); margin-top:30px}
+  .help-popover-body h3::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--pop-accent); transform:rotate(45deg)}
+  .help-popover-body p,.help-popover-body ul,.help-popover-body ol{max-width:72ch}
+  .help-popover-body li::marker{color:var(--pop-accent); font-weight:700}
+  @media (max-width:600px){.pop-nav .lbl{display:none} .help-popover-body{padding:24px 16px 40px} .pop-head{padding-left:14px}}
+
+  /* labelled paragraphs */
+  .eyebrow-p{margin-top:22px!important}
+  .eyebrow-p strong{display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--local-accent)!important}
+  .eyebrow-p strong::before{content:""; width:16px; height:2px; background:currentColor}
+  .lbl-problem,.lbl-static,.lbl-dynamic,.lbl-result{padding:12px 16px; border-radius:11px; border:1px solid var(--border); background:var(--surface-2)}
+  .lbl-problem{border-left:4px solid var(--c-amber)} .lbl-problem > strong:first-child{color:var(--c-amber)}
+  .lbl-static{border-left:4px solid var(--c-red)} .lbl-static > strong:first-child{color:var(--c-red)}
+  .lbl-dynamic{border-left:4px solid var(--c-green)} .lbl-dynamic > strong:first-child{color:var(--c-green)}
+  .lbl-result{border-left:4px solid var(--local-accent); background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))}
+  .lbl-result > strong:first-child{color:var(--local-accent)}
+  p.lbl-dynamic:only-child,p.lbl-static:only-child{padding:0; border:none; background:none}
+
+  /* example cards & callouts */
+  .note.example{border-left-color:var(--local-accent); background:linear-gradient(180deg,color-mix(in srgb,var(--local-accent) 6%,var(--surface-2)),var(--surface-2))}
+  .note.example .tag{color:var(--local-accent); display:inline-flex; align-items:center; gap:8px}
+  .note.example .tag::before{content:"</>"; font:700 11px 'JetBrains Mono',monospace; padding:3px 6px; border-radius:6px; background:var(--local-accent); color:var(--surface); letter-spacing:0}
+  .quote.callout{border-left:none; padding:12px 16px 12px 46px; border-radius:11px; background:var(--surface); border:1px dashed color-mix(in srgb,var(--local-accent) 45%,var(--border)); position:relative; font-size:clamp(13.5px,1.35vw,16px)}
+  .quote.callout::before{content:"⇢"; position:absolute; left:14px; top:11px; font-size:20px; color:var(--local-accent); line-height:1}
+
+  /* steppers */
+  ol.steps,.steps-p{position:relative; list-style:none; padding-left:0; counter-reset:st}
+  ol.steps > li,.steps-p > p{counter-increment:st; position:relative; padding:2px 0 14px 50px; margin:0}
+  .steps-p > ul{margin:-6px 0 14px 50px; padding:12px 16px 4px 34px; border-radius:11px; background:var(--surface-2); border:1px solid var(--border)}
+  ol.steps > li::before{content:counter(st); position:absolute; left:0; top:0; width:32px; height:32px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:14px;
+    color:var(--local-accent); background:var(--surface); border:2px solid var(--local-accent); box-shadow:0 0 0 5px color-mix(in srgb,var(--local-accent) 12%,transparent); z-index:1}
+  .steps-p > p::before{content:""; position:absolute; left:9px; top:4px; width:14px; height:14px; border-radius:50%; background:var(--local-accent); box-shadow:0 0 0 5px color-mix(in srgb,var(--local-accent) 16%,transparent); z-index:1}
+  ol.steps::before,.steps-p::before{content:""; position:absolute; left:15px; top:16px; bottom:24px; width:2px; background:linear-gradient(var(--local-accent),color-mix(in srgb,var(--local-accent) 15%,transparent))}
+
+  /* param grid (a/b/c/d) */
+  .param-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:6px 0 18px; max-width:880px}
+  .param-grid p{margin:0; padding:14px 16px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); border-top:3px solid var(--local-accent); max-width:none}
+  .param-grid p code{display:inline-block; margin-top:6px}
+  @media (max-width:600px){.param-grid{grid-template-columns:1fr}}
+
+  /* tables */
+  .tbl{box-shadow:var(--shadow); background:var(--surface)}
+  table tr:nth-child(odd) td{background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
+  table tr:hover td{background:color-mix(in srgb,var(--local-accent) 7%,transparent)}
+  th{font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--local-accent)!important; background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))!important}
+  td:first-child strong{color:var(--text)}
+  .tier-table tr td:first-child{border-left:4px solid var(--tc,transparent)}
+  .tier-table tr:nth-child(2){--tc:var(--c-purple)} .tier-table tr:nth-child(3){--tc:var(--c-teal)}
+  .tier-table tr:nth-child(4){--tc:var(--c-pink)} .tier-table tr:nth-child(5){--tc:var(--c-amber)}
+
+  /* code blocks */
+  .code-wrap{position:relative; margin:8px 0 18px; border-radius:12px; overflow:hidden; border:1px solid color-mix(in srgb,var(--local-accent) 22%,var(--border)); box-shadow:var(--shadow)}
+  .code-wrap pre{margin:0; border:none; border-radius:0; border-left:3px solid var(--local-accent)}
+  .code-bar{display:flex; align-items:center; gap:10px; padding:7px 10px 7px 14px; background:color-mix(in srgb,var(--local-accent) 10%,var(--code-bg)); border-bottom:1px solid color-mix(in srgb,var(--local-accent) 18%,var(--border))}
+  .code-bar .dots{display:flex; gap:5px} .code-bar .dots i{width:9px; height:9px; border-radius:50%; background:var(--border)}
+  .code-bar .dots i:nth-child(1){background:#ff5f57} .code-bar .dots i:nth-child(2){background:#febc2e} .code-bar .dots i:nth-child(3){background:#28c840}
+  .code-bar .lang{flex:1; font:600 11px 'JetBrains Mono',monospace; letter-spacing:1px; text-transform:uppercase; color:var(--muted)}
+  .copy-btn{appearance:none; font:600 11.5px 'IBM Plex Sans',sans-serif; padding:5px 10px; border-radius:7px; cursor:pointer; color:var(--text); background:var(--surface); border:1px solid var(--border)}
+  .copy-btn:hover{border-color:var(--local-accent); color:var(--local-accent)}
+  .copy-btn.ok{background:var(--c-green); border-color:var(--c-green); color:#fff}
+  .hljs-keyword,.hljs-literal,.hljs-meta{color:var(--hl-kw); font-weight:500}
+  .hljs-string{color:var(--hl-str)}
+  .hljs-comment{color:var(--hl-com); font-style:italic}
+  .hljs-number{color:var(--hl-num)}
+  .hljs-title,.hljs-title.function_,.hljs-function .hljs-title{color:var(--hl-fn)}
+  .hljs-attr,.hljs-property,.hljs-params{color:var(--hl-attr)}
+  .hljs-built_in,.hljs-type{color:var(--hl-bi)}
+  .hljs-subst{color:inherit}
+
+  /* ---------- Data visuals ---------- */
+  .viz{margin:12px 0 18px; padding:16px 18px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow); max-width:860px}
+  .viz-h{font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--faint); margin-bottom:10px; display:flex; justify-content:space-between; gap:10px}
+  .viz-row{display:grid; grid-template-columns:80px minmax(0,1fr); align-items:center; gap:12px; margin:8px 0}
+  .viz-lbl{font-size:12.5px; font-weight:600; color:var(--muted)}
+  .split{display:flex; height:34px; border-radius:9px; overflow:hidden; background:var(--surface-2); gap:2px}
+  .seg{width:var(--w); background:var(--c); color:#fff; display:flex; align-items:center; gap:6px; padding:0 10px; font-size:12px; white-space:nowrap; overflow:hidden; transform-origin:left; animation:grow .9s cubic-bezier(.16,1,.3,1) both .2s}
+  :root[data-theme="dark"] .seg{color:#0b1118}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg{color:#0b1118}}
+  .bar{position:relative; height:30px; border-radius:9px; background:var(--surface-2); display:flex; align-items:center}
+  .bar i{display:block; height:100%; width:var(--w); border-radius:9px; background:var(--c); transform-origin:left; animation:grow 1s cubic-bezier(.16,1,.3,1) both .35s}
+  .bar b{position:absolute; left:calc(var(--w) + 10px); font-size:14px; color:var(--text); font-variant-numeric:tabular-nums}
+  .bar.full b{left:auto; right:10px; color:#fff}
+  :root[data-theme="dark"] .bar.full b{color:#0b1118}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bar.full b{color:#0b1118}}
+  @keyframes grow{from{transform:scaleX(0)} to{transform:none}}
+  .legend{display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:10px; font-size:12px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .legend span::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--c)}
+  .delta{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; color:var(--c-green); background:color-mix(in srgb,var(--c-green) 14%,transparent)}
+  .lat-row{display:grid; grid-template-columns:120px minmax(0,1fr); gap:12px; align-items:center; margin:9px 0}
+  .lat-name{font-size:12.5px; font-weight:600; color:var(--text); line-height:1.2}
+  .lat-name small{display:block; font-weight:500; color:var(--faint); font-size:11px}
+  .lat-track{position:relative; height:22px; border-radius:6px; background:repeating-linear-gradient(90deg,var(--surface-2) 0 calc(20% - 1px),var(--border) calc(20% - 1px) 20%)}
+  .lat-track i{position:absolute; top:3px; bottom:3px; left:var(--l); width:var(--w); border-radius:5px; background:var(--c); transform-origin:left; animation:grow .9s cubic-bezier(.16,1,.3,1) both .25s}
+  .lat-track i.open{background:linear-gradient(90deg,var(--c) 60%,transparent)}
+  .lat-axis{display:grid; grid-template-columns:120px minmax(0,1fr); gap:12px}
+  .lat-axis div{display:flex; justify-content:space-between; font:500 10.5px 'JetBrains Mono',monospace; color:var(--faint)}
+  @media (max-width:600px){.lat-row,.lat-axis{grid-template-columns:84px minmax(0,1fr)} .viz-row{grid-template-columns:64px minmax(0,1fr)}}
+
+  /* ---------- Chrome: dots, keys overlay, menu ---------- */
+  .dots-nav{display:flex; align-items:center; gap:7px}
+  .dot-btn{appearance:none; border:none; padding:0; width:9px; height:9px; border-radius:99px; cursor:pointer; background:color-mix(in srgb,var(--a) 30%,var(--border)); transition:width .3s cubic-bezier(.16,1,.3,1), background .3s}
+  .dot-btn:hover{background:var(--a)}
+  .dot-btn.cur{width:28px; background:var(--a)}
+  .dot-btn:focus-visible{outline:2px solid var(--a); outline-offset:3px}
+  @media (max-width:520px){.dots-nav{display:none}}
+  .keys{position:fixed; inset:0; z-index:110; display:flex; align-items:center; justify-content:center; padding:20px; background:color-mix(in srgb,var(--bg) 80%,transparent); backdrop-filter:blur(8px)}
+  .keys[hidden]{display:none}
+  .keys-card{width:min(440px,100%); padding:24px 26px; border-radius:16px; background:var(--surface); border:1px solid var(--border); border-top:4px solid var(--a,var(--accent)); box-shadow:var(--shadow-lg); animation:helpPop .25s ease}
+  .keys-card h2{font-size:20px; color:var(--text); margin-bottom:14px}
+  .keys-card dl{display:grid; grid-template-columns:auto 1fr; gap:10px 18px; margin:0; font-size:14px; color:var(--muted); align-items:center}
+  .keys-card dt{white-space:nowrap}
+  .keys-card dd{margin:0}
+  .mitem .mn{color:var(--a,var(--faint))}
+  .msub{list-style:none; margin:0 0 8px 38px; padding:0 0 0 12px; border-left:2px solid color-mix(in srgb,var(--a) 35%,var(--border))}
+  .msub .mitem{padding:6px 10px; font-size:13.5px; color:var(--muted)}
+  .msub .mitem:hover{color:var(--text)}
+  .mlist{grid-template-columns:1fr 1fr}
+  .mlist > li{break-inside:avoid}
+
+  code,pre{font-variant-ligatures:none}
+  .versus code{box-decoration-break:clone; -webkit-box-decoration-break:clone}
+  .mlist > li .mitem.sec .mn{color:var(--a)}
+  @media (max-width:600px){.brand span{display:none} #keysBtn{display:none}}
+
+  /* ---------- Small screens: let slides flow ---------- */
+  @media (max-width:900px){
+    .slide .inner{aspect-ratio:auto; max-height:none; overflow:visible; padding:26px 22px}
+    .part-grid,#cover .inner.hero{grid-template-columns:1fr}
+    .part-side{position:static}
+    .hero-art{max-height:240px; order:-1}
+    .versus{grid-template-columns:1fr} .vs-badge{justify-self:center}
+    .part-mark{display:none}
+  }
+  @media (max-width:600px){.slide{padding:16px 10px 20px}}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important; transition:none!important}
+    .help-popover-body{scroll-behavior:auto}
+  }
+</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<div id="progress"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <b>Introduction to Data Quality for Foundation Models</b>
+    <span>· AWS Generative AI · Ch.02</span>
+  </div>
+  <div class="tools">
+    <button class="btn" id="menuBtn" aria-haspopup="true">☰ Contents</button>
+    <button class="btn icon" id="keysBtn" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">⌨</button>
+    <button class="btn icon" id="fsBtn" title="Fullscreen (F)" aria-label="Toggle fullscreen">⛶</button>
+    <button class="btn icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+  </div>
+</header>
+
+<main class="deck" id="deck">
+
+  <!-- Cover -->
+  <section class="slide divider" id="cover" data-accent="orange" data-title="Introduction to Data Quality for Foundation Models" data-section="true">
+    <div class="inner hero">
+      <div class="hero-copy stagger">
+      <p class="num">Course 03 · Chapter 02</p>
+      <h1>Introduction to Data Quality for Foundation Models</h1>
+      <p class="meta"><kbd>←</kbd> <kbd>→</kbd> or <kbd>Space</kbd> to navigate · Press <kbd>C</kbd> for contents · <kbd>T</kbd> for theme</p>
+      </div>
+      <svg class="hero-art" viewBox="0 0 520 400" aria-hidden="true" focusable="false">
+        <defs><radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--c-orange)" stop-opacity=".35"/><stop offset="1" stop-color="var(--c-orange)" stop-opacity="0"/></radialGradient></defs>
+        <circle cx="250" cy="200" r="120" fill="url(#rg)"/>
+        <path class="ln" d="M70 200 H204"/>
+        <path class="ln" d="M296 200 C360 200 360 70 410 70"/><path class="ln" d="M296 200 C360 200 360 157 410 157"/>
+        <path class="ln" d="M296 200 C360 200 360 243 410 243"/><path class="ln" d="M296 200 C360 200 360 330 410 330"/>
+        <path class="pulse" stroke="var(--c-orange)" d="M70 200 H204"/>
+        <g class="route" style="animation-delay:0s"><path class="pulse" stroke="var(--c-purple)" d="M296 200 C360 200 360 70 410 70"/><rect class="m" x="410" y="48" width="96" height="44" rx="12" stroke="var(--c-purple)"/><rect class="hb" x="426" y="63" width="50" height="5" rx="2.5" fill="var(--c-purple)"/><rect class="hb" x="426" y="74" width="32" height="5" rx="2.5" fill="var(--c-purple)"/></g>
+        <g class="route" style="animation-delay:1.6s"><path class="pulse" stroke="var(--c-teal)" d="M296 200 C360 200 360 157 410 157" style="animation-delay:.4s"/><rect class="m" x="410" y="135" width="96" height="44" rx="12" stroke="var(--c-teal)"/><rect class="hb" x="426" y="150" width="56" height="5" rx="2.5" fill="var(--c-teal)"/><rect class="hb" x="426" y="161" width="38" height="5" rx="2.5" fill="var(--c-teal)"/></g>
+        <g class="route" style="animation-delay:3.2s"><path class="pulse" stroke="var(--c-green)" d="M296 200 C360 200 360 243 410 243" style="animation-delay:.8s"/><rect class="m" x="410" y="221" width="96" height="44" rx="12" stroke="var(--c-green)"/><rect class="hb" x="426" y="236" width="44" height="5" rx="2.5" fill="var(--c-green)"/><rect class="hb" x="426" y="247" width="60" height="5" rx="2.5" fill="var(--c-green)"/></g>
+        <g class="route" style="animation-delay:4.8s"><path class="pulse" stroke="var(--c-blue)" d="M296 200 C360 200 360 330 410 330" style="animation-delay:1.2s"/><rect class="m" x="410" y="308" width="96" height="44" rx="12" stroke="var(--c-blue)"/><rect class="hb" x="426" y="323" width="52" height="5" rx="2.5" fill="var(--c-blue)"/><rect class="hb" x="426" y="334" width="30" height="5" rx="2.5" fill="var(--c-blue)"/></g>
+        <circle cx="52" cy="200" r="18" fill="var(--surface)" stroke="var(--c-orange)" stroke-width="2"/><circle cx="52" cy="200" r="6" fill="var(--c-orange)"/>
+        <circle class="router-ring" cx="250" cy="200" r="46"/>
+        <circle cx="250" cy="200" r="46" fill="var(--surface)" stroke="var(--c-orange)" stroke-width="2.5"/>
+        <path d="M232 188 h22 l-6 -6 M268 212 h-22 l6 6 M232 212 h10 M258 188 h10" stroke="var(--c-orange)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p class="src"><a href="https://www.meta.ai/prompt/85d4b02f-fffc-42cd-8825-748c47a3a1f1">https://www.meta.ai/prompt/85d4b02f-fffc-42cd-8825-748c47a3a1f1</a></p>
+    </div>
+  </section>
+
+  <!-- ===== PART 1: WHY DATA QUALITY MATTERS ===== -->
+  <section class="slide" id="why" data-accent="orange" data-title="1. Why Data Quality is Non-Negotiable for Foundation Models">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 01</p>
+      <h2>1. Why Data Quality is Non-Negotiable for Foundation Models</h2>
+      <p class="pull">Foundation Models are only as good as the data you feed them. High-quality input is essential for generating outputs that are accurate, relevant, and reliable. In a production system on AWS, poor data quality is the #1 cause of hallucinations, bias, and unpredictable behavior.</p>
+      <p>On <strong>Amazon Bedrock</strong>, we see input data in three distinct forms. You need a quality strategy for all three:</p>
+      <p><strong>A. Prompts - The Direct Instructions</strong><br>What the user asks or the system instruction you send to the model.</p>
+      <div class="note"><p><em>Quality means:</em> Clear, specific, well-structured, and free of ambiguity, PII leakage, or prompt injection.</p></div>
+      <p><strong>B. Retrieved Information - The External Context</strong><br>This is the data you pull from outside the model to ground its answer, typically in a <strong>RAG - Retrieval-Augmented Generation - workflow</strong>. This comes from your <strong>Vector Database</strong> like <strong>Amazon OpenSearch Serverless, Aurora PostgreSQL with pgvector, or S3 Vectors</strong>.</p>
+      <div class="note"><p><em>Quality means:</em> Fresh, accurate, relevant, properly chunked, and with rich metadata. A 2022 price list retrieved for a 2026 question is technically data, but it's poor quality data.</p></div>
+      <p><strong>C. Fine-tuning Datasets - The Domain Knowledge</strong><br>The curated datasets you use to adapt a base model to your specific domain using <strong>Amazon Bedrock Custom Model fine-tuning / import</strong>.</p>
+      <div class="note"><p><em>Quality means:</em> Labeled accurately, diverse, de-biased, and representative of real production scenarios. 100 high-quality examples beat 10,000 noisy ones.</p></div>
+      <p>During <strong>inference</strong>, if your prompt is vague or your retrieved context is irrelevant, the model will either hallucinate, misunderstand intent, or fail safely. Garbage In, Garbage Out is amplified in generative AI.</p>
+    </div></div>
+  </section>
+
+  <section class="slide" id="prod-example" data-accent="orange" data-title="2. Production-Level Example on AWS: How We Architect for Quality">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 01</p>
+      <h2>2. Production-Level Example on AWS: How We Architect for Quality</h2>
+      <p>Let's take a real-world customer I work with: <strong>A large Insurance company building an Intelligent Claims Assistant on Bedrock.</strong></p>
+      <p><strong>Architecture:</strong></p>
+      <p class="quote" data-flow><code>User -&gt; API Gateway -&gt; Lambda -&gt; Bedrock Guardrails -&gt; Knowledge Bases for Bedrock [OpenSearch Serverless] -&gt; Bedrock Model [Anthropic Claude 3.5 Sonnet / Amazon Nova Pro] -&gt; Response</code></p>
+      <p>Here's how data quality shows up at each layer:</p>
+      <p><strong>Scenario 1: Poor Retrieval Quality -&gt; Wrong Answer</strong><br>User asks: <em>"Is my Honda City 2023 claim covered under flood?"</em><br>If the Knowledge Base ingested old policy PDFs without metadata filtering and retrieves a 2019 policy document, Claude will generate a confident but incorrect answer. The model was fine, the retrieval quality was poor.</p>
+      <p><strong>Architected Solution on AWS:</strong> We implement a quality pipeline:</p>
+      <ol class="steps">
+        <li>Ingest with <strong>Bedrock Data Automation</strong> to intelligently parse, chunk, and extract metadata (policy_year, product_type) from unstructured PDFs in S3.</li>
+        <li>Use <strong>Knowledge Bases for Bedrock</strong> with metadata filtering to only retrieve <code>policy_year=2023 AND product_type=Auto</code>.</li>
+        <li>Apply <strong>Bedrock Guardrails</strong> to validate prompt quality - block PII, detect toxic prompts, and ensure the question is in-domain before it hits the model.</li>
+      </ol>
+      <p><strong>Scenario 2: Poor Fine-Tuning Data -&gt; Biased Model</strong><br>Same insurer fine-tunes <strong>Meta Llama 3 on Bedrock</strong> for claim summarization using historical adjuster notes that contain inconsistent language and bias. The fine-tuned model learns and replicates that bias.</p>
+      <p><strong>Architected Solution on AWS:</strong> We use <strong>Amazon Bedrock Model Evaluation</strong> to run automated evaluation jobs comparing the base model vs. fine-tuned model on accuracy, helpfulness, and bias metrics using a curated golden dataset stored in S3. We also use <strong>AWS Glue DataBrew + Deequ</strong> to profile and clean the fine-tuning dataset before training.</p>
+    </div></div>
+  </section>
+
+  <section class="slide" id="business" data-accent="orange" data-title="3. Business Impact of Data Quality">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 01</p>
+      <h2>3. Business Impact of Data Quality</h2>
+      <p>From an architect's perspective, this is how I map data quality to business KPIs:</p>
+      <ul>
+        <li><strong>Response Accuracy:</strong> High-quality, relevant context reduces hallucinations and grounds the answer in truth. This is directly measured by RAG evaluation metrics like faithfulness and answer relevance.</li>
+        <li><strong>Model Reliability &amp; Predictability:</strong> Consistent data quality means consistent model behavior. In production, this means fewer escalations and fewer Guardrail interventions.</li>
+        <li><strong>User Experience &amp; Trust:</strong> Trustworthy AI applications drive adoption. Users abandon an assistant after 2-3 bad answers.</li>
+        <li><strong>System Performance &amp; Cost:</strong> Clean, well-chunked data means fewer tokens retrieved, lower latency, and lower <strong>Bedrock</strong> inference cost. Poor data leads to larger context windows and retry loops.</li>
+      </ul>
+    </div></div>
+  </section>
+
+  <section class="slide" id="model-select" data-accent="orange" data-title="4. Architect's Recommendation: Model Selection Matters">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 01</p>
+      <h2>4. Architect's Recommendation: Model Selection Matters</h2>
+      <p><strong>Amazon Bedrock offers 100+ fully managed and serverless models from Amazon Nova, Anthropic Claude, Meta Llama, Mistral, Cohere, and AI21 Labs</strong>, including open-weight models you can customize.</p>
+      <p>This choice is a data quality lever. Different models have different tolerance levels:</p>
+      <ul>
+        <li>For noisy, user-generated prompts, choose a model with strong instruction-following and reasoning like <strong>Claude 3.5 Sonnet</strong> and front it with <strong>Bedrock Guardrails</strong>.</li>
+        <li>For RAG where retrieval might be imperfect, choose <strong>Amazon Nova Pro or Mistral Large</strong>, which are highly resilient to imperfect context.</li>
+        <li>For domain-specific tasks where you have very high-quality fine-tuning data, a smaller, fine-tuned model like <strong>Llama 3 8B</strong> can outperform a larger general-purpose model at 1/10th the cost and latency.</li>
+      </ul>
+      <div class="note tip"><p><strong>Architect's Rule:</strong> Don't just fix the model. Fix the data pipeline first, then select the model whose sensitivity to data quality matches your use case. Build your validation pipeline with Bedrock Guardrails for prompts and Knowledge Bases data source sync validation for retrieval.</p></div>
+      <div class="note"><p>Good data quality isn't a one-time cleanup task. On AWS, we architect it as a continuous evaluation loop: Ingest -&gt; Validate -&gt; Retrieve -&gt; Generate -&gt; Evaluate.</p></div>
+    </div></div>
+  </section>
+
+  <!-- ===== PART 2: COMMON CHALLENGES ===== -->
+  <section class="slide divider" id="challenges" data-accent="teal" data-title="Part 02 · Common Data Quality Challenges in Production" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">02</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 02 · Common Data Quality Challenges in Production</p>
+      <p>In production on <strong>Amazon Bedrock</strong>, we see 6 recurring data quality patterns that directly degrade Foundation Model performance. If you don't architect for them, they will show up as hallucinations, high cost, and poor user trust.</p>
+      <p class="pull">Think of it as: <strong>Inference Quality = Model Capability x Data Quality</strong>. If data quality is 0, your output is 0.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <p>Let me break down each one with a real production fix.</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ch-lead" aria-label="Open deep dive: 1. Incomplete Data">?</button><span>1. Incomplete Data</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ch-format" aria-label="Open deep dive: 2. Inconsistent Data Formats">?</button><span>2. Inconsistent Data Formats</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ch-outdated" aria-label="Open deep dive: 3. Outdated Information">?</button><span>3. Outdated Information</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ch-dup" aria-label="Open deep dive: 4. Data Duplication">?</button><span>4. Data Duplication</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ch-encoding" aria-label="Open deep dive: 5. Encoding and Character Issues">?</button><span>5. Encoding and Character Issues</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="ch-bias" aria-label="Open deep dive: 6. Data Bias">?</button><span>6. Data Bias</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="checklist" data-accent="teal" data-title="Architect's Checklist for Your Bedrock Pipeline">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 02 · Common Data Quality Challenges in Production</p>
+      <h2>Architect's Checklist for Your Bedrock Pipeline</h2>
+      <p>For any production workload, I mandate this:</p>
+      <div class="tbl"><table>
+        <tr><th>Challenge</th><th>AWS Control to Implement</th></tr>
+        <tr><td>Incomplete</td><td>DataBrew profiling + Guardrails - block on missing critical context</td></tr>
+        <tr><td>Inconsistent</td><td>Bedrock Data Automation blueprint + Normalization Lambda</td></tr>
+        <tr><td>Outdated</td><td>Knowledge Bases auto-sync + metadata <code>last_updated_date</code> filtering</td></tr>
+        <tr><td>Duplication</td><td>Titan Embeddings semantic dedup with threshold</td></tr>
+        <tr><td>Encoding</td><td>UTF-8 enforcement + HTML cleaning</td></tr>
+        <tr><td>Bias</td><td>SageMaker Clarify + Bedrock Evaluation + Guardrails</td></tr>
+      </table></div>
+      <p class="pull"><strong>Final Architect Insight:</strong> Don't try to solve all 6 after you build the RAG app. Solve them in the ingestion pipeline, before the vector is created. On Bedrock, 80% of production issues I see are not model issues, they are data quality issues in the Knowledge Base.</p>
+    </div></div>
+  </section>
+
+  <!-- ===== PART 3: 4-D VALIDATION FRAMEWORK ===== -->
+  <section class="slide divider" id="dims" data-accent="purple" data-title="Part 03 · Key Quality Dimensions: The 4-D Validation Framework" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">03</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 03 · Key Quality Dimensions: The 4-D Validation Framework</p>
+      <p>For a Foundation Model on <strong>Amazon Bedrock</strong>, data quality is not a feeling, it's a measurable framework. In production, we validate every dataset that feeds the model on 4 dimensions: <strong>Completeness, Accuracy, Consistency, and Timeliness.</strong> If one fails, your outputs fail.</p>
+      <p class="pull">I tell my customers: Build this validation gate <em>before</em> you create embeddings, not after.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <p>Let me break down each dimension with how we implement it on AWS.</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="dim-lead" aria-label="Open deep dive: 1. Assess Completeness - &quot;Do we have everything the model needs?&quot;">?</button><span>1. Assess Completeness - "Do we have everything the model needs?"</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="dim-accuracy" aria-label="Open deep dive: 2. Verify Accuracy - &quot;Is the data correct in the real world?&quot;">?</button><span>2. Verify Accuracy - "Is the data correct in the real world?"</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="dim-consistency" aria-label="Open deep dive: 3. Confirm Consistency - &quot;Is the data speaking the same language?&quot;">?</button><span>3. Confirm Consistency - "Is the data speaking the same language?"</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="dim-timeliness" aria-label="Open deep dive: 4. Evaluate Timeliness - &quot;Is the data fresh enough for this use case?&quot;">?</button><span>4. Evaluate Timeliness - "Is the data fresh enough for this use case?"</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="blueprint" data-accent="purple" data-title="Architect's Production Blueprint on Bedrock">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 03 · Key Quality Dimensions: The 4-D Validation Framework</p>
+      <h2>Architect's Production Blueprint on Bedrock</h2>
+      <p>In production, I never let raw data go straight to the vector DB. We build a <strong>Data Quality Gate</strong>:</p>
+      <p data-flow><strong>S3 Raw Data -&gt; [Glue DataBrew + Deequ: Check Completeness, Accuracy, Consistency] -&gt; Bedrock Data Automation [Standardize + Extract] -&gt; Lambda [Semantic Dedup + Freshness Tag] -&gt; OpenSearch Serverless / S3 Vectors -&gt; Bedrock Knowledge Bases -&gt; Bedrock Guardrails -&gt; FM</strong></p>
+      <p>And we continuously measure it with <strong>Bedrock Model Evaluation</strong> to track if quality drops over time cause accuracy drops.</p>
+      <p class="pull"><strong>Bottom line:</strong> Completeness asks <em>Do we have it?</em>, Accuracy asks <em>Is it true?</em>, Consistency asks <em>Is it uniform?</em>, Timeliness asks <em>Is it fresh?</em> - If you can answer YES to all four with metrics in CloudWatch, your Bedrock application will be reliable in production.</p>
+    </div></div>
+  </section>
+
+  <!-- ===== PART 4: IMPACT ON FM PERFORMANCE ===== -->
+  <section class="slide divider" id="impact" data-accent="green" data-title="Part 04 · Impact on Foundation Model Performance" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">04</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 04 · Impact on Foundation Model Performance</p>
+      <p class="pull">On <strong>Amazon Bedrock</strong>, data quality directly determines 3 things your business cares about: <strong>What the model says, How the model behaves, and Whether your system stays up.</strong> All three directly impact user trust and operational cost.</p>
+      <p>Think of it as a chain reaction: <strong>Bad Data -&gt; Bad Response -&gt; Unpredictable Behavior -&gt; System Failure.</strong></p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <p>Let's break down each tab with a production view.</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="imp-lead" aria-label="Open deep dive: 1. Response Quality - &quot;What the user actually sees&quot;">?</button><span>1. Response Quality - "What the user actually sees"</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="imp-behavior" aria-label="Open deep dive: 2. Model Behavior - &quot;How predictable is your AI?&quot;">?</button><span>2. Model Behavior - "How predictable is your AI?"</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="imp-reliability" aria-label="Open deep dive: 3. System Reliability - &quot;Will your AI stay up at 2 AM?&quot;">?</button><span>3. System Reliability - "Will your AI stay up at 2 AM?"</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="summary" data-accent="green" data-title="Architect's Summary">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 04 · Impact on Foundation Model Performance</p>
+      <h2>Architect's Summary</h2>
+      <div class="tbl"><table>
+        <tr><th>Dimension</th><th>What Business Sees</th><th>What We Measure on Bedrock</th><th>Data Quality Fix</th></tr>
+        <tr><td><strong>Response Quality</strong></td><td>Wrong / Hallucinated answer</td><td>Faithfulness, Relevance in Bedrock Evaluation</td><td>Clean, versioned, grounded retrieval</td></tr>
+        <tr><td><strong>Model Behavior</strong></td><td>Unpredictable, sometimes fails</td><td>Guardrail interventions, Agent success rate, latency variance</td><td>Consistent formats, schema validation</td></tr>
+        <tr><td><strong>System Reliability</strong></td><td>System down, ops team paged</td><td>Ingestion failure rate, Index freshness, MTTR</td><td>Validation gates + DLQ + CloudWatch alarms</td></tr>
+      </table></div>
+      <p class="pull"><strong>My rule for production:</strong> You can't prompt-engineer your way out of bad data. On Bedrock, build a data quality firewall with Bedrock Data Automation and Guardrails <em>before</em> the model, and a reliability observability layer with CloudWatch <em>after</em> the model.</p>
+    </div></div>
+  </section>
+
+  <!-- ===== PART 5: DATA QUALITY MINDSET ===== -->
+  <section class="slide divider" id="mindset" data-accent="blue" data-title="Part 05 · Building a Data Quality Mindset for Generative AI" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">05</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 05 · Building a Data Quality Mindset for Generative AI</p>
+      <p class="pull">In production GenAI, effective data quality is not an optional enhancement - it's a <strong>fundamental requirement</strong>, just like security and cost. You need a proactive mindset: treat every piece of data that enters <strong>Bedrock Knowledge Bases</strong> or a fine-tuning job as production code.</p>
+      <p>This mindset is about shifting from <strong>"fix it when it breaks"</strong> to <strong>"prevent it from breaking"</strong>, through continuous monitoring, validation, and improvement across the entire data lifecycle: <strong>Ingest -&gt; Validate -&gt; Embed -&gt; Retrieve -&gt; Generate -&gt; Evaluate.</strong></p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <h3>The 4 Principles We Enforce on Every Bedrock Production Workload</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mind-lead" aria-label="Open deep dive: 1. Prevention Over Correction: Design quality in, don't patch it later">?</button><span>1. Prevention Over Correction: Design quality in, don't patch it later</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mind-monitor" aria-label="Open deep dive: 2. Continuous Monitoring: Data quality is not a one-time check">?</button><span>2. Continuous Monitoring: Data quality is not a one-time check</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mind-stake" aria-label="Open deep dive: 3. Stakeholder Involvement: Data quality is a team sport">?</button><span>3. Stakeholder Involvement: Data quality is a team sport</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mind-metrics" aria-label="Open deep dive: 4. Quality Metrics: You can't improve what you don't measure">?</button><span>4. Quality Metrics: You can't improve what you don't measure</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="takeaway" data-accent="blue" data-title="Architect's Takeaway: From Project to Product">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 05 · Building a Data Quality Mindset for Generative AI</p>
+      <h2>Architect's Takeaway: From Project to Product</h2>
+      <p>Successful GenAI initiatives fail when they treat data quality as a project phase. We make it a product lifecycle:</p>
+      <p data-flow><strong>Define in DataZone -&gt; Prevent at Ingestion with Data Contracts &amp; Data Automation -&gt; Monitor with CloudWatch &amp; Deequ -&gt; Measure with Bedrock Evaluation -&gt; Improve with Stakeholder Feedback Loop.</strong></p>
+      <p><strong>My rule for customers in Gurugram and globally:</strong> If you are spending 80% time on prompt engineering and only 20% on data quality, flip it. On Bedrock, high-quality data lets even a smaller model like <strong>Nova Lite or Llama 3 8B</strong> beat a large model fed with poor data, at 1/5th the cost and latency.</p>
+      <p class="pull">Mindset first, pipeline second, model last.</p>
+    </div></div>
+  </section>
+
+</main>
+
+<!-- Help popover: full-viewport overlay (kept outside the deck so it can't be clipped/trapped) -->
+<div class="help-popover" id="helpPop" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
+  <div class="pop-head">
+    <div class="pop-crumb"><span class="pop-part" id="popPart"></span><span class="pop-count" id="popCount"></span><span class="pop-pips" id="popPips" aria-hidden="true"></span></div>
+    <div class="pop-nav">
+      <button class="btn" id="popPrev" type="button" aria-label="Previous deep dive">← <span class="lbl">Prev</span></button>
+      <button class="btn" id="popNext" type="button" aria-label="Next deep dive"><span class="lbl">Next</span> →</button>
+    </div>
+    <button class="help-popover-close" id="helpClose" type="button" aria-label="Close deep dive">&times;</button>
+  </div>
+  <div class="pop-progress" aria-hidden="true"><i id="popProg"></i></div>
+  <div class="help-popover-body" id="helpBody" tabindex="-1"></div>
+</div>
+
+<!-- Deep-dive content (verbatim copies of the source sub-sections) -->
+
+
+  <!-- ===== PART 2 DIVES ===== -->
+  <template id="help-ch-lead">
+    <div class="inner">
+      <h2>1. Incomplete Data</h2>
+      <p><strong>What it is:</strong> Missing values, partial records, or fields that were never captured. When context is missing, the FM is forced to assume or hallucinate.</p>
+      <p><strong>Prod Example:</strong> We built a <strong>RAG-based Customer Support Agent for a leading Indian E-commerce company on Bedrock</strong>. Their Knowledge Base had product specs from S3. For 30% of products, the <code>warranty_period</code> field was null because the legacy PIM system didn't enforce it. When users asked "What is warranty for OnePlus Nord?", the model retrieved incomplete records and guessed "1 year".</p>
+      <p><strong>How we fix it on AWS:</strong></p>
+      <ul>
+        <li>At ingestion, use <strong>Bedrock Data Automation</strong> to automatically parse and extract missing attributes from unstructured manuals and images.</li>
+        <li>In your ETL pipeline, use <strong>AWS Glue DataBrew</strong> to profile and flag null rates before embedding.</li>
+        <li>At retrieval, use <strong>Knowledge Bases for Bedrock</strong> with metadata filtering + <strong>Bedrock Guardrails</strong> to block responses when critical fields are missing, instead of hallucinating.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-ch-format">
+    <div class="inner">
+      <h2>2. Inconsistent Data Formats</h2>
+      <p><strong>What it is:</strong> Same entity, different representation across sources. FMs are pattern matchers - inconsistent schemas confuse the attention mechanism.</p>
+      <div class="note"><p>Examples: <code>12/05/2026</code> vs <code>2026-05-12T00:00:00Z</code>, <code>weight: 50 lbs</code> vs <code>weight: 22.6 kg</code>, <code>cust_name</code> vs <code>customerName</code>.</p></div>
+      <p><strong>Prod Example:</strong> For a <strong>BFSI client building an Investment Research Assistant</strong> using <strong>Claude 3.5 Sonnet on Bedrock</strong>, we ingested SEC filings, Bloomberg feeds, and internal Excel sheets. Date and currency formats were all different. The vector embeddings for "Revenue $10M" and "Revenue 10,000,000 USD" were far apart, so retrieval failed.</p>
+      <p><strong>How we fix it on AWS:</strong> Standardize BEFORE you embed.</p>
+      <ul>
+        <li>Create a normalization Lambda in your ingestion pipeline: Convert all dates to ISO-8601, all currencies to a base unit.</li>
+        <li>Use <strong>Bedrock Data Automation's custom blueprint</strong> to define a single schema for extraction.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-ch-outdated">
+    <div class="inner">
+      <h2>3. Outdated Information</h2>
+      <p><strong>What it is:</strong> Stale data that was accurate once but is now wrong. This is the #1 cause of irrelevant RAG answers in production.</p>
+      <p><strong>Prod Example:</strong> An Airline's <strong>Bedrock Agent</strong> for flight policies. Their baggage policy was updated in Jan 2026 from 15kg to 20kg, but the S3 data source for Knowledge Bases was last synced in Nov 2025. The agent was confidently giving the old policy.</p>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>Baggage policy</span></div>
+        <div class="viz-row"><span class="viz-lbl">Nov 2025</span><div class="bar" style="--w:75%"><i style="--c:var(--c-red)"></i><b>15kg</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">Jan 2026</span><div class="bar full" style="--w:100%"><i style="--c:var(--c-green)"></i><b>20kg</b></div></div>
+      </div>
+      <p><strong>How we fix it on AWS:</strong></p>
+      <ul>
+        <li>Architect for freshness. Use <strong>Knowledge Bases for Bedrock - S3 Sync with automatic refresh</strong> - schedule it hourly/daily based on your SLA.</li>
+        <li>Add <code>last_updated_date</code> as metadata and use metadata filtering in retrieval to boost recent documents.</li>
+        <li>Implement a TTL logic: <code>If document_age &gt; 90 days, add system prompt: "Verify this information may be outdated"</code>.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-ch-dup">
+    <div class="inner">
+      <h2>4. Data Duplication</h2>
+      <p><strong>What it is:</strong> Exact duplicates, near-duplicates, or semantically similar records. Duplicates skew embeddings and cause the model to over-weight that information.</p>
+      <div class="note"><p>Exact: Same PDF uploaded twice.<br>Semantic: "How to reset password?" and "Procedure for password reset" - two different docs with same intent.</p></div>
+      <p><strong>Prod Example:</strong> Same e-commerce client had the same return policy in 5 places - website, PDF, FAQ doc, Confluence. After chunking, we had 120 vector chunks saying the same thing. The <strong>OpenSearch Serverless vector search</strong> returned 5 identical chunks in top-5 results, wasting context window and cost.</p>
+      <p><strong>How we fix it on AWS:</strong></p>
+      <ul>
+        <li><strong>Exact dedup:</strong> Use S3 object hash + Glue.</li>
+        <li><strong>Semantic dedup:</strong> This is critical. During ingestion, generate embeddings using <strong>Amazon Titan Embeddings V2</strong> and run a cosine similarity check. If similarity &gt; 0.95, drop the duplicate chunk. We automate this in a Lambda step before writing to OpenSearch.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-ch-encoding">
+    <div class="inner">
+      <h2>5. Encoding and Character Issues</h2>
+      <p><strong>What it is:</strong> Incorrect character encoding - UTF-8 vs Latin-1, broken emojis, HTML artifacts <code>&amp;nbsp;</code>, OCR errors. This breaks tokenization.</p>
+      <p><strong>Prod Example:</strong> A UAE-based customer had support tickets in Arabic, English, and Hindi mixed with emojis. Data was ingested as <code>ISO-8859-1</code> instead of <code>UTF-8</code>. <code>مرحبا</code> became <code>Ù…Ø±Ø­Ø¨Ø§</code>. <strong>Nova and Llama</strong> models failed to understand it, increasing token count by 3x.</p>
+      <p><strong>How we fix it on AWS:</strong></p>
+      <ul>
+        <li>Enforce UTF-8 at source. In your Glue / Lambda parser, add <code>chardet</code> library to detect and convert.</li>
+        <li>Clean HTML artifacts and add a text cleaning step in <strong>Bedrock Data Automation</strong>.</li>
+        <li>Test with multilingual evaluation using <strong>Bedrock Model Evaluation</strong> with multilingual datasets.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-ch-bias">
+    <div class="inner">
+      <h2>6. Data Bias</h2>
+      <p><strong>What it is:</strong> Historical bias, sampling bias, or under-representation in data that FMs amplify. This is a reliability and Responsible AI risk.</p>
+      <p><strong>Prod Example:</strong> A tech hiring assistant fine-tuned on historical resumes. 80% of resumes were male engineers. When asked to "summarize a good candidate", the fine-tuned model consistently used "he/him" pronouns and prioritized male-coded language.</p>
+      <p><strong>How we fix it on AWS:</strong></p>
+      <ul>
+        <li>Before fine-tuning on <strong>Bedrock Custom Models</strong>, profile your dataset with <strong>SageMaker Clarify</strong> to detect bias on attributes like gender, location.</li>
+        <li>Curate a balanced golden dataset for evaluation.</li>
+        <li>At inference, use <strong>Bedrock Guardrails</strong> - Enable bias and fairness filters, and use <strong>Bedrock Model Evaluation</strong> to measure bias metrics across demographics.</li>
+        <li>Implement Human-in-the-loop with <strong>Bedrock Human Evaluation</strong>.</li>
+      </ul>
+    </div>
+  </template>
+
+  <!-- ===== PART 3 DIVES ===== -->
+  <template id="help-dim-lead">
+    <div class="inner">
+      <h2>1. Assess Completeness - "Do we have everything the model needs?"</h2>
+      <p><strong>In plain English:</strong> Is all the required information present? We check two things.</p>
+      <ul>
+        <li><strong>Structural Completeness:</strong> Are all expected fields/columns present? e.g., does every product record have <code>price, specs, warranty</code>?</li>
+        <li><strong>Value Completeness:</strong> Are the values inside those fields not null or empty? e.g., <code>warranty</code> field exists but is blank for 40% records.</li>
+      </ul>
+      <p>You must define thresholds. A chatbot can tolerate 5% missing warranty info, but a claims processing agent cannot tolerate 5% missing <code>policy_number</code>.</p>
+      <p><strong>Prod Example on Bedrock:</strong><br>A customer built a <strong>Loan Underwriting Assistant using Knowledge Bases for Bedrock + Claude 3.5 Sonnet</strong>. Their S3 data had 100k loan applications. 22% were missing <code>credit_score</code>. The model started hallucinating scores to complete the analysis.</p>
+      <p><strong>How we fix it on AWS:</strong></p>
+      <ul>
+        <li>Use <strong>AWS Glue DataBrew + Deequ</strong> to profile the dataset and generate a completeness scorecard: <code>completeness(credit_score) = 0.78</code>. Set a rule: If &lt; 0.95, fail the ingestion pipeline.</li>
+        <li>Use <strong>Bedrock Data Automation</strong> to intelligently extract missing fields from scanned documents to fill gaps before embedding.</li>
+        <li>In <strong>Knowledge Bases for Bedrock</strong>, configure a metadata filter to not retrieve documents where <code>completeness_score &lt; threshold</code>.</li>
+      </ul>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>completeness(credit_score)</span></div>
+        <div class="viz-row"><span class="viz-lbl">Scorecard</span><div class="bar" style="--w:78%"><i style="--c:var(--c-red)"></i><b>0.78</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">Rule</span><div class="bar" style="--w:95%"><i style="--c:var(--c-green)"></i><b>0.95</b></div></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-dim-accuracy">
+    <div class="inner">
+      <h2>2. Verify Accuracy - "Is the data correct in the real world?"</h2>
+      <p><strong>In plain English:</strong> Does the data represent reality? Is it true?</p>
+      <div class="note"><p>Technical checks: Is the email in valid format? Is <code>order_date</code> not in the future? Is <code>pincode</code> a real pincode? Is <code>price = -500</code> an impossible outlier?</p></div>
+      <p>We validate against known standards, authoritative sources, and anomaly detection.</p>
+      <p><strong>Prod Example on Bedrock:</strong><br>For a <strong>Retail Product Search Assistant on Bedrock using Amazon Nova Pro</strong>, the catalog had prices like <code>iPhone 15 - Rs. 1,200</code> due to manual entry error. The vector search retrieved it, and Nova confidently recommended a flagship phone for Rs. 1,200, creating a business incident.</p>
+      <p><strong>How we fix it on AWS:</strong></p>
+      <ul>
+        <li>Implement validation rules in your ingestion Lambda: Regex for emails, range checks <code>0 &lt; price &lt; 500000</code>, date logic.</li>
+        <li>Cross-reference with an authoritative source - e.g., master product catalog in <strong>Aurora PostgreSQL</strong>.</li>
+        <li>Use <strong>Bedrock Guardrails</strong> with Contextual Grounding Check to detect if the model's answer is not supported by the retrieved accurate data, and block it.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-dim-consistency">
+    <div class="inner">
+      <h2>3. Confirm Consistency - "Is the data speaking the same language?"</h2>
+      <p><strong>In plain English:</strong> Does data from different sources follow the same standards, formats, and conventions? FMs get confused by inconsistent patterns.</p>
+      <div class="note"><p>This includes format standardization <code>MM/DD/YYYY -&gt; YYYY-MM-DD</code>, unit normalization <code>lbs -&gt; kg</code>, and schema alignment <code>cust_id vs customer_id</code>.</p></div>
+      <p><strong>Prod Example on Bedrock:</strong><br>For a <strong>Global Airline's Bedrock Agent</strong> handling baggage, US sources sent weight as <code>50 lbs</code>, India sources sent <code>23 kg</code>, and the website said <code>23Kgs</code>. The embeddings were different, so the agent couldn't answer "What is my baggage limit?" consistently.</p>
+      <p><strong>How we fix it on AWS:</strong></p>
+      <ul>
+        <li>Establish a <strong>Golden Schema</strong> in <strong>AWS Glue Data Catalog</strong>.</li>
+        <li>Build a normalization step using Lambda: <code>standardize_date()</code>, <code>convert_to_kg()</code>, <code>lowercase_and_trim()</code>.</li>
+        <li>Use <strong>Bedrock Data Automation Blueprints</strong> to force all unstructured PDFs, images, and docs into that single, consistent JSON schema before they go to <strong>OpenSearch Serverless</strong>.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-dim-timeliness">
+    <div class="inner">
+      <h2>4. Evaluate Timeliness - "Is the data fresh enough for this use case?"</h2>
+      <p><strong>In plain English:</strong> Is the data current enough? Freshness requirements depend on your use case.</p>
+      <div class="note"><p>Real-time trading assistant = needs data in seconds.<br>HR policy assistant = can tolerate data that is 30 days old.</p></div>
+      <p>Define a freshness SLA and alert when data becomes stale.</p>
+      <p><strong>Prod Example on Bedrock:</strong><br>An <strong>Investment Research Assistant for a BFSI firm using Bedrock Knowledge Bases</strong> was answering questions about Q2 earnings using Q1 reports because the S3 sync was manual and last ran 2 months ago.</p>
+      <p><strong>How we fix it on AWS:</strong></p>
+      <ul>
+        <li>Define freshness: e.g., <code>earnings_reports freshness SLA = 24 hours</code>.</li>
+        <li>Implement it: Enable <strong>automatic sync for Knowledge Bases for Bedrock S3 data source</strong> with EventBridge trigger on new S3 upload.</li>
+        <li>Add metadata <code>ingestion_timestamp</code> to every vector. At query time, boost recency in OpenSearch or filter <code>ingestion_timestamp &gt; now() - 24h</code>.</li>
+        <li>Monitor staleness with <strong>CloudWatch Metrics + Alarms</strong>: If <code>time_since_last_sync &gt; SLA</code>, trigger an alert and show a disclaimer in the UI: "Data last updated 45 days ago".</li>
+      </ul>
+    </div>
+  </template>
+
+  <!-- ===== PART 4 DIVES ===== -->
+  <template id="help-imp-lead">
+    <div class="inner">
+      <h2>1. Response Quality - "What the user actually sees"</h2>
+      <p><strong>In plain English:</strong> If you feed the model inaccurate, incomplete, or inconsistent data, it will generate unreliable, misleading answers. This is where hallucinations come from.</p>
+      <p>High-quality data = relevant, accurate, and useful answers. Low-quality data = confident but wrong answers.</p>
+      <p><strong>Technical impact:</strong> Poor retrieval in RAG lowers <strong>faithfulness and answer relevance scores</strong>. Poor prompts lower intent understanding.</p>
+      <p><strong>Prod Example on AWS:</strong><br>We deployed a <strong>Claims Policy Assistant for an Insurance company using Knowledge Bases for Bedrock + Claude 3.5 Sonnet on OpenSearch Serverless.</strong></p>
+      <div class="versus">
+        <div class="note vs-static">
+          <p><strong>Before Quality Fix:</strong> Their Knowledge Base had two conflicting documents: <code>policy_v1.pdf</code> saying "flood damage not covered" and <code>policy_v3.pdf</code> saying "flood damage covered with add-on". No metadata, no versioning. When user asked "Is flood covered?", retrieval returned the old v1 chunk. Claude answered confidently: "No, not covered." - Wrong answer, customer escalated.</p>
+        </div>
+        <span class="vs-badge" aria-hidden="true">VS</span>
+        <div class="note tip vs-dynamic">
+          <p><strong>After Quality Fix:</strong> We implemented:</p>
+          <ul>
+            <li><strong>Bedrock Data Automation</strong> to extract <code>policy_version</code> and <code>effective_date</code> as metadata.</li>
+            <li>Knowledge Base retrieval with <strong>metadata filtering + reranking</strong> to always prefer latest version.</li>
+            <li><strong>Bedrock Guardrails - Contextual Grounding Check</strong> to block answers not grounded in retrieved data.</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Result:</strong> Response relevance went from 68% to 94% in <strong>Bedrock Model Evaluation</strong>.</p>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>Response relevance</span></div>
+        <div class="viz-row"><span class="viz-lbl">Before</span><div class="bar" style="--w:68%"><i style="--c:var(--c-red)"></i><b>68%</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">After</span><div class="bar" style="--w:94%"><i style="--c:var(--c-green)"></i><b>94%</b></div></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-imp-behavior">
+    <div class="inner">
+      <h2>2. Model Behavior - "How predictable is your AI?"</h2>
+      <p><strong>In plain English:</strong> Inconsistent data causes the same question to get different answers, random errors, or unexpected formatting. Users can't trust it for important decisions.</p>
+      <p>Quality data gives you stable, predictable behavior. Poor data gives you a model that works on Monday and fails on Tuesday.</p>
+      <p><strong>Technical impact:</strong> This shows up as high variance in latency, increased <strong>Bedrock Guardrail interventions</strong>, parsing errors in <strong>Bedrock Agents</strong> function calling, and inconsistent output format breaking downstream apps.</p>
+      <p><strong>Prod Example on AWS:</strong><br>A <strong>BFSI client built a Bedrock Agent for KYC with function calling</strong> to <code>get_customer_details</code> and <code>verify_pan</code>. Their customer data in Aurora had inconsistent formats - <code>PAN: ABCDE1234F</code> in one table and <code>pan_no: abcde 1234 f</code> in another.</p>
+      <p>When the Agent tried to call the function, sometimes the parameter was invalid, the Lambda failed, and the Agent returned: "Sorry, I encountered an error processing your request." Same user query, 50% failure rate.</p>
+      <p><strong>How we fixed it on AWS:</strong></p>
+      <ul>
+        <li>Created a normalization layer in <strong>AWS Glue</strong> that standardizes PAN, Aadhaar, and phone formats before indexing.</li>
+        <li>Added strict <strong>input schema validation in the Bedrock Agent's Action Group</strong> Lambda.</li>
+        <li>Used <strong>CloudWatch Logs Insights + X-Ray</strong> to track unpredictable behavior and correlate it to inconsistent data patterns.</li>
+      </ul>
+      <p><strong>Result:</strong> Agent action success rate went from 52% to 98%, behavior became deterministic.</p>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>Agent action success rate</span></div>
+        <div class="viz-row"><span class="viz-lbl">Before</span><div class="bar" style="--w:52%"><i style="--c:var(--c-red)"></i><b>52%</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">After</span><div class="bar" style="--w:98%"><i style="--c:var(--c-green)"></i><b>98%</b></div></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-imp-reliability">
+    <div class="inner">
+      <h2>3. System Reliability - "Will your AI stay up at 2 AM?"</h2>
+      <p><strong>In plain English:</strong> A small data quality issue doesn't stay small. It cascades. A broken encoding in one document can fail the entire ingestion job, which makes your Knowledge Base stale, which makes your chatbot give wrong answers, which floods your support team.</p>
+      <p>Robust data validation prevents failures <em>before</em> they reach the user. Without it, you spend your time firefighting data issues, not improving the product.</p>
+      <p><strong>Technical impact:</strong> Ingestion pipeline failures, vector DB index corruption, increased token usage and cost due to noisy context, downstream app crashes due to malformed JSON output.</p>
+      <p><strong>Prod Example on AWS:</strong><br>A <strong>Global E-commerce client running a Product Recommendation Assistant on Bedrock</strong> ingested 2M product descriptions daily from S3 to S3 Vectors.</p>
+      <p>One day, a supplier uploaded 10k products with broken UTF-8 characters and HTML tags like <code>&lt;div&gt;&amp;nbsp;&amp;&amp;&amp;&amp;&amp;</code>. The chunking Lambda failed, the <strong>Knowledge Bases sync job</strong> failed halfway, leaving the vector index in a partially updated state. The Bedrock application started returning incomplete results, and the sync job kept retrying, increasing cost and operational overhead.</p>
+      <p><strong>How we architect for reliability on AWS:</strong></p>
+      <ul>
+        <li><strong>Fail-fast validation:</strong> In ingestion Lambda, validate encoding and schema. Quarantine bad records to an S3 DLQ - Don't fail the whole batch.</li>
+        <li><strong>Bedrock Knowledge Bases</strong> with automatic retry and drift detection.</li>
+        <li><strong>Monitoring:</strong> CloudWatch Alarm on <code>IngestionFailureRate</code> and <code>GuardrailInterventionRate</code>. If it spikes, we auto-pause sync via EventBridge.</li>
+        <li><strong>Data Quality as Code:</strong> Use <strong>Deequ on Glue</strong> to define quality gates - <code>completeness &gt; 0.95, accuracy &gt; 0.98</code> - if gate fails, pipeline stops before it pollutes the production index.</li>
+      </ul>
+      <p><strong>Result:</strong> Mean Time to Recovery went from 4 hours to 15 minutes. System reliability moved from 96.5% to 99.9%.</p>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>Mean Time to Recovery</span></div>
+        <div class="viz-row"><span class="viz-lbl">Before</span><div class="bar full" style="--w:100%"><i style="--c:var(--c-red)"></i><b>4 hours</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">After</span><div class="bar" style="--w:6.25%"><i style="--c:var(--c-green)"></i><b>15 minutes</b></div></div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ===== PART 5 DIVES ===== -->
+  <template id="help-mind-lead">
+    <div class="inner">
+      <h2><strong>1. Prevention Over Correction: Design quality in, don't patch it later</strong></h2>
+      <p><strong>In plain English:</strong> It's 100x cheaper to stop bad data at the door than to debug a hallucination at 2 AM.</p>
+      <p>Instead of fixing bad outputs, we build systems that prevent bad inputs.</p>
+      <p><strong>Prod Example:</strong><br>For a <strong>large BFSI bank building a Bedrock Agent for customer onboarding</strong>, they initially allowed any PDF to be uploaded to S3 for their Knowledge Base. 40% of PDFs were scanned images with poor OCR, causing bad embeddings.</p>
+      <p>We changed the mindset to prevention:</p>
+      <ul>
+        <li>Implemented <strong>Data Contracts</strong> using <strong>Amazon DataZone</strong>: Business teams must publish data with a defined schema - <code>pan_number: valid format, doc_type: KYC, effective_date: ISO-8601</code>.</li>
+        <li>Used <strong>Bedrock Data Automation with Blueprints</strong> to reject documents that don't match the contract at ingestion itself, sending them to a quarantine bucket with a reason.</li>
+        <li>Added <strong>Bedrock Guardrails</strong> at the prompt layer to prevent PII leakage and prompt injection <em>before</em> it hits <strong>Claude 3.5 Sonnet</strong>.</li>
+      </ul>
+      <p><strong>Result:</strong> Prevention gate blocked 35% bad documents on Day 1, instead of those documents corrupting the vector index.</p>
+    </div>
+  </template>
+
+  <template id="help-mind-monitor">
+    <div class="inner">
+      <h2><strong>2. Continuous Monitoring: Data quality is not a one-time check</strong></h2>
+      <p><strong>In plain English:</strong> Data quality decays over time. Your Knowledge Base that was perfect today will be stale, incomplete, and inconsistent in 30 days without monitoring.</p>
+      <p>One-time validation is a demo. Continuous monitoring is production.</p>
+      <p><strong>Prod Example:</strong><br>Same bank's loan policy changed weekly. Their RAG assistant was giving old interest rates.</p>
+      <p><strong>How we fixed it on AWS:</strong></p>
+      <ul>
+        <li>Automated quality checks with <strong>AWS Glue Deequ + Lambda</strong>: Every 6 hours, calculate <strong>completeness, accuracy, freshness scores</strong>.</li>
+        <li><strong>CloudWatch Metrics &amp; Alarms</strong>: We publish custom metrics like <code>KnowledgeBaseFreshnessHours</code> and <code>IngestionFailureRate</code>. If <code>Freshness &gt; 24h</code>, EventBridge triggers a re-sync and sends a Slack alert.</li>
+        <li><strong>Bedrock Model Evaluation - Automated Jobs</strong>: Weekly automated evaluation on faithfulness and relevance. If score drops below 90%, we know data quality has degraded.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-mind-stake">
+    <div class="inner">
+      <h2><strong>3. Stakeholder Involvement: Data quality is a team sport</strong></h2>
+      <p><strong>In plain English:</strong> The engineering team alone cannot define what "good data" means. You need the people who <em>create</em> the data, <em>use</em> the data, and <em>own</em> the business outcome.</p>
+      <div class="note"><p><strong>Data Producers</strong> (Business/Ops teams): Know what is correct.<br><strong>Data Consumers</strong> (App/AI teams): Know what is needed for the model.<br><strong>Business Stakeholders</strong>: Define what is acceptable for customer trust.</p></div>
+      <p><strong>Prod Example:</strong><br>In that bank, IT defined quality as "no nulls". But the Compliance team defined quality as "every policy document must have RBI circular reference and approval ID". Without compliance, the data was technically complete but business-invalid.</p>
+      <p><strong>How we fix it on AWS:</strong></p>
+      <ul>
+        <li>Used <strong>Amazon DataZone</strong> to create a business glossary - what is a "valid KYC document" is defined by Compliance, not just IT.</li>
+        <li>Created a <strong>Data Quality Council</strong>: Monthly review of <strong>Bedrock Guardrails</strong> block rates and Evaluation reports with tech, business, and risk teams.</li>
+        <li>End users provide feedback via thumbs down -&gt; that feedback flows to S3 and is used as a quality signal.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-mind-metrics">
+    <div class="inner">
+      <h2><strong>4. Quality Metrics: You can't improve what you don't measure</strong></h2>
+      <p><strong>In plain English:</strong> Define measurable SLAs for data quality and track them like you track application uptime.</p>
+      <p><strong>Prod Example - Our Dashboard for the Bank:</strong></p>
+      <div class="tbl"><table>
+        <tr><th>Quality Metric</th><th>SLA Definition</th><th>AWS】 Implementation</th></tr>
+        <tr><td><strong>Completeness</strong></td><td><code>credit_score</code> field &gt; 98% filled</td><td>Deequ check in Glue before embedding</td></tr>
+        <tr><td><strong>Accuracy</strong></td><td>PAN format valid &gt; 99.5%</td><td>Regex validation in Bedrock Data Automation Lambda</td></tr>
+        <tr><td><strong>Consistency</strong></td><td>All dates in ISO-8601</td><td>Glue DataBrew normalization recipe</td></tr>
+        <tr><td><strong>Timeliness</strong></td><td>Knowledge Base lag &lt; 6 hours</td><td>CloudWatch metric <code>TimeSinceLastSuccessfulSync</code></td></tr>
+        <tr><td><strong>Relevance</strong></td><td>RAG faithfulness &gt; 92%</td><td>Bedrock Model Evaluation scheduled job</td></tr>
+      </table></div>
+      <p>We displayed this dashboard in QuickSight, visible to both CTO and Business Head.</p>
+    </div>
+  </template>
+
+
+<nav class="navbar">
+  <button class="btn" id="prevBtn" aria-label="Previous slide">← Prev</button>
+  <div class="counter"><b id="cur">1</b> / <span id="total">1</span></div>
+  <div class="dots-nav" id="dots" role="group" aria-label="Slides"></div>
+  <button class="btn" id="nextBtn" aria-label="Next slide">Next →</button>
+</nav>
+
+<div class="hint" id="hint">← → to move · C for contents · T for theme</div>
+
+<div class="keys" id="keys" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" hidden>
+  <div class="keys-card">
+    <h2>Keyboard shortcuts</h2>
+    <dl>
+      <dt><kbd>←</kbd> <kbd>→</kbd> <kbd>Space</kbd></dt><dd>Previous / next slide</dd>
+      <dt><kbd>Enter</kbd></dt><dd>Open the first deep dive</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>In a deep dive: previous / next dive</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Close deep dive or menu</dd>
+      <dt><kbd>C</kbd></dt><dd>Contents</dd>
+      <dt><kbd>T</kbd></dt><dd>Toggle theme</dd>
+      <dt><kbd>F</kbd></dt><dd>Fullscreen</dd>
+      <dt><kbd>?</kbd></dt><dd>This panel</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Diagram" hidden>
+  <button class="help-popover-close" id="lbClose" type="button" aria-label="Close diagram">&times;</button>
+  <img id="lbImg" alt="">
+</div>
+
+<div class="menu" id="menu" hidden>
+  <div class="mwrap">
+    <h2>Contents</h2>
+    <ul class="mlist" id="mlist"></ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var each = function(list, fn){ Array.prototype.forEach.call(list, fn); };
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var idx = 0;
+  var root = document.documentElement;
+  var deck = $('deck'), curEl = $('cur'), totalEl = $('total'), prog = $('progress');
+  var menu = $('menu'), mlist = $('mlist'), dotsEl = $('dots'), keys = $('keys');
+  totalEl.textContent = total;
+
+  var ARROW = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>';
+
+  // ---------- Content enhancements (presentation only; text is never rewritten) ----------
+  function renderFlow(p){
+    if(p.previousElementSibling && p.previousElementSibling.classList.contains('flow')) return;
+    var keyText = Array.prototype.map.call(p.querySelectorAll('strong'), function(s){ return s.textContent.trim(); });
+    var parts = p.textContent.split('->').map(function(t){ return t.trim(); }).filter(Boolean);
+    if(parts.length < 2) return;
+    var flow = document.createElement('div');
+    flow.className = 'flow'; flow.setAttribute('aria-hidden','true');
+    parts.forEach(function(t, i){
+      if(i){ var a = document.createElement('span'); a.className='flow-arrow'; a.style.setProperty('--i', i); a.innerHTML='<i></i>'; flow.appendChild(a); }
+      var n = document.createElement('span');
+      n.className = 'flow-node' + (keyText.indexOf(t) >= 0 ? ' key' : '');
+      n.style.setProperty('--i', i); n.textContent = t; flow.appendChild(n);
+    });
+    p.parentNode.insertBefore(flow, p);
+    p.classList.add('flow-caption');
+  }
+
+  function enhance(scope){
+    each(scope.querySelectorAll('[data-flow]'), renderFlow);
+    each(scope.querySelectorAll('p'), function(p){
+      var f = p.firstChild;
+      if(!f || f.nodeType !== 1 || f.tagName !== 'STRONG') return;
+      var t = f.textContent.trim();
+      if(/^The Problem:/.test(t)) p.classList.add('lbl-problem');
+      else if(/^(Static Routing Fails:|With Static Routing:|Static Approach:)/.test(t)) p.classList.add('lbl-static');
+      else if(/^(Dynamic Routing Solution:|Dynamic Approach)/.test(t)) p.classList.add('lbl-dynamic');
+      else if(/^(Result:|Total =)/.test(t)) p.classList.add('lbl-result');
+      else if(p.childNodes.length === 1 && /:$/.test(t) && !p.closest('.steps-p,.param-grid')) p.classList.add('eyebrow-p');
+    });
+    each(scope.querySelectorAll('.note'), function(n){
+      var tag = n.querySelector('.tag');
+      if(tag && /Technical Example/.test(tag.textContent)) n.classList.add('example');
+    });
+    each(scope.querySelectorAll('p.quote'), function(q){ if(/Router Analysis/.test(q.textContent)) q.classList.add('callout'); });
+    each(scope.querySelectorAll('pre'), function(pre){
+      if(pre.parentNode.classList.contains('code-wrap')) return;
+      var code = pre.querySelector('code'); if(!code) return;
+      var src = code.textContent;
+      var lang = /^\s*[\{\[]/.test(src) ? 'json' : 'python';
+      if(window.hljs){ try{ code.innerHTML = window.hljs.highlight(src, {language:lang, ignoreIllegals:true}).value; }catch(e){} }
+      var wrap = document.createElement('div'); wrap.className = 'code-wrap';
+      var bar = document.createElement('div'); bar.className = 'code-bar';
+      bar.innerHTML = '<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="lang">'+lang+'</span>';
+      var btn = document.createElement('button'); btn.type='button'; btn.className='copy-btn'; btn.textContent='Copy';
+      btn.addEventListener('click', function(){
+        var done = function(){ btn.textContent='Copied ✓'; btn.classList.add('ok'); setTimeout(function(){ btn.textContent='Copy'; btn.classList.remove('ok'); }, 1600); };
+        try{ navigator.clipboard.writeText(src).then(done, fallback); }catch(e){ fallback(); }
+        function fallback(){ var ta=document.createElement('textarea'); ta.value=src; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); done(); }catch(e){} ta.remove(); }
+      });
+      bar.appendChild(btn);
+      pre.parentNode.insertBefore(wrap, pre); wrap.appendChild(bar); wrap.appendChild(pre);
+    });
+  }
+
+  // Deep-dive cards on the Part slides
+  slides.forEach(function(s){
+    each(s.querySelectorAll('.stagger'), function(g){ each(g.children, function(el, i){ el.style.setProperty('--i', i); }); });
+    var items = s.querySelectorAll('.help-list-item');
+    each(items, function(li, i){
+      li.style.setProperty('--i', i + 2);
+      var btn = li.querySelector('.help-btn'), span = li.querySelector('span');
+      var disc = document.createElement('span'); disc.className = 'dd-disc';
+      var m = span.firstChild && span.firstChild.nodeType === 3 && span.firstChild.nodeValue.match(/^(\d+\.)\s*/);
+      if(m){ disc.textContent = m[1]; span.firstChild.nodeValue = span.firstChild.nodeValue.slice(m[0].length); }
+      else { disc.textContent = String(i + 1).padStart(2, '0'); disc.setAttribute('aria-hidden', 'true'); }
+      var body = document.createElement('span'); body.className = 'dd-body';
+      span.className = 'dd-title';
+      var meta = document.createElement('span'); meta.className = 'dd-meta'; meta.setAttribute('aria-hidden','true'); meta.textContent = 'Deep dive';
+      li.insertBefore(disc, li.firstChild); li.insertBefore(body, span); body.appendChild(span); body.appendChild(meta);
+      btn.innerHTML = ARROW;
+    });
+    var cnt = s.querySelector('.side-label .cnt'); if(cnt) cnt.textContent = items.length;
+  });
+  enhance(deck);
+
+  // ---------- Slide engine ----------
+  function setAccent(a){ root.setAttribute('data-accent', a); deck.setAttribute('data-accent', a); }
+  function render(){
+    slides.forEach(function(s,i){ s.hidden = (i!==idx); });
+    curEl.textContent = idx+1;
+    prog.style.width = (total > 1 ? idx/(total-1)*100 : 100)+'%';
+    var active = slides[idx];
+    if(active){ active.scrollTop = 0; var inr = active.querySelector('.inner'); if(inr) inr.scrollTop = 0; setAccent(active.dataset.accent || 'orange'); }
+    try{ history.replaceState(null,'','#'+slides[idx].id); }catch(e){}
+    each(mlist.querySelectorAll('.mitem[data-i]'), function(b){ b.classList.toggle('cur', +b.dataset.i === idx); });
+    each(dotsEl.children, function(d, i){ d.classList.toggle('cur', i === idx); d.setAttribute('aria-current', i === idx ? 'step' : 'false'); });
+  }
+  function go(i){ idx = Math.max(0, Math.min(total-1, i)); render(); }
+  function next(){ go(idx+1); }
+  function prev(){ go(idx-1); }
+  $('nextBtn').addEventListener('click', next);
+  $('prevBtn').addEventListener('click', prev);
+
+  // Dots + contents menu (with nested deep dives)
+  slides.forEach(function(s,i){
+    var d = document.createElement('button');
+    d.type = 'button'; d.className = 'dot-btn'; d.dataset.accent = s.dataset.accent || 'orange';
+    d.setAttribute('aria-label', 'Slide '+(i+1)+': '+(s.dataset.title || s.id));
+    d.title = s.dataset.title || s.id;
+    d.addEventListener('click', function(){ go(i); });
+    dotsEl.appendChild(d);
+
+    var li = document.createElement('li'); li.dataset.accent = s.dataset.accent || 'orange';
+    var b = document.createElement('button');
+    b.className = 'mitem' + (s.dataset.section==='true' ? ' sec' : '');
+    b.dataset.i = i;
+    b.innerHTML = '<span class="mn">'+String(i+1).padStart(2,'0')+'</span><span></span>';
+    b.lastChild.textContent = s.dataset.title || s.id;
+    b.addEventListener('click', function(){ closeMenu(); go(i); });
+    li.appendChild(b);
+    var dives = s.querySelectorAll('.help-btn');
+    if(dives.length){
+      var sub = document.createElement('ul'); sub.className = 'msub';
+      each(dives, function(hb){
+        var sl = document.createElement('li'), sb = document.createElement('button');
+        var card = hb.closest('li'), disc = card.querySelector('.dd-disc'), t = card.querySelector('.dd-title').textContent.trim();
+        sb.className = 'mitem'; sb.textContent = disc.hasAttribute('aria-hidden') ? t : disc.textContent + ' ' + t;
+        sb.addEventListener('click', function(){ closeMenu(); go(i); openHelp(hb); });
+        sl.appendChild(sb); sub.appendChild(sl);
+      });
+      li.appendChild(sub);
+    }
+    mlist.appendChild(li);
+  });
+
+  function openMenu(){ menu.hidden=false; var c = mlist.querySelector('.mitem.cur'); if(c) c.focus(); }
+  function closeMenu(){ menu.hidden=true; }
+  function toggleMenu(){ menu.hidden ? openMenu() : closeMenu(); }
+  $('menuBtn').addEventListener('click', toggleMenu);
+  menu.addEventListener('click', function(e){ if(e.target===menu) closeMenu(); });
+
+  // Theme
+  var themeBtn = $('themeBtn');
+  function currentTheme(){
+    var attr = root.getAttribute('data-theme'); if(attr) return attr;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  themeBtn.addEventListener('click', function(){
+    var t = currentTheme()==='dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', t);
+    try{ localStorage.setItem('poc-theme', t); }catch(e){}
+  });
+  try{ var saved = localStorage.getItem('poc-theme'); if(saved) root.setAttribute('data-theme', saved); }catch(e){}
+
+  // Fullscreen + keyboard overlay
+  var fsBtn = $('fsBtn');
+  function toggleFs(){
+    try{ if(document.fullscreenElement) document.exitFullscreen(); else root.requestFullscreen(); }catch(e){}
+  }
+  if(!root.requestFullscreen) fsBtn.hidden = true;
+  fsBtn.addEventListener('click', toggleFs);
+  function toggleKeys(){ keys.hidden = !keys.hidden; }
+  $('keysBtn').addEventListener('click', toggleKeys);
+  keys.addEventListener('click', function(e){ if(e.target===keys || e.target.closest('[data-close]')) keys.hidden = true; });
+
+  document.addEventListener('keydown', function(e){
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    if(e.key==='Escape'){ if(!menu.hidden){ closeMenu(); e.preventDefault(); } return; }
+    if(!menu.hidden) return;
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': case 'Spacebar': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp': prev(); e.preventDefault(); break;
+      case 'Home': go(0); e.preventDefault(); break;
+      case 'End': go(total-1); e.preventDefault(); break;
+      case 'c': case 'C': toggleMenu(); e.preventDefault(); break;
+      case 't': case 'T': themeBtn.click(); e.preventDefault(); break;
+      case 'f': case 'F': toggleFs(); e.preventDefault(); break;
+      case '?': toggleKeys(); e.preventDefault(); break;
+      case 'Enter': {
+        var first = slides[idx].querySelector('.help-btn');
+        if(first && document.activeElement === document.body){ openHelp(first); e.preventDefault(); }
+        break;
+      }
+    }
+  });
+
+  var sx=0, sy=0;
+  deck.addEventListener('touchstart', function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; }, {passive:true});
+  deck.addEventListener('touchend', function(e){
+    var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)){ dx<0 ? next() : prev(); }
+  }, {passive:true});
+
+  var h = (location.hash||'').replace('#','');
+  if(h){ var found = slides.findIndex(function(s){ return s.id===h; }); if(found>=0) idx=found; }
+  setTimeout(function(){ var el=$('hint'); if(el) el.style.opacity='0'; }, 4500);
+
+  // ---------- Deep-dive popover ----------
+  var helpPop = $('helpPop'), helpBody = $('helpBody');
+  var popPart = $('popPart'), popCount = $('popCount'), popPips = $('popPips'), popProg = $('popProg');
+  var popPrev = $('popPrev'), popNext = $('popNext');
+  var dives = [], diveIdx = 0;
+  function updProg(){
+    var max = helpBody.scrollHeight - helpBody.clientHeight;
+    popProg.style.width = (max > 0 ? Math.min(100, helpBody.scrollTop / max * 100) : 100) + '%';
+  }
+  helpBody.addEventListener('scroll', updProg, {passive:true});
+  function openHelp(btn){
+    var tpl = $('help-' + btn.dataset.help);
+    if(!tpl) return;
+    var slide = btn.closest('.slide');
+    dives = Array.prototype.slice.call(slide.querySelectorAll('.help-btn'));
+    diveIdx = dives.indexOf(btn);
+    helpBody.innerHTML = '';
+    helpBody.appendChild(tpl.content.cloneNode(true));
+    enhance(helpBody);
+    var h2 = helpBody.querySelector('h2'); if(h2) h2.id = 'helpTitle';
+    popPart.textContent = slide.dataset.title || '';
+    popCount.textContent = 'Deep dive ' + (diveIdx+1) + ' of ' + dives.length;
+    popPips.innerHTML = dives.map(function(_, i){ return '<i class="'+(i===diveIdx?'on':'')+'"></i>'; }).join('');
+    popPrev.disabled = diveIdx <= 0;
+    popNext.disabled = diveIdx >= dives.length-1;
+    helpPop.setAttribute('data-accent', slide.dataset.accent || 'orange');
+    helpPop.hidden = false;
+    helpBody.scrollTop = 0; updProg();
+    helpBody.focus({preventScroll:true});
+  }
+  function stepHelp(d){ var n = diveIdx + d; if(n >= 0 && n < dives.length) openHelp(dives[n]); }
+  function closeHelp(){
+    helpPop.hidden = true; helpBody.innerHTML = '';
+    var back = dives[diveIdx]; if(back) back.focus({preventScroll:true});
+  }
+  each(document.querySelectorAll('.help-btn'), function(b){
+    b.addEventListener('click', function(e){ e.preventDefault(); openHelp(b); });
+  });
+  popPrev.addEventListener('click', function(){ stepHelp(-1); });
+  popNext.addEventListener('click', function(){ stepHelp(1); });
+  $('helpClose').addEventListener('click', closeHelp);
+  helpPop.addEventListener('click', function(e){ if(e.target===helpPop) closeHelp(); });
+
+  // ---------- Image lightbox ----------
+  var lb = $('lightbox'), lbImg = $('lbImg'), lbFrom = null;
+  each(document.querySelectorAll('[data-zoom]'), function(b){
+    b.addEventListener('click', function(){ var img = b.querySelector('img'); lbImg.src = img.src; lbImg.alt = img.alt; lbFrom = b; lb.hidden = false; $('lbClose').focus(); });
+  });
+  function closeLb(){ lb.hidden = true; if(lbFrom) lbFrom.focus(); }
+  lb.addEventListener('click', closeLb);
+
+  function trap(e, box){
+    var f = Array.prototype.filter.call(box.querySelectorAll('button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])'), function(el){ return el.offsetParent !== null; });
+    if(!f.length) return;
+    var first = f[0], last = f[f.length-1];
+    if(e.shiftKey && (document.activeElement === first || !box.contains(document.activeElement))){ last.focus(); e.preventDefault(); }
+    else if(!e.shiftKey && document.activeElement === last){ first.focus(); e.preventDefault(); }
+  }
+  // Overlays own the keyboard while open, so the deck never navigates underneath them.
+  document.addEventListener('keydown', function(e){
+    if(!lb.hidden){
+      e.stopImmediatePropagation();
+      if(e.key==='Escape'){ closeLb(); e.preventDefault(); } else if(e.key!=='Tab'){ e.preventDefault(); }
+      return;
+    }
+    if(!keys.hidden){
+      e.stopImmediatePropagation();
+      if(e.key==='Escape' || e.key==='?'){ keys.hidden = true; e.preventDefault(); }
+      return;
+    }
+    if(helpPop.hidden) return;
+    e.stopImmediatePropagation();
+    if(e.key==='Escape'){ closeHelp(); e.preventDefault(); }
+    else if(e.key==='ArrowRight'){ stepHelp(1); e.preventDefault(); }
+    else if(e.key==='ArrowLeft'){ stepHelp(-1); e.preventDefault(); }
+    else if(e.key==='Tab'){ trap(e, helpPop); }
+  }, true);
+  deck.addEventListener('touchstart', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+  deck.addEventListener('touchend', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+
+  render();
+})();
+</script>
+
+</body></html>
