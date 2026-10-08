@@ -1,0 +1,1295 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+  /* ---- Help icon + deep-dive popover ---- */
+  .q-inline{display:inline-flex;align-items:center;justify-content:center;width:1.15em;height:1.15em;border-radius:50%;font-weight:700;font-size:.85em;background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);vertical-align:middle}
+  .help-list{list-style:none;padding:0;margin:14px 0 4px;display:flex;flex-direction:column;gap:9px;max-width:78ch}
+  .help-list-item{display:flex;align-items:flex-start;gap:12px;background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--local-accent,var(--accent));border-radius:11px;padding:12px 15px;box-shadow:var(--shadow)}
+  .help-list-item span{font-size:clamp(14.5px,1.4vw,17px);line-height:1.45;color:var(--text);font-weight:500;padding-top:2px}
+  .help-btn{appearance:none;flex:none;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-weight:700;font-size:15px;line-height:1;border-radius:50%;cursor:pointer;border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));transition:transform .15s,background .15s,color .15s}
+  .help-btn:hover,.help-btn:focus-visible{background:var(--local-accent,var(--accent));color:#fff;transform:scale(1.12);outline:none}
+  .help-btn:focus-visible{outline:2px solid var(--local-accent,var(--accent));outline-offset:2px}
+
+  /* Deep dive: full-viewport overlay with an opaque surface so the slide never shows through;
+     close button pinned to the top-right corner above everything. Accent is copied from the
+     active slide onto the popover via --pop-accent (set in openHelp). */
+  .help-popover{--pop-accent:var(--accent);--local-accent:var(--pop-accent);position:fixed;top:calc(60px + env(safe-area-inset-top,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));left:14px;right:14px;max-width:1300px;margin-inline:auto;z-index:100;display:flex;flex-direction:column;background:linear-gradient(color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),linear-gradient(90deg, color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--pop-accent) 14%,transparent), transparent 45%),radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),var(--surface);background-size:46px 46px,46px 46px,auto,auto,auto;border:1px solid var(--border);border-top:4px solid var(--pop-accent);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;animation:helpPop .28s cubic-bezier(.16,1,.3,1)}
+  @media (max-width:600px){.help-popover{left:8px;right:8px}}
+  .help-popover[hidden]{display:none}
+  .help-popover[data-accent="orange"]{--pop-accent:var(--c-orange)}
+  .help-popover[data-accent="teal"]{--pop-accent:var(--c-teal)}
+  .help-popover[data-accent="purple"]{--pop-accent:var(--c-purple)}
+  .help-popover[data-accent="green"]{--pop-accent:var(--c-green)}
+  .help-popover[data-accent="blue"]{--pop-accent:var(--c-blue)}
+  .help-popover[data-accent="pink"]{--pop-accent:var(--c-pink)}
+  .help-popover[data-accent="red"]{--pop-accent:var(--c-red)}
+  .help-popover[data-accent="amber"]{--pop-accent:var(--c-amber)}
+  @keyframes helpPop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.help-popover{animation:none}}
+  .help-popover-close{position:absolute;top:14px;right:16px;z-index:101;width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:50%;cursor:pointer;color:var(--pop-accent);border:1px solid color-mix(in srgb,var(--pop-accent) 45%,transparent);background:color-mix(in srgb,var(--pop-accent) 14%,var(--surface))}
+  .help-popover-close:hover{background:var(--pop-accent);color:#fff;border-color:var(--pop-accent)}
+  .help-popover-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:64px 24px 40px;display:flex;justify-content:center}
+  .help-popover-body .inner{margin:0}
+
+</style></head><body>
+<title>Input Quality Fundamentals</title>
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#DEE4EC; --surface:#FFFFFF; --surface-2:#F1F4F8;
+    --text:#152230; --muted:#000000; --faint:#7A8899;
+    --accent:#C2570B; --accent-soft:#F4E4D5; --accent2:#0E6E7D; --accent2-soft:#DDEEF0;
+    --c-orange:#C2570B; --c-teal:#0E6E7D; --c-purple:#7C3AED; --c-green:#1F8A4C;
+    --c-blue:#1E63C4; --c-pink:#C0357E; --c-red:#CB4335; --c-amber:#B7791F;
+    --border:#D4DBE3; --code-bg:#F1F4F8; --code-text:#152230; --deck-bg:#eaeef2;
+    --shadow:0 1px 3px rgba(20,34,48,.08),0 8px 30px rgba(20,34,48,.06); --shadow-lg:0 6px 16px rgba(20,34,48,.12),0 20px 50px rgba(20,34,48,.16);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+      --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+      --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+      --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+      --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+      --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+      --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+    --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+    --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+    --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+    --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+    --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'IBM Plex Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  code,pre,.mono{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace}
+
+  #progress{position:fixed; top:0; left:0; height:3px; background:var(--accent); width:0; z-index:60; transition:width .25s ease}
+  @media (prefers-reduced-motion: reduce){#progress{transition:none}}
+
+  .topbar{
+    position:fixed; left:0; right:0; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 18px; padding-top:calc(10px + env(safe-area-inset-top,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex; align-items:center; gap:10px; min-width:0}
+  .brand .dot{width:12px;height:12px;border-radius:3px;background:var(--accent);flex:none}
+  .brand b{font-weight:600; font-size:14px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .brand span{color:var(--faint); font-size:13px; white-space:nowrap}
+  .tools{display:flex; align-items:center; gap:8px; flex:none}
+  .btn{
+    appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--text);
+    font:inherit; font-size:13px; font-weight:500; padding:7px 12px; border-radius:9px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; line-height:1;
+  }
+  .btn:hover{border-color:var(--accent)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .btn.icon{padding:7px 9px}
+
+  /* The deck is a card floating on the (darker) page, holding one slide at a time. */
+  .deck{
+    --slide-accent:var(--accent); --local-accent:var(--slide-accent);
+    position:fixed;
+    top:calc(60px + env(safe-area-inset-top,0px));
+    bottom:calc(60px + env(safe-area-inset-bottom,0px));
+    left:14px; right:14px;
+    background:var(--deck-bg);
+    border:1px solid var(--border);
+    border-top:4px solid var(--slide-accent);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    transition:border-top-color .25s ease;
+  }
+  .deck[data-accent="orange"]{--slide-accent:var(--c-orange)}
+  .deck[data-accent="teal"]{--slide-accent:var(--c-teal)}
+  .deck[data-accent="purple"]{--slide-accent:var(--c-purple)}
+  .deck[data-accent="green"]{--slide-accent:var(--c-green)}
+  .deck[data-accent="blue"]{--slide-accent:var(--c-blue)}
+  .deck[data-accent="pink"]{--slide-accent:var(--c-pink)}
+  .deck[data-accent="red"]{--slide-accent:var(--c-red)}
+  .deck[data-accent="amber"]{--slide-accent:var(--c-amber)}
+  @media (max-width:600px){.deck{left:8px; right:8px}}
+
+  .slide{
+    --local-accent:var(--accent);
+    position:absolute; inset:0; overflow-y:auto; overflow-x:hidden;
+    padding:32px 30px calc(28px + env(safe-area-inset-bottom,0px));
+    display:flex; justify-content:center;
+    background:transparent;
+  }
+  .slide[data-accent="orange"]{--local-accent:var(--c-orange)}
+  .slide[data-accent="teal"]{--local-accent:var(--c-teal)}
+  .slide[data-accent="purple"]{--local-accent:var(--c-purple)}
+  .slide[data-accent="green"]{--local-accent:var(--c-green)}
+  .slide[data-accent="blue"]{--local-accent:var(--c-blue)}
+  .slide[data-accent="pink"]{--local-accent:var(--c-pink)}
+  .slide[data-accent="red"]{--local-accent:var(--c-red)}
+  .slide[data-accent="amber"]{--local-accent:var(--c-amber)}
+  .slide:not([hidden]){animation:fade .3s ease both}
+  @media (prefers-reduced-motion: reduce){.slide:not([hidden]){animation:none}}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  .inner{width:100%; max-width:1000px; margin:auto 0; padding-block:8px}
+  /* Content card: distinct --surface, floats on the --surface-2 deck backdrop */
+  .slide .inner{
+    background:
+      linear-gradient(color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--local-accent) 14%,transparent), transparent 45%),
+      radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),
+      var(--surface);
+    background-size:46px 46px,46px 46px,auto,auto,auto;
+    border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-lg); padding:28px 32px;
+    width:100%; max-width:1300px; aspect-ratio:16 / 9; max-height:100%; overflow-y:auto; overflow-x:hidden}
+
+  .kicker{
+    font-size:12.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase;
+    color:var(--local-accent,var(--accent)); margin:0 0 14px;
+  }
+  h1{font-size:clamp(30px,5vw,56px); line-height:1.05; font-weight:700; margin:0 0 18px; letter-spacing:-.02em; text-wrap:balance}
+  h2{font-size:clamp(23px,3.1vw,38px); line-height:1.12; font-weight:600; margin:0 0 16px; letter-spacing:-.01em; text-wrap:balance; color:var(--local-accent,var(--text))}
+  h3{font-size:clamp(16px,1.85vw,21px); font-weight:600; margin:22px 0 9px; color:var(--text)}
+  p{font-size:clamp(14.5px,1.45vw,17.5px); line-height:1.55; color:var(--muted); margin:0 0 12px; max-width:76ch}
+  p strong,li strong,td strong{color:var(--text); font-weight:600}
+  .lead{font-size:clamp(16px,1.85vw,21px); line-height:1.5; color:var(--text)}
+  ul,ol{margin:0 0 12px; padding-left:22px; max-width:78ch}
+  li{font-size:clamp(14.5px,1.4vw,17px); line-height:1.5; color:var(--muted); margin:0 0 7px}
+  em{font-style:italic}
+  hr.div{border:none; border-top:1px solid var(--border); margin:20px 0}
+
+  code:not(pre code){
+    background:var(--surface-2); border:1px solid var(--border); border-radius:6px;
+    padding:.08em .4em; font-size:.85em; color:var(--text); word-break:break-word;
+  }
+  pre{
+    background:color-mix(in srgb,var(--local-accent,var(--accent)) 6%,var(--code-bg)); color:var(--code-text);
+    border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 22%,var(--border));
+    border-left:3px solid var(--local-accent,var(--accent));
+    border-radius:12px; margin:6px 0 16px;
+    padding:16px 18px; overflow-x:auto;
+    font-size:clamp(11.5px,1.2vw,13.5px); line-height:1.55;
+  }
+  pre code{color:inherit; white-space:pre}
+
+  .tbl{overflow-x:auto; margin:8px 0 16px; border:1px solid var(--border); border-radius:12px}
+  table{border-collapse:collapse; width:100%; font-size:clamp(13px,1.25vw,15px)}
+  th,td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:9px 12px; text-align:left; vertical-align:top; color:var(--muted)}
+  th{background:var(--surface-2); color:var(--text); font-weight:600; white-space:nowrap}
+  tr td:last-child,tr th:last-child{border-right:none}
+  tbody tr:last-child td{border-bottom:none}
+
+  .note{
+    background:var(--surface-2); border:1px solid var(--border); border-left:4px solid var(--accent2);
+    border-radius:12px; padding:16px 18px; margin:10px 0 14px; box-shadow:var(--shadow);
+  }
+  .note .tag{display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent2); margin-bottom:6px}
+  .note p:last-child{margin-bottom:0}
+  .note.tip{border-left-color:var(--local-accent,var(--accent))}
+  .note.tip .tag{color:var(--local-accent,var(--accent))}
+  .quote{
+    border-left:3px solid var(--accent2); padding:4px 0 4px 18px; margin:0 0 12px;
+    color:var(--text); font-size:clamp(14px,1.45vw,17px); line-height:1.5;
+  }
+  .badge{display:inline-block; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; background:var(--accent2-soft); color:var(--accent2); margin-bottom:12px}
+
+  #cover .inner{max-width:1000px}
+  #cover .meta{font-size:13px; color:var(--faint); letter-spacing:2px; text-transform:uppercase; margin-top:16px}
+  #cover .src{font-size:12px; color:var(--faint); letter-spacing:0; text-transform:none; margin-top:10px; word-break:break-all}
+  #cover .src a{color:var(--faint)}
+  .divider{background:transparent}
+  .divider .num{font-size:13px; font-weight:700; letter-spacing:3px; color:var(--local-accent); text-transform:uppercase; margin-bottom:14px}
+
+  .navbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    padding:12px 18px; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-top:1px solid var(--border);
+  }
+  .counter{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; min-width:64px; text-align:center}
+  .counter b{color:var(--text); font-weight:600}
+
+  .menu{
+    position:fixed; inset:0; z-index:70; background:color-mix(in srgb,var(--bg) 92%,transparent);
+    backdrop-filter:blur(6px); padding:calc(70px + env(safe-area-inset-top,0px)) 18px 30px; overflow-y:auto;
+  }
+  .menu .mwrap{max-width:860px; margin:0 auto}
+  .menu h2{font-size:20px; margin-bottom:16px}
+  .mlist{list-style:none; padding:0; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:2px 28px; align-content:start}
+  @media (max-width:600px){.mlist{grid-template-columns:1fr}}
+  .mitem{
+    width:100%; text-align:left; display:flex; gap:12px; align-items:baseline;
+    background:none; border:none; border-radius:9px; color:var(--text); font:inherit; padding:9px 12px; cursor:pointer;
+  }
+  .mitem:hover{background:var(--surface)}
+  .mitem .mn{color:var(--faint); font-size:12.5px; font-variant-numeric:tabular-nums; min-width:26px}
+  .mitem.sec{font-weight:600; margin-top:6px}
+  .mitem.sec .mn{color:var(--accent)}
+  .mitem.cur{background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--border)}
+  .hint{position:fixed; bottom:70px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--faint); z-index:40; pointer-events:none; transition:opacity .5s}
+  @media (max-width:600px){.hint{display:none}}
+</style>
+<style>
+  /* ================================================================
+     v2 presentation layer — layout, visuals, popover polish
+     ================================================================ */
+  :root{--hl-kw:var(--c-purple);--hl-str:var(--c-green);--hl-com:var(--faint);--hl-num:var(--c-amber);--hl-fn:var(--c-blue);--hl-attr:var(--c-teal);--hl-bi:var(--c-orange)}
+  [data-accent="orange"]{--a:var(--c-orange)} [data-accent="teal"]{--a:var(--c-teal)} [data-accent="purple"]{--a:var(--c-purple)}
+  [data-accent="green"]{--a:var(--c-green)} [data-accent="blue"]{--a:var(--c-blue)} [data-accent="pink"]{--a:var(--c-pink)}
+  [data-accent="red"]{--a:var(--c-red)} [data-accent="amber"]{--a:var(--c-amber)}
+
+  #progress{background:var(--a,var(--accent)); box-shadow:0 0 12px color-mix(in srgb,var(--a,var(--accent)) 60%,transparent)}
+  .brand .dot{background:var(--a,var(--accent)); transition:background .3s}
+  .deck{box-shadow:var(--shadow-lg)}
+  .slide .inner{position:relative; padding:36px 44px}
+  .slide .inner > *{position:relative}
+
+  /* ---------- Progressive build-in ---------- */
+  .slide:not([hidden]) .stagger > *,
+  .slide:not([hidden]) .help-list-item{animation:rise .6s cubic-bezier(.16,1,.3,1) both; animation-delay:calc(var(--i,0) * 70ms + 120ms)}
+  @keyframes rise{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+
+  /* ---------- Cover / hero ---------- */
+  #cover .inner.hero{max-width:1300px; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); align-items:center; gap:24px 40px}
+  .hero-copy .num{display:inline-flex; align-items:center; gap:10px; padding:6px 14px; border-radius:999px; background:color-mix(in srgb,var(--local-accent) 12%,transparent); border:1px solid color-mix(in srgb,var(--local-accent) 35%,transparent)}
+  .hero-copy .num::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--local-accent); box-shadow:0 0 0 4px color-mix(in srgb,var(--local-accent) 22%,transparent)}
+  .hero h1{font-size:clamp(40px,6.2vw,80px); line-height:1; margin:18px 0 22px; letter-spacing:-.035em;
+    background:linear-gradient(100deg,var(--text) 0%,var(--text) 40%,var(--local-accent) 75%,var(--c-purple) 100%); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero h1::after{content:""; display:block; width:88px; height:5px; border-radius:5px; margin-top:22px; background:linear-gradient(90deg,var(--local-accent),var(--c-purple))}
+  .hero .lead{font-size:clamp(18px,2.2vw,26px); line-height:1.4; font-weight:500; max-width:28ch; color:var(--text)}
+  #cover .hero .meta{letter-spacing:.2px; text-transform:none; font-size:13.5px; color:var(--muted); margin-top:26px; line-height:2.1}
+  kbd{display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:24px; padding:0 7px; margin:0 1px; border-radius:7px;
+    font:600 12px 'JetBrains Mono',ui-monospace,monospace; color:var(--text); background:var(--surface); border:1px solid var(--border); box-shadow:0 2px 0 var(--border); vertical-align:middle}
+  #cover .hero .src{grid-column:1 / -1; margin:6px 0 0; font-size:11.5px; opacity:.75}
+  .hero-art{width:100%; height:auto; max-height:430px; overflow:visible}
+  .hero-art .ln{fill:none; stroke:color-mix(in srgb,var(--text) 18%,transparent); stroke-width:2}
+  .hero-art .pulse{fill:none; stroke-width:3; stroke-linecap:round; stroke-dasharray:14 400; animation:flowdash 3.2s linear infinite}
+  .hero-art .route{animation:routeglow 6.4s ease-in-out infinite}
+  .hero-art .m{fill:var(--surface); stroke-width:2}
+  .hero-art .hb{opacity:.55}
+  .hero-art .router-ring{fill:none; stroke:var(--local-accent); stroke-width:2; opacity:.4; transform-origin:250px 200px; animation:ring 3s ease-out infinite}
+  @keyframes flowdash{from{stroke-dashoffset:414} to{stroke-dashoffset:0}}
+  @keyframes ring{from{transform:scale(1); opacity:.5} to{transform:scale(1.55); opacity:0}}
+  @keyframes routeglow{0%,100%{opacity:.35} 12%,30%{opacity:1}}
+
+  /* ---------- Part slides ---------- */
+  .part-mark{position:absolute!important; bottom:6px; right:28px; z-index:0; font-size:clamp(90px,13vw,170px); font-weight:700; line-height:1; letter-spacing:-.05em;
+    color:transparent; -webkit-text-stroke:1.5px color-mix(in srgb,var(--local-accent) 30%,transparent); pointer-events:none; user-select:none}
+  .part-grid{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:30px 40px; align-items:start}
+  .part-main > .num{display:inline-block; padding:5px 12px; border-radius:8px; background:color-mix(in srgb,var(--local-accent) 12%,transparent); margin-bottom:18px; font-size:12px}
+  .part-main > p:not(.num){color:var(--text); opacity:.88}
+  .pull{font-size:clamp(17px,1.9vw,22px)!important; line-height:1.4!important; color:var(--text)!important; opacity:1!important; font-weight:500;
+    border-left:4px solid var(--local-accent); padding:4px 0 4px 16px; margin:16px 0 18px!important}
+  .pull strong{color:var(--local-accent)!important}
+  .part-side{position:sticky; top:0; padding:20px; border-radius:16px; background:color-mix(in srgb,var(--local-accent) 5%,var(--surface-2)); border:1px solid color-mix(in srgb,var(--local-accent) 20%,var(--border))}
+  .side-label{display:flex; align-items:center; justify-content:space-between; font-size:11.5px!important; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--local-accent)!important; margin:0 0 12px!important}
+  .side-label .cnt{letter-spacing:0; font-size:11.5px; padding:3px 9px; border-radius:999px; background:color-mix(in srgb,var(--local-accent) 15%,transparent)}
+  .part-side > p:not(.side-label){font-size:14.5px; color:var(--muted); margin-bottom:12px}
+
+  /* deep-dive cards */
+  .part-side .help-list{margin:0; gap:10px; max-width:none}
+  .part-side .help-list-item{position:relative; align-items:center; gap:14px; padding:14px 14px 14px 14px; cursor:pointer;
+    background:var(--surface); border:1px solid var(--border); border-radius:13px; box-shadow:var(--shadow);
+    transition:transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s, border-color .2s}
+  .part-side .help-list-item:hover,.part-side .help-list-item:focus-within{transform:translateY(-2px); border-color:color-mix(in srgb,var(--local-accent) 60%,var(--border)); box-shadow:var(--shadow-lg)}
+  .help-list-item .dd-disc{flex:none; width:36px; height:36px; padding:0; border-radius:11px; display:grid; place-items:center; font-size:14px; font-weight:700;
+    color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 14%,transparent); border:1px solid color-mix(in srgb,var(--local-accent) 30%,transparent); font-variant-numeric:tabular-nums}
+  .help-list-item .dd-body{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; padding:0}
+  .help-list-item .dd-body .dd-title{font-size:clamp(14px,1.3vw,16px); font-weight:600; line-height:1.35; color:var(--text); padding:0}
+  .help-list-item .dd-body .dd-meta{font-size:11.5px; font-weight:600; letter-spacing:.6px; text-transform:uppercase; color:var(--faint); padding:0; transition:color .2s}
+  .help-list-item:hover .dd-meta{color:var(--local-accent)}
+  .part-side .help-btn{order:3; width:32px; height:32px; transform:none!important; position:static}
+  .part-side .help-btn::after{content:""; position:absolute; inset:0; border-radius:13px}
+  .part-side .help-btn svg{width:15px; height:15px; transition:transform .2s}
+  .part-side .help-list-item:hover .help-btn{background:var(--local-accent); color:var(--surface)}
+  .part-side .help-list-item:hover .help-btn svg{transform:translateX(2px)}
+
+  /* Static vs Dynamic */
+  .versus{display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:stretch; gap:10px; margin:12px 0 16px}
+  .versus .note{margin:0; display:flex; flex-direction:column}
+  .vs-static{border-left-color:var(--c-red)!important; background:color-mix(in srgb,var(--c-red) 5%,var(--surface-2))!important}
+  .vs-static .tag{color:var(--c-red)!important}
+  .vs-dynamic{background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))!important; box-shadow:0 0 0 1px color-mix(in srgb,var(--local-accent) 30%,transparent),var(--shadow-lg)!important}
+  .vs-badge{align-self:center; width:40px; height:40px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:800; letter-spacing:1px;
+    color:var(--surface); background:linear-gradient(135deg,var(--c-red),var(--local-accent)); box-shadow:var(--shadow)}
+
+  /* Part 05 tiles */
+  ol.tiles{list-style:none; padding:0; margin:12px 0 4px; display:grid; gap:10px; counter-reset:tile; max-width:none}
+  ol.tiles li{counter-increment:tile; position:relative; margin:0; padding:14px 16px 14px 62px; border-radius:13px; background:var(--surface-2); border:1px solid var(--border); color:var(--muted); box-shadow:var(--shadow)}
+  ol.tiles li::before{content:counter(tile,decimal-leading-zero); position:absolute; left:14px; top:50%; transform:translateY(-50%); width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+    font-weight:700; font-size:13px; color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 14%,transparent)}
+  ol.tiles li strong{display:block; font-size:1.06em; color:var(--text); margin-bottom:2px}
+
+  /* ---------- Flow diagrams (built from the note text) ---------- */
+  .note{container-type:inline-size}
+  .flow{display:flex; align-items:stretch; margin:8px 0 12px}
+  .flow-node{flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px 10px; border-radius:11px;
+    background:var(--surface); border:1px solid var(--border); font-size:12.5px; font-weight:600; line-height:1.3; color:var(--text); box-shadow:var(--shadow);
+    animation:rise .5s cubic-bezier(.16,1,.3,1) both; animation-delay:calc(var(--i,0) * 110ms + 250ms)}
+  .flow-node.key{border-color:var(--local-accent); color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 11%,var(--surface))}
+  .flow-arrow{flex:0 0 26px; align-self:center; position:relative; height:2px; background:color-mix(in srgb,var(--local-accent) 45%,transparent); overflow:visible}
+  .flow-arrow::after{content:""; position:absolute; right:-1px; top:-4px; border:5px solid transparent; border-left:7px solid color-mix(in srgb,var(--local-accent) 70%,transparent); border-right:0}
+  .flow-arrow i{position:absolute; top:-2px; left:0; width:6px; height:6px; border-radius:50%; background:var(--local-accent); animation:travel 1.8s ease-in-out infinite; animation-delay:calc(var(--i,0) * 220ms)}
+  @keyframes travel{0%{left:0; opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{left:calc(100% - 6px); opacity:0}}
+  @container (max-width:540px){
+    .flow{flex-direction:column; align-items:stretch}
+    .flow-arrow{flex:0 0 20px; width:2px; height:auto; align-self:center}
+    .flow-arrow::after{right:auto; top:auto; bottom:-1px; left:-4px; border:5px solid transparent; border-top:7px solid color-mix(in srgb,var(--local-accent) 70%,transparent); border-bottom:0}
+    .flow-arrow i{left:-2px; animation-name:travelY}
+  }
+  @keyframes travelY{0%{top:0; opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{top:calc(100% - 6px); opacity:0}}
+  .flow-caption{font-size:12.5px!important; color:var(--faint)!important; margin:0!important; font-style:italic}
+  .flow-caption strong{color:var(--muted)!important}
+  p.quote.flow-caption{border:none; padding:0}
+
+  /* figure + lightbox */
+  .fig{margin:4px 0 6px}
+  .fig-btn{appearance:none; display:block; width:100%; padding:10px; border-radius:14px; cursor:zoom-in; background:#fff; border:1px solid var(--border); box-shadow:var(--shadow); position:relative; transition:box-shadow .2s, transform .2s}
+  .fig-btn:hover{box-shadow:var(--shadow-lg); transform:translateY(-1px)}
+  .fig-btn:focus-visible{outline:2px solid var(--local-accent); outline-offset:3px}
+  .fig-btn img{display:block; width:100%; height:auto; border-radius:6px}
+  .fig-btn .zoom{position:absolute; right:10px; bottom:10px; width:30px; height:30px; border-radius:9px; display:grid; place-items:center; background:var(--local-accent); color:#fff; font-size:15px; box-shadow:var(--shadow)}
+  .lightbox{position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center; padding:70px 20px 30px; background:color-mix(in srgb,var(--bg) 88%,transparent); backdrop-filter:blur(10px); cursor:zoom-out; animation:helpPop .25s ease}
+  .lightbox[hidden]{display:none}
+  .lightbox img{max-width:min(1500px,100%); max-height:100%; border-radius:12px; background:#fff; padding:14px; box-shadow:var(--shadow-lg)}
+  .lightbox .help-popover-close{position:fixed; top:16px; right:18px; --pop-accent:var(--a,var(--accent))}
+
+  /* ---------- Deep-dive popover ---------- */
+  .help-popover-close{position:static; flex:none}
+  .pop-head{flex:none; display:flex; align-items:center; gap:14px; padding:12px 14px 12px 22px; border-bottom:1px solid var(--border); background:color-mix(in srgb,var(--surface) 86%,transparent); backdrop-filter:blur(8px); z-index:2}
+  .pop-crumb{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
+  .pop-part{font-size:11.5px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--pop-accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .pop-count{font-size:12.5px; color:var(--faint); font-variant-numeric:tabular-nums}
+  .pop-pips{display:flex; gap:5px; margin-top:3px}
+  .pop-pips i{width:18px; height:4px; border-radius:4px; background:var(--border); transition:background .2s,width .2s}
+  .pop-pips i.on{background:var(--pop-accent); width:30px}
+  .pop-nav{display:flex; gap:8px}
+  .pop-nav .btn:disabled{opacity:.4; cursor:default; border-color:var(--border)}
+  .pop-progress{flex:none; height:3px; background:color-mix(in srgb,var(--pop-accent) 12%,transparent)}
+  .pop-progress i{display:block; height:100%; width:0; background:var(--pop-accent); transition:width .1s linear}
+  .help-popover-body{padding:34px 28px 56px; scroll-behavior:smooth}
+  .help-popover-body:focus{outline:none}
+  .help-popover-body .inner{max-width:900px}
+  .help-popover-body .inner > *{animation:rise .5s cubic-bezier(.16,1,.3,1) both}
+  .help-popover-body h2{font-size:clamp(25px,3.2vw,40px); padding-bottom:16px; margin-bottom:22px; border-bottom:1px solid var(--border); position:relative}
+  .help-popover-body h2::after{content:""; position:absolute; left:0; bottom:-2px; width:72px; height:3px; border-radius:3px; background:var(--pop-accent)}
+  .help-popover-body h3{display:flex; align-items:center; gap:10px; font-size:clamp(17px,1.9vw,22px); margin-top:30px}
+  .help-popover-body h3::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--pop-accent); transform:rotate(45deg)}
+  .help-popover-body p,.help-popover-body ul,.help-popover-body ol{max-width:72ch}
+  .help-popover-body li::marker{color:var(--pop-accent); font-weight:700}
+  @media (max-width:600px){.pop-nav .lbl{display:none} .help-popover-body{padding:24px 16px 40px} .pop-head{padding-left:14px}}
+
+  /* labelled paragraphs */
+  .eyebrow-p{margin-top:22px!important}
+  .eyebrow-p strong{display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--local-accent)!important}
+  .eyebrow-p strong::before{content:""; width:16px; height:2px; background:currentColor}
+  .lbl-problem,.lbl-static,.lbl-dynamic,.lbl-result{padding:12px 16px; border-radius:11px; border:1px solid var(--border); background:var(--surface-2)}
+  .lbl-problem{border-left:4px solid var(--c-amber)} .lbl-problem > strong:first-child{color:var(--c-amber)}
+  .lbl-static{border-left:4px solid var(--c-red)} .lbl-static > strong:first-child{color:var(--c-red)}
+  .lbl-dynamic{border-left:4px solid var(--c-green)} .lbl-dynamic > strong:first-child{color:var(--c-green)}
+  .lbl-result{border-left:4px solid var(--local-accent); background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))}
+  .lbl-result > strong:first-child{color:var(--local-accent)}
+  p.lbl-dynamic:only-child,p.lbl-static:only-child{padding:0; border:none; background:none}
+
+  /* example cards & callouts */
+  .note.example{border-left-color:var(--local-accent); background:linear-gradient(180deg,color-mix(in srgb,var(--local-accent) 6%,var(--surface-2)),var(--surface-2))}
+  .note.example .tag{color:var(--local-accent); display:inline-flex; align-items:center; gap:8px}
+  .note.example .tag::before{content:"</>"; font:700 11px 'JetBrains Mono',monospace; padding:3px 6px; border-radius:6px; background:var(--local-accent); color:var(--surface); letter-spacing:0}
+  .quote.callout{border-left:none; padding:12px 16px 12px 46px; border-radius:11px; background:var(--surface); border:1px dashed color-mix(in srgb,var(--local-accent) 45%,var(--border)); position:relative; font-size:clamp(13.5px,1.35vw,16px)}
+  .quote.callout::before{content:"⇢"; position:absolute; left:14px; top:11px; font-size:20px; color:var(--local-accent); line-height:1}
+
+  /* steppers */
+  ol.steps,.steps-p{position:relative; list-style:none; padding-left:0; counter-reset:st}
+  ol.steps > li,.steps-p > p{counter-increment:st; position:relative; padding:2px 0 14px 50px; margin:0}
+  .steps-p > ul{margin:-6px 0 14px 50px; padding:12px 16px 4px 34px; border-radius:11px; background:var(--surface-2); border:1px solid var(--border)}
+  ol.steps > li::before{content:counter(st); position:absolute; left:0; top:0; width:32px; height:32px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:14px;
+    color:var(--local-accent); background:var(--surface); border:2px solid var(--local-accent); box-shadow:0 0 0 5px color-mix(in srgb,var(--local-accent) 12%,transparent); z-index:1}
+  .steps-p > p::before{content:""; position:absolute; left:9px; top:4px; width:14px; height:14px; border-radius:50%; background:var(--local-accent); box-shadow:0 0 0 5px color-mix(in srgb,var(--local-accent) 16%,transparent); z-index:1}
+  ol.steps::before,.steps-p::before{content:""; position:absolute; left:15px; top:16px; bottom:24px; width:2px; background:linear-gradient(var(--local-accent),color-mix(in srgb,var(--local-accent) 15%,transparent))}
+
+  /* param grid (a/b/c/d) */
+  .param-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:6px 0 18px; max-width:880px}
+  .param-grid p{margin:0; padding:14px 16px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); border-top:3px solid var(--local-accent); max-width:none}
+  .param-grid p code{display:inline-block; margin-top:6px}
+  @media (max-width:600px){.param-grid{grid-template-columns:1fr}}
+
+  /* tables */
+  .tbl{box-shadow:var(--shadow); background:var(--surface)}
+  table tr:nth-child(odd) td{background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
+  table tr:hover td{background:color-mix(in srgb,var(--local-accent) 7%,transparent)}
+  th{font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--local-accent)!important; background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))!important}
+  td:first-child strong{color:var(--text)}
+  .tier-table tr td:first-child{border-left:4px solid var(--tc,transparent)}
+  .tier-table tr:nth-child(2){--tc:var(--c-purple)} .tier-table tr:nth-child(3){--tc:var(--c-teal)}
+  .tier-table tr:nth-child(4){--tc:var(--c-pink)} .tier-table tr:nth-child(5){--tc:var(--c-amber)}
+
+  /* code blocks */
+  .code-wrap{position:relative; margin:8px 0 18px; border-radius:12px; overflow:hidden; border:1px solid color-mix(in srgb,var(--local-accent) 22%,var(--border)); box-shadow:var(--shadow)}
+  .code-wrap pre{margin:0; border:none; border-radius:0; border-left:3px solid var(--local-accent)}
+  .code-bar{display:flex; align-items:center; gap:10px; padding:7px 10px 7px 14px; background:color-mix(in srgb,var(--local-accent) 10%,var(--code-bg)); border-bottom:1px solid color-mix(in srgb,var(--local-accent) 18%,var(--border))}
+  .code-bar .dots{display:flex; gap:5px} .code-bar .dots i{width:9px; height:9px; border-radius:50%; background:var(--border)}
+  .code-bar .dots i:nth-child(1){background:#ff5f57} .code-bar .dots i:nth-child(2){background:#febc2e} .code-bar .dots i:nth-child(3){background:#28c840}
+  .code-bar .lang{flex:1; font:600 11px 'JetBrains Mono',monospace; letter-spacing:1px; text-transform:uppercase; color:var(--muted)}
+  .copy-btn{appearance:none; font:600 11.5px 'IBM Plex Sans',sans-serif; padding:5px 10px; border-radius:7px; cursor:pointer; color:var(--text); background:var(--surface); border:1px solid var(--border)}
+  .copy-btn:hover{border-color:var(--local-accent); color:var(--local-accent)}
+  .copy-btn.ok{background:var(--c-green); border-color:var(--c-green); color:#fff}
+  .hljs-keyword,.hljs-literal,.hljs-meta{color:var(--hl-kw); font-weight:500}
+  .hljs-string{color:var(--hl-str)}
+  .hljs-comment{color:var(--hl-com); font-style:italic}
+  .hljs-number{color:var(--hl-num)}
+  .hljs-title,.hljs-title.function_,.hljs-function .hljs-title{color:var(--hl-fn)}
+  .hljs-attr,.hljs-property,.hljs-params{color:var(--hl-attr)}
+  .hljs-built_in,.hljs-type{color:var(--hl-bi)}
+  .hljs-subst{color:inherit}
+
+  /* ---------- Data visuals ---------- */
+  .viz{margin:12px 0 18px; padding:16px 18px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow); max-width:860px}
+  .viz-h{font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--faint); margin-bottom:10px; display:flex; justify-content:space-between; gap:10px}
+  .viz-row{display:grid; grid-template-columns:80px minmax(0,1fr); align-items:center; gap:12px; margin:8px 0}
+  .viz-lbl{font-size:12.5px; font-weight:600; color:var(--muted)}
+  .split{display:flex; height:34px; border-radius:9px; overflow:hidden; background:var(--surface-2); gap:2px}
+  .seg{width:var(--w); background:var(--c); color:#fff; display:flex; align-items:center; gap:6px; padding:0 10px; font-size:12px; white-space:nowrap; overflow:hidden; transform-origin:left; animation:grow .9s cubic-bezier(.16,1,.3,1) both .2s}
+  :root[data-theme="dark"] .seg{color:#0b1118}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg{color:#0b1118}}
+  .bar{position:relative; height:30px; border-radius:9px; background:var(--surface-2); display:flex; align-items:center}
+  .bar i{display:block; height:100%; width:var(--w); border-radius:9px; background:var(--c); transform-origin:left; animation:grow 1s cubic-bezier(.16,1,.3,1) both .35s}
+  .bar b{position:absolute; left:calc(var(--w) + 10px); font-size:14px; color:var(--text); font-variant-numeric:tabular-nums}
+  .bar.full b{left:auto; right:10px; color:#fff}
+  :root[data-theme="dark"] .bar.full b{color:#0b1118}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bar.full b{color:#0b1118}}
+  @keyframes grow{from{transform:scaleX(0)} to{transform:none}}
+  .legend{display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:10px; font-size:12px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .legend span::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--c)}
+  .delta{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; color:var(--c-green); background:color-mix(in srgb,var(--c-green) 14%,transparent)}
+  .lat-row{display:grid; grid-template-columns:120px minmax(0,1fr); gap:12px; align-items:center; margin:9px 0}
+  .lat-name{font-size:12.5px; font-weight:600; color:var(--text); line-height:1.2}
+  .lat-name small{display:block; font-weight:500; color:var(--faint); font-size:11px}
+  .lat-track{position:relative; height:22px; border-radius:6px; background:repeating-linear-gradient(90deg,var(--surface-2) 0 calc(20% - 1px),var(--border) calc(20% - 1px) 20%)}
+  .lat-track i{position:absolute; top:3px; bottom:3px; left:var(--l); width:var(--w); border-radius:5px; background:var(--c); transform-origin:left; animation:grow .9s cubic-bezier(.16,1,.3,1) both .25s}
+  .lat-track i.open{background:linear-gradient(90deg,var(--c) 60%,transparent)}
+  .lat-axis{display:grid; grid-template-columns:120px minmax(0,1fr); gap:12px}
+  .lat-axis div{display:flex; justify-content:space-between; font:500 10.5px 'JetBrains Mono',monospace; color:var(--faint)}
+  @media (max-width:600px){.lat-row,.lat-axis{grid-template-columns:84px minmax(0,1fr)} .viz-row{grid-template-columns:64px minmax(0,1fr)}}
+
+  /* ---------- Chrome: dots, keys overlay, menu ---------- */
+  .dots-nav{display:flex; align-items:center; gap:7px}
+  .dot-btn{appearance:none; border:none; padding:0; width:9px; height:9px; border-radius:99px; cursor:pointer; background:color-mix(in srgb,var(--a) 30%,var(--border)); transition:width .3s cubic-bezier(.16,1,.3,1), background .3s}
+  .dot-btn:hover{background:var(--a)}
+  .dot-btn.cur{width:28px; background:var(--a)}
+  .dot-btn:focus-visible{outline:2px solid var(--a); outline-offset:3px}
+  @media (max-width:520px){.dots-nav{display:none}}
+  .keys{position:fixed; inset:0; z-index:110; display:flex; align-items:center; justify-content:center; padding:20px; background:color-mix(in srgb,var(--bg) 80%,transparent); backdrop-filter:blur(8px)}
+  .keys[hidden]{display:none}
+  .keys-card{width:min(440px,100%); padding:24px 26px; border-radius:16px; background:var(--surface); border:1px solid var(--border); border-top:4px solid var(--a,var(--accent)); box-shadow:var(--shadow-lg); animation:helpPop .25s ease}
+  .keys-card h2{font-size:20px; color:var(--text); margin-bottom:14px}
+  .keys-card dl{display:grid; grid-template-columns:auto 1fr; gap:10px 18px; margin:0; font-size:14px; color:var(--muted); align-items:center}
+  .keys-card dt{white-space:nowrap}
+  .keys-card dd{margin:0}
+  .mitem .mn{color:var(--a,var(--faint))}
+  .msub{list-style:none; margin:0 0 8px 38px; padding:0 0 0 12px; border-left:2px solid color-mix(in srgb,var(--a) 35%,var(--border))}
+  .msub .mitem{padding:6px 10px; font-size:13.5px; color:var(--muted)}
+  .msub .mitem:hover{color:var(--text)}
+  .mlist{grid-template-columns:1fr 1fr}
+  .mlist > li{break-inside:avoid}
+
+  code,pre{font-variant-ligatures:none}
+  .versus code{box-decoration-break:clone; -webkit-box-decoration-break:clone}
+  .mlist > li .mitem.sec .mn{color:var(--a)}
+  @media (max-width:600px){.brand span{display:none} #keysBtn{display:none}}
+
+  /* ---------- Small screens: let slides flow ---------- */
+  @media (max-width:900px){
+    .slide .inner{aspect-ratio:auto; max-height:none; overflow:visible; padding:26px 22px}
+    .part-grid,#cover .inner.hero{grid-template-columns:1fr}
+    .part-side{position:static}
+    .hero-art{max-height:240px; order:-1}
+    .versus{grid-template-columns:1fr} .vs-badge{justify-self:center}
+    .part-mark{display:none}
+  }
+  @media (max-width:600px){.slide{padding:16px 10px 20px}}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important; transition:none!important}
+    .help-popover-body{scroll-behavior:auto}
+  }
+</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<div id="progress"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <b>Input Quality Fundamentals</b>
+    <span>· AWS Generative AI · Ch.01</span>
+  </div>
+  <div class="tools">
+    <button class="btn" id="menuBtn" aria-haspopup="true">☰ Contents</button>
+    <button class="btn icon" id="keysBtn" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">⌨</button>
+    <button class="btn icon" id="fsBtn" title="Fullscreen (F)" aria-label="Toggle fullscreen">⛶</button>
+    <button class="btn icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+  </div>
+</header>
+
+<main class="deck" id="deck">
+
+  <!-- Cover -->
+  <section class="slide divider" id="cover" data-accent="orange" data-title="Input Quality Fundamentals" data-section="true">
+    <div class="inner hero">
+      <div class="hero-copy stagger">
+      <p class="num">Course 03 · Chapter 01</p>
+      <h1>Input Quality Fundamentals</h1>
+      <p class="meta"><kbd>←</kbd> <kbd>→</kbd> or <kbd>Space</kbd> to navigate · Press <kbd>C</kbd> for contents · <kbd>T</kbd> for theme</p>
+      </div>
+      <svg class="hero-art" viewBox="0 0 520 400" aria-hidden="true" focusable="false">
+        <defs><radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--c-orange)" stop-opacity=".35"/><stop offset="1" stop-color="var(--c-orange)" stop-opacity="0"/></radialGradient></defs>
+        <circle cx="250" cy="200" r="120" fill="url(#rg)"/>
+        <path class="ln" d="M70 200 H204"/>
+        <path class="ln" d="M296 200 C360 200 360 70 410 70"/><path class="ln" d="M296 200 C360 200 360 157 410 157"/>
+        <path class="ln" d="M296 200 C360 200 360 243 410 243"/><path class="ln" d="M296 200 C360 200 360 330 410 330"/>
+        <path class="pulse" stroke="var(--c-orange)" d="M70 200 H204"/>
+        <g class="route" style="animation-delay:0s"><path class="pulse" stroke="var(--c-purple)" d="M296 200 C360 200 360 70 410 70"/><rect class="m" x="410" y="48" width="96" height="44" rx="12" stroke="var(--c-purple)"/><rect class="hb" x="426" y="63" width="50" height="5" rx="2.5" fill="var(--c-purple)"/><rect class="hb" x="426" y="74" width="32" height="5" rx="2.5" fill="var(--c-purple)"/></g>
+        <g class="route" style="animation-delay:1.6s"><path class="pulse" stroke="var(--c-teal)" d="M296 200 C360 200 360 157 410 157" style="animation-delay:.4s"/><rect class="m" x="410" y="135" width="96" height="44" rx="12" stroke="var(--c-teal)"/><rect class="hb" x="426" y="150" width="56" height="5" rx="2.5" fill="var(--c-teal)"/><rect class="hb" x="426" y="161" width="38" height="5" rx="2.5" fill="var(--c-teal)"/></g>
+        <g class="route" style="animation-delay:3.2s"><path class="pulse" stroke="var(--c-green)" d="M296 200 C360 200 360 243 410 243" style="animation-delay:.8s"/><rect class="m" x="410" y="221" width="96" height="44" rx="12" stroke="var(--c-green)"/><rect class="hb" x="426" y="236" width="44" height="5" rx="2.5" fill="var(--c-green)"/><rect class="hb" x="426" y="247" width="60" height="5" rx="2.5" fill="var(--c-green)"/></g>
+        <g class="route" style="animation-delay:4.8s"><path class="pulse" stroke="var(--c-blue)" d="M296 200 C360 200 360 330 410 330" style="animation-delay:1.2s"/><rect class="m" x="410" y="308" width="96" height="44" rx="12" stroke="var(--c-blue)"/><rect class="hb" x="426" y="323" width="52" height="5" rx="2.5" fill="var(--c-blue)"/><rect class="hb" x="426" y="334" width="30" height="5" rx="2.5" fill="var(--c-blue)"/></g>
+        <circle cx="52" cy="200" r="18" fill="var(--surface)" stroke="var(--c-orange)" stroke-width="2"/><circle cx="52" cy="200" r="6" fill="var(--c-orange)"/>
+        <circle class="router-ring" cx="250" cy="200" r="46"/>
+        <circle cx="250" cy="200" r="46" fill="var(--surface)" stroke="var(--c-orange)" stroke-width="2.5"/>
+        <path d="M232 188 h22 l-6 -6 M268 212 h-22 l6 6 M232 212 h10 M258 188 h10" stroke="var(--c-orange)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p class="src"><a href="https://www.meta.ai/prompt/d9e8bedb-759c-42bb-8435-f6828d828994">https://www.meta.ai/prompt/d9e8bedb-759c-42bb-8435-f6828d828994</a></p>
+    </div>
+  </section>
+
+  <!-- ===== PART 1: MULTI-TURN DIALOG FORMATTING ===== -->
+  <section class="slide divider" id="mtd" data-accent="orange" data-title="Part 01 · Multi-Turn Dialog Formatting Fundamentals" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">01</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 01 · Multi-Turn Dialog Formatting Fundamentals</p>
+      <p class="pull">In Amazon Bedrock, your <strong>Foundation Model [FM] performance is directly proportional to input quality.</strong> In a single-turn call, a bad prompt gives a bad answer. In a <strong>multi-turn dialog</strong>, a bad format corrupts the entire conversation history, increases token cost, and causes hallucinations.</p>
+      <p>Think of it like this: The FM doesn't have memory. We give it memory by sending the full conversation history on every turn via the <strong>Converse API</strong>. If that history is messy, the model's context understanding breaks.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <p>Here is the production-grade way to think about it:</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mtd-lead" aria-label="Open deep dive: 1. Common Input Quality Issues - The Silent Cost Driver">?</button><span>1. Common Input Quality Issues - The Silent Cost Driver</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mtd-structure" aria-label="Open deep dive: 2. Poor Structure Impact - Where Multi-Turn Fails">?</button><span>2. Poor Structure Impact - Where Multi-Turn Fails</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="mtd-clarity" aria-label="Open deep dive: 3. Prompt Clarity Requirements - Your Production Contract">?</button><span>3. Prompt Clarity Requirements - Your Production Contract</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 2: INPUT QUALITY IMPACT ===== -->
+  <section class="slide divider" id="iq" data-accent="teal" data-title="Part 02 · Input Quality Impact on Model Outputs" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">02</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 02 · Input Quality Impact on Model Outputs</p>
+      <p class="pull">This is the #1 lesson in production: <strong>Garbage In = Garbage Out, but at scale.</strong></p>
+      <p>A Foundation Model doesn't know what you <em>meant</em>, only what you <em>typed</em>. Vague inputs force the model to guess, which increases <strong>hallucination, token cost, and latency</strong>. Structured inputs give the model a clear inference path, producing comprehensive, accurate, and parseable responses.</p>
+      <p>In Bedrock terms: Prompt craftsmanship directly controls response value.</p>
+      <h3>The Input Quality Analysis Process - Production Method</h3>
+      <p>We teach teams to validate prompts using a 3-step loop, which we automate with <strong>Bedrock Prompt Management + Bedrock Model Evaluation</strong>.</p>
+      <div class="note"><p><strong>Prod-Level Example: We will use a real use-case - A FinOps Copilot built for a customer using Claude 3.5 Sonnet on Bedrock + Bedrock Knowledge Base connected to AWS Pricing docs.</strong></p></div>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="iq-lead" aria-label="Open deep dive: 1. Analyze Degraded Response Examples">?</button><span>1. Analyze Degraded Response Examples</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="iq-optimized" aria-label="Open deep dive: 2. Compare Optimized Input Examples">?</button><span>2. Compare Optimized Input Examples</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="iq-consistency" aria-label="Open deep dive: 3. Evaluate Consistency Improvements">?</button><span>3. Evaluate Consistency Improvements</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 3: CONSISTENCY AND RELIABILITY ===== -->
+  <section class="slide divider" id="cr" data-accent="purple" data-title="Part 03 · Consistency and Reliability Considerations" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">03</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 03 · Consistency and Reliability Considerations</p>
+      <p class="pull">In Bedrock, reliability is not just about the Foundation Model you choose. It's about how you control what goes <em>into</em> the model. We ensure this with 4 pillars: Standardization, Measurement, Control, and Monitoring.</p>
+      <div class="note"><p><strong>Prod-Level Example we will use:</strong> A <strong>Telecom Billing Copilot</strong> built for a customer using <strong>Claude 3.5 Sonnet on Amazon Bedrock + Bedrock Knowledge Bases</strong> [for plan data] + <strong>Bedrock Agents</strong> [to check bill]. It handles 100K+ conversations per day. Consistency is non-negotiable.</p></div>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cr-lead" aria-label="Open deep dive: 1. Response Consistency Factors">?</button><span>1. Response Consistency Factors</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cr-measure" aria-label="Open deep dive: 2. Reliability Measurement Approaches">?</button><span>2. Reliability Measurement Approaches</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cr-control" aria-label="Open deep dive: 3. Quality Control Implementation">?</button><span>3. Quality Control Implementation</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cr-monitor" aria-label="Open deep dive: 4. Performance Monitoring">?</button><span>4. Performance Monitoring</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 4: SHIFT-LEFT BEST PRACTICES ===== -->
+  <section class="slide divider" id="sl" data-accent="green" data-title="Part 04 · Implementation Best Practices - The Shift-Left Approach" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">04</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 04 · Implementation Best Practices - The Shift-Left Approach</p>
+      <p class="pull">Think of prompt and input quality like database schema. If you design it poorly at the start, every downstream service suffers - inaccurate responses, high hallucination rate, inconsistent JSON, and broken user experience. In Bedrock, that downstream impact is token cost and failed Agent tool calls.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sl-lead" aria-label="Open deep dive: 1. Establish Input Quality Standards Early">?</button><span>1. Establish Input Quality Standards Early</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="sl-test" aria-label="Open deep dive: 2. Test Improvements With Representative Data BEFORE Production">?</button><span>2. Test Improvements With Representative Data BEFORE Production</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Help popover: full-viewport overlay (kept outside the deck so it can't be clipped/trapped) -->
+<div class="help-popover" id="helpPop" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
+  <div class="pop-head">
+    <div class="pop-crumb"><span class="pop-part" id="popPart"></span><span class="pop-count" id="popCount"></span><span class="pop-pips" id="popPips" aria-hidden="true"></span></div>
+    <div class="pop-nav">
+      <button class="btn" id="popPrev" type="button" aria-label="Previous deep dive">← <span class="lbl">Prev</span></button>
+      <button class="btn" id="popNext" type="button" aria-label="Next deep dive"><span class="lbl">Next</span> →</button>
+    </div>
+    <button class="help-popover-close" id="helpClose" type="button" aria-label="Close deep dive">&times;</button>
+  </div>
+  <div class="pop-progress" aria-hidden="true"><i id="popProg"></i></div>
+  <div class="help-popover-body" id="helpBody" tabindex="-1"></div>
+</div>
+
+<!-- Deep-dive content (verbatim copies of the source sub-sections) -->
+
+
+  <!-- ===== PART 1 DIVES ===== -->
+  <template id="help-mtd-lead">
+    <div class="inner">
+      <h2>1. Common Input Quality Issues - The Silent Cost Driver</h2>
+      <p>FMs are highly sensitive to tokenization. Small inconsistencies change how text is tokenized and interpreted.</p>
+      <p><strong>A. Inconsistent Formatting</strong></p>
+      <p>In production, this creates unpredictable behavior and makes your application non-deterministic.</p>
+      <ul>
+        <li><strong>Mixed capitalization &amp; spacing:</strong> <code>ORDER id 12345</code> vs <code>order ID: 12345</code> can be tokenized differently, breaking entity extraction.</li>
+        <li><strong>Inconsistent date formats:</strong> <code>01/02/2025</code> vs <code>2025-02-01</code> - Is it Jan 2nd or Feb 1st? The model will guess.</li>
+        <li><strong>Variable naming conventions:</strong> Switching between <code>user_id</code>, <code>UserId</code>, and <code>userID</code> in the same conversation reduces comprehension accuracy.</li>
+      </ul>
+      <p><strong>B. Typographical &amp; Encoding Issues</strong></p>
+      <p>These compound quickly in multi-turn history.</p>
+      <ul>
+        <li>Spelling / Grammar errors alter semantic meaning</li>
+        <li>Character encoding issues and special character misuse corrupt text representation</li>
+      </ul>
+      <p><strong>Prod-Level Example - E-commerce Support Copilot on Bedrock:</strong></p>
+      <p>We built a returns assistant using <strong>Claude 3.5 Sonnet on Amazon Bedrock</strong> + <strong>Bedrock Knowledge Bases</strong> for order data.</p>
+      <p><strong>Anti-pattern we saw in logs:</strong></p>
+<pre><code>// Turn 1
+{ "role": "user", "content": "Wher is my order 12345???" }
+// Turn 2
+{ "role": "user", "content": "cancel it" }</code></pre>
+      <p>Result: Model failed. It didn't know what "it" was because we didn't pass proper history, and "Wher" + "???" lowered confidence on intent detection.</p>
+      <p><strong>Production fix using Converse API standard:</strong></p>
+<pre><code>{
+  "system": [{"text": "You are a shopping assistant. Use order tool to get facts. Be concise. Dates must be in YYYY-MM-DD format."}],
+  "messages": [
+    { "role": "user", "content": [{"text": "Where is my order ID 12345?"}] },
+    { "role": "assistant", "content": [{"text": "Order 12345 was shipped on 2026-10-05 and will arrive on 2026-10-09."}] },
+    { "role": "user", "content": [{"text": "I want to cancel order ID 12345"}] }
+  ]
+}</code></pre>
+      <p>We also added <strong>Amazon Bedrock Guardrails</strong> to auto-normalize typos, PII, and formatting before inference, so raw user input never directly hits the FM.</p>
+    </div>
+  </template>
+
+  <template id="help-mtd-structure">
+    <div class="inner">
+      <h2>2. Poor Structure Impact - Where Multi-Turn Fails</h2>
+      <p>In multi-turn, structure is everything. The model relies on role separation and context continuity.</p>
+      <p><strong>Production anti-patterns:</strong></p>
+      <ul>
+        <li><strong>Missing context:</strong> User says "What about the premium plan?" - Model has no product context from previous turns because you truncated history to save tokens.</li>
+        <li><strong>Ambiguous instructions:</strong> "Summarize it" - Summarize what? The last turn or the entire conversation?</li>
+        <li><strong>Incomplete information:</strong> User asks for loan eligibility without providing income, forcing the model to assume and hallucinate.</li>
+        <li><strong>Conflicting directives:</strong> System says "You are a banking assistant, never give financial advice" but user prompt in Turn 3 says "Give me stock tips."</li>
+      </ul>
+      <p><strong>AWS Architect's Solution:</strong></p>
+      <p>We use <strong>Bedrock Agents with explicit state management.</strong> Instead of dumping raw chat history, we maintain a <code>conversation_history</code> with clear <code>user</code> / <code>assistant</code> roles and a separate <code>session_attributes</code> object for facts.</p>
+      <p>For a Banking Assistant:<br>Bad structure: Sending 10 turns of chat as one big paragraph.<br>Good structure: Use Converse API roles, and when context window exceeds 70%, we summarize with a Bedrock summarization chain and store key slots like <code>account_id, intent, last_tool_result</code> in session attributes. This prevents the "model guessing intent" problem.</p>
+    </div>
+  </template>
+
+  <template id="help-mtd-clarity">
+    <div class="inner">
+      <h2>3. Prompt Clarity Requirements - Your Production Contract</h2>
+      <p>Clear prompts are not just good writing, they are your API contract with the FM. We manage this in <strong>Amazon Bedrock Prompt Management</strong> with versioning.</p>
+      <p>Every production prompt must have 4 components:</p>
+      <div class="param-grid">
+        <p><strong>a) Clear Task Definition:</strong> Specify the exact expected outcome.<br>Bad: "Help with returns"<br>Good: "Determine if order ID is eligible for return based on Knowledge Base policy and initiate return if eligible."</p>
+        <p><strong>b) Relevant Context:</strong> Provide only necessary background. Don't dump your entire product catalog.<br>Good: Use RAG - Retrieve from Bedrock Knowledge Bases and inject as: <code>&lt;context&gt; Order 12345 policy: 30-day return window &lt;/context&gt;</code></p>
+        <p><strong>c) Specific Instructions:</strong> Eliminate ambiguity with constraints.<br>Good: "If you don't find order ID, do NOT assume. Respond with: 'I could not find that order.'"</p>
+        <p><strong>d) Output Format Specification:</strong> Standardize response for downstream parsing.<br>Good: "Respond in JSON with keys: { \"eligible\": boolean, \"reason\": string, \"next_step\": string }"</p>
+      </div>
+      <p><strong>Final Production Checklist for Bedrock Builders:</strong></p>
+      <ol class="tiles">
+        <li><strong>Standardize with Converse API:</strong> Always use <code>system</code> for instructions, <code>messages</code> array with strict <code>user</code> / <code>assistant</code> roles. Never merge turns.</li>
+        <li><strong>Normalize Input:</strong> Put Guardrails in front for denormalization, PII redaction, and typo correction.</li>
+        <li><strong>Manage Context Window:</strong> Implement history truncation + summarization. Keep system prompt + last 3-5 turns + summary.</li>
+        <li><strong>Version Your Prompts:</strong> Use Bedrock Prompt Management, don't hardcode prompts in Lambda.</li>
+      </ol>
+      <p class="pull">In short: In prod, we don't treat prompts as text. We treat them as structured, versioned code. Clean input = predictable latency, lower token cost, and consistent accuracy.</p>
+    </div>
+  </template>
+
+  <!-- ===== PART 2 DIVES ===== -->
+  <template id="help-iq-lead">
+    <div class="inner">
+      <h2>1. Analyze Degraded Response Examples</h2>
+      <p>This is what happens when you send raw user intent without prompt engineering.</p>
+      <p><strong>Poor Input:</strong></p>
+      <p class="quote">"tell me about AWS Lambda pricing how much does it cost and what are the factors"</p>
+      <p><strong>Why it fails in production:</strong><br>The model has no task boundary, no context, and no output format. It has to decide what "factors" means. For Bedrock, this means unpredictable token usage and low confidence.</p>
+      <p><strong>Resulting degraded response characteristics we see in CloudWatch Logs:</strong></p>
+      <ul>
+        <li>Vague and unfocused answers - gives a generic paragraph about serverless</li>
+        <li>Missing critical pricing dimensions - forgets free tier, architecture-based pricing</li>
+        <li>Inconsistent structure - sometimes bulleted, sometimes paragraph, breaks your UI</li>
+        <li>Low confidence - cannot be used for automated FinOps reporting</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-iq-optimized">
+    <div class="inner">
+      <h2>2. Compare Optimized Input Examples</h2>
+      <p>This is the production fix. We apply the <strong>Instruction + Context + Input Data + Output Indicator</strong> framework.</p>
+      <p><strong>Optimized Input - Using Claude best practice with XML tags:</strong></p>
+      <div class="note">
+        <p>You are a FinOps assistant on Amazon Bedrock. Use only AWS official pricing context.</p>
+        <p>&lt;task&gt;<br>Explain AWS Lambda pricing structure<br>&lt;/task&gt;<br>&lt;requirements&gt;<br>1. Request charges per million invocations<br>2. Duration charges based on GB-seconds<br>3. Free tier allowances<br>4. Key cost drivers like memory, architecture [x86 vs Graviton], ephemeral storage<br>&lt;/requirements&gt;<br>&lt;output_format&gt;<br>Respond in a markdown table with 4 columns: Component | How it's Calculated | Free Tier | Example. Then give a cost estimate for: 1 million requests/month, 512 MB memory, 200ms avg duration.<br>&lt;/output_format&gt;</p>
+      </div>
+      <p><strong>Why this works in production:</strong></p>
+      <ol class="tiles">
+        <li><strong>Task is bounded:</strong> Model knows exactly what to do.</li>
+        <li><strong>Context is grounded:</strong> We tell it to use pricing docs from Knowledge Base, reducing hallucination.</li>
+        <li><strong>Output is deterministic:</strong> We force a table structure. Your frontend can parse it reliably. This is critical for <strong>Bedrock Agents</strong> that need to call tools.</li>
+      </ol>
+      <p>For the 1M requests example, the model now correctly calculates:<br><code>Monthly Cost = (Request Charge) + (Duration Charge) - Free Tier</code> and explains GB-seconds = Memory_GB * Duration_seconds. That's an actionable answer, not just text.</p>
+      <p>We store this as a versioned prompt in <strong>Bedrock Prompt Management</strong> as <code>finops/lambda-pricing-v3</code>.</p>
+    </div>
+  </template>
+
+  <template id="help-iq-consistency">
+    <div class="inner">
+      <h2>3. Evaluate Consistency Improvements</h2>
+      <p>This is where you move from a demo to a prod workload. One good answer is not enough. You need 1000 similar queries to return the same quality.</p>
+      <p><strong>When you standardize input formatting, you get:</strong></p>
+      <ul>
+        <li><strong>Standardized response formats:</strong> Every answer returns the same table + JSON, so your Lambda function downstream doesn't break. We enforce this with <code>inferenceConfig: { responseFormat: json }</code> in Converse API.</li>
+        <li><strong>Consistent terminology:</strong> Model always says "GB-seconds" and "invocations", not "compute time" or "calls" - crucial for enterprise search.</li>
+        <li><strong>Reliable accuracy:</strong> By adding grounding via Bedrock Knowledge Bases and <strong>Bedrock Guardrails</strong> to block out-of-scope questions, accuracy on pricing queries goes from ~65% to &gt;95% in our evaluations.</li>
+        <li><strong>Predictable structure for automation:</strong> Consistent output means you can automate cost alerting. If <code>cost &gt; threshold</code>, trigger an SNS alert.</li>
+      </ul>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>Accuracy on pricing queries</span></div>
+        <div class="viz-row"><span class="viz-lbl">Before</span><div class="bar" style="--w:65%"><i style="--c:var(--c-red)"></i><b>~65%</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">After</span><div class="bar" style="--w:95%"><i style="--c:var(--c-green)"></i><b>&gt;95%</b></div></div>
+      </div>
+      <p><strong>Architect's Production Checklist:</strong></p>
+      <p>Before you ship to production, run this in Bedrock:</p>
+      <ol class="steps">
+        <li><strong>Don't send raw user text.</strong> Wrap it in a prompt template with system instructions.</li>
+        <li><strong>Ground it.</strong> Connect to Knowledge Bases for factual data like pricing, don't rely on model memory.</li>
+        <li><strong>Evaluate it.</strong> Use Bedrock Model Evaluation to run 50 variations of the same intent - "Lambda cost", "how much Lambda", "price of Lambda function" - and ensure response structure is &gt;98% consistent.</li>
+      </ol>
+      <p class="pull"><strong>Bottom line:</strong> In Bedrock, you don't pay for the model, you pay for the tokens. A vague prompt = more output tokens to cover all possibilities + a retry. An optimized prompt = fewer input tokens, precise output tokens, and zero retries. That's how you control both quality and cost.</p>
+    </div>
+  </template>
+
+  <!-- ===== PART 3 DIVES ===== -->
+  <template id="help-cr-lead">
+    <div class="inner">
+      <h2>1. Response Consistency Factors</h2>
+      <p>FMs are pattern-matching engines. If you give them a consistent pattern, they give you a consistent response. We control this with low <strong>temperature</strong>.</p>
+      <p><strong>Input Standardization Elements:</strong></p>
+      <ul>
+        <li><strong>Consistent terminology:</strong> Always use <code>account_id</code>, not <code>account ID</code>, <code>AccountNumber</code>, <code>cust_id</code> across all prompts. The model learns one entity.</li>
+        <li><strong>Standardized formatting patterns:</strong> All billing queries use the same wrapper. For Claude, we use XML tags. For Bedrock Converse API, we always use <code>system</code> + <code>messages</code> roles.</li>
+        <li><strong>Regular prompt structure:</strong> The model can recognize intent faster if structure is fixed.</li>
+        <li><strong>Clear parameter specifications:</strong> Eliminate ambiguity that forces the model to guess.</li>
+      </ul>
+      <p><strong>Prod Implementation:</strong></p>
+      <p>We don't let developers write free-form prompts. We use <strong>Bedrock Prompt Management</strong> with a versioned template:</p>
+<pre><code>System: You are Telco Billing Assistant. Temperature=0. Use only Knowledge Base context.
+&lt;task&gt;Answer billing query for account_id: {{account_id}}&lt;/task&gt;
+&lt;context&gt;{{kb_retrieved_plans}}&lt;/context&gt;
+&lt;rules&gt; If bill amount &gt; $100, include payment link. Respond in JSON: {answer, amount_due, due_date} &lt;/rules&gt;</code></pre>
+      <p>Same customer asking "my bill?" or "how much do I owe for last month?" hits the same template. Result: Same JSON structure every time. Without this, one answer is a paragraph, the next is a table.</p>
+    </div>
+  </template>
+
+  <template id="help-cr-measure">
+    <div class="inner">
+      <h2>2. Reliability Measurement Approaches</h2>
+      <p>You can't improve what you don't measure. We measure reliability before we ship.</p>
+      <p><strong>Evaluation methods in Bedrock:</strong></p>
+      <ul>
+        <li><strong>A/B testing with different input quality:</strong> We test <code>Prompt V1 - Raw user query</code> vs <code>Prompt V3 - Standardized template</code> in <strong>Bedrock Model Evaluation</strong>. V3 typically improves accuracy by 30-40%.</li>
+        <li><strong>Response consistency scoring:</strong> Run the same standardized prompt 20 times at temperature 0. We expect &gt;98% exact match on structured fields. If not, your prompt is still ambiguous.</li>
+        <li><strong>Accuracy benchmarking:</strong> For the Telco bot, we have 200 golden Q&amp;A pairs like "What is the due date for account X?" We benchmark every new prompt version against it. No deployment if accuracy &lt; 95%.</li>
+        <li><strong>User satisfaction metrics:</strong> We capture thumbs up/down via CloudWatch. A drop in satisfaction is often traced back to a non-standard prompt that slipped into production.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-cr-control">
+    <div class="inner">
+      <h2>3. Quality Control Implementation</h2>
+      <p>This is your guardrail layer. You need automated checks <em>before</em> inference.</p>
+      <p><strong>Control mechanisms we implement in production:</strong></p>
+      <ul>
+        <li><strong>Input validation rules:</strong> A Lambda function in front of Bedrock validates <code>account_id</code> is 10 digits, date is YYYY-MM-DD. If not, we don't call the FM. We ask for clarification. Saves cost and prevents hallucination.</li>
+        <li><strong>Automated text cleaning:</strong> We use <strong>Bedrock Guardrails</strong> for this. It auto-corrects typos, removes PII, standardizes formatting, and blocks prompt injection. Raw chat "whr is my bIlL!!!! acc 123" becomes "Where is my bill for account 123" before it hits Claude.</li>
+        <li><strong>Template systems:</strong> As mentioned, <strong>Bedrock Prompt Management</strong> is mandatory. No hardcoded prompts in Lambda code. All teams use <code>prompt_id: telco-billing-v4</code> with variables. This enforces consistent structure across web, app, and IVR channels.</li>
+        <li><strong>Review processes:</strong> We have a prompt review pipeline. Any new prompt version goes through Model Evaluation + human review in Bedrock Prompt Management before being marked as <code>Production</code>.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-cr-monitor">
+    <div class="inner">
+      <h2>4. Performance Monitoring</h2>
+      <p>Your job doesn't end at deployment. Input quality drifts as users find new ways to ask questions.</p>
+      <p><strong>Monitoring approaches with AWS:</strong></p>
+      <ul>
+        <li><strong>Track response quality metrics over time:</strong> Dashboard in <strong>CloudWatch + Bedrock Model Invocation Logs</strong>. We track latency, token usage, and a custom metric <code>hallucination_rate</code> flagged by Guardrails.</li>
+        <li><strong>Analyze correlation:</strong> We found in the Telco bot that queries with no <code>account_id</code> had 4x higher failure rate. So we made <code>account_id</code> a mandatory slot in Bedrock Agent.</li>
+        <li><strong>Identify patterns:</strong> We log all interactions to S3 and analyze with Athena. Successful interactions all had &lt;200 tokens of Knowledge Base context and standardized dates. Unsuccessful ones had &gt;1000 tokens and mixed date formats.</li>
+        <li><strong>Implement feedback loops:</strong> When a user gives a thumbs down, that conversation is automatically fed back to our evaluation dataset. We refine the prompt template to handle that phrasing next time.</li>
+      </ul>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>Knowledge Base context tokens</span></div>
+        <div class="viz-row"><span class="viz-lbl">Successful</span><div class="bar" style="--w:20%"><i style="--c:var(--c-green)"></i><b>&lt;200</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">Unsuccessful</span><div class="bar full" style="--w:100%"><i style="--c:var(--c-red)"></i><b>&gt;1000</b></div></div>
+      </div>
+      <p><strong>Architect's Checklist for Production:</strong></p>
+      <ol class="steps">
+        <li>Set <code>temperature=0</code> and <code>top_p=1</code> for deterministic use cases like billing/support.</li>
+        <li>Never call Bedrock directly from frontend. Always front with Guardrails + validation Lambda.</li>
+        <li>Use Prompt Management for everything. Treat prompts like code.</li>
+        <li>Monitor not just model metrics, but <strong>input quality metrics</strong>: % of inputs failing validation, % needing text cleaning.</li>
+      </ol>
+      <p class="pull"><strong>Bottom line:</strong> A Foundation Model is only as reliable as your input pipeline. In production, 80% of the work is not the model, it's the standardization, quality control, and monitoring around it. That is what makes a demo into a 99.9% available Bedrock workload.</p>
+    </div>
+  </template>
+
+  <!-- ===== PART 4 DIVES ===== -->
+  <template id="help-sl-lead">
+    <div class="inner">
+      <h2>1. Establish Input Quality Standards Early</h2>
+      <p>Don't wait for UAT to define what a "good prompt" looks like. Define it in Sprint 0.</p>
+      <p><strong>What this means in production:</strong></p>
+      <ul>
+        <li><strong>One Prompt Contract:</strong> We create a single, versioned standard in <strong>Bedrock Prompt Management</strong>. Every team uses the same structure: <code>System Instruction + Context from Knowledge Base + User Query + Output Format</code>. No one writes raw prompts in Lambda.</li>
+        <li><strong>Data Standards:</strong> Dates are always YYYY-MM-DD. IDs are always validated. Terminology is fixed - it's <code>account_id</code>, not <code>account id</code> or <code>AccountNo</code>.</li>
+        <li><strong>Inference Standards:</strong> For factual workloads, we lock <code>temperature=0, top_p=1</code>. For creative, we document why temperature is higher.</li>
+      </ul>
+      <div class="note">
+        <p><strong>Prod-Level Example: Insurance Claims Assistant</strong></p>
+        <p>A customer built a claims copilot on <strong>Claude 3.5 Sonnet on Bedrock</strong>. Initially, each developer wrote their own prompt style. Result: The model sometimes returned a paragraph, sometimes JSON, breaking the UI.</p>
+        <p><strong>Fix:</strong> We established standards on Day 2:</p>
+        <ul>
+          <li>All inputs go through <strong>Bedrock Guardrails</strong> first for PII redaction and typo normalization</li>
+          <li>All multi-turn calls must use <strong>Bedrock Converse API</strong> with strict <code>system</code> / <code>user</code> / <code>assistant</code> roles</li>
+          <li>All prompts must use XML tags <code>&lt;task&gt;</code>, <code>&lt;context&gt;</code>, <code>&lt;rules&gt;</code>, <code>&lt;output_format&gt;</code></li>
+        </ul>
+        <p>Result: Variability in responses dropped by 80% before we even tuned the model.</p>
+      </div>
+      <div class="note tip"><p><strong>Architect's Rule:</strong> Consistent quality controls = consistent user experience. The customer doesn't see your prompt, but they feel its inconsistency.</p></div>
+    </div>
+  </template>
+
+  <template id="help-sl-test">
+    <div class="inner">
+      <h2>2. Test Improvements With Representative Data BEFORE Production</h2>
+      <p>Never test a prompt fix with 2-3 manual chats. Test it like code, with real-world data.</p>
+      <p><strong>Production testing loop we implement:</strong></p>
+      <div class="steps-p">
+        <p><strong>a) Build a Golden Dataset:</strong> Not synthetic data. We take 200 real, messy production logs - typos, mixed case, incomplete queries like "whr is my claim 123???", "cancel it", "my policy premium?".</p>
+        <p><strong>b) Test in Isolation with Bedrock Model Evaluation:</strong><br>Before deploying <code>prompt-v4</code>, we run A/B test:</p>
+        <ul>
+          <li>Prompt V3 vs Prompt V4</li>
+          <li>Against the same 200 golden queries</li>
+          <li>We measure: Accuracy, Format Adherence [% of responses in valid JSON], Hallucination Rate, and Token Usage.</li>
+        </ul>
+        <p><strong>c) Verify Performance Gains:</strong></p>
+      </div>
+      <div class="note">
+        <p><strong>Prod Example Continued:</strong><br>We improved the claims prompt to add: "If account_id is missing, do NOT guess. Ask for it."</p>
+        <p>We tested it with 100 queries where account_id was missing.</p>
+        <ul>
+          <li><strong>V3 - Old Prompt:</strong> Model hallucinated an account_id 65% of the time. High risk.</li>
+          <li><strong>V4 - New Prompt with quality control:</strong> Model correctly asked for account_id 100% of the time. Token usage went down 15% because it stopped generating fake justifications.</li>
+        </ul>
+      </div>
+      <p>Only after V4 passed evaluation in staging, we promoted it to Production in Prompt Management.</p>
+      <p><strong>Your Production Checklist:</strong></p>
+      <ol class="tiles">
+        <li><strong>Define Standards Early:</strong> Use Bedrock Prompt Management + Converse API schema from Day 1.</li>
+        <li><strong>Enforce Controls Automatically:</strong> Input validation Lambda + Guardrails for cleaning + Temperature=0 for determinism. Don't rely on humans to remember.</li>
+        <li><strong>Test Like Production:</strong> Use <strong>Bedrock Model Evaluation</strong> with your real noisy data, not perfect data. If it doesn't improve your golden dataset scores, don't ship it.</li>
+      </ol>
+      <p class="pull"><strong>Bottom line:</strong> In Bedrock workloads, input quality is not a prompt engineering task, it's an engineering discipline. Establish the contract early, enforce it with Guardrails, and prove it with evaluation. That is how you prevent downstream model failures and ship a reliable GenAI product.</p>
+    </div>
+  </template>
+
+
+<nav class="navbar">
+  <button class="btn" id="prevBtn" aria-label="Previous slide">← Prev</button>
+  <div class="counter"><b id="cur">1</b> / <span id="total">1</span></div>
+  <div class="dots-nav" id="dots" role="group" aria-label="Slides"></div>
+  <button class="btn" id="nextBtn" aria-label="Next slide">Next →</button>
+</nav>
+
+<div class="hint" id="hint">← → to move · C for contents · T for theme</div>
+
+<div class="keys" id="keys" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" hidden>
+  <div class="keys-card">
+    <h2>Keyboard shortcuts</h2>
+    <dl>
+      <dt><kbd>←</kbd> <kbd>→</kbd> <kbd>Space</kbd></dt><dd>Previous / next slide</dd>
+      <dt><kbd>Enter</kbd></dt><dd>Open the first deep dive</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>In a deep dive: previous / next dive</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Close deep dive or menu</dd>
+      <dt><kbd>C</kbd></dt><dd>Contents</dd>
+      <dt><kbd>T</kbd></dt><dd>Toggle theme</dd>
+      <dt><kbd>F</kbd></dt><dd>Fullscreen</dd>
+      <dt><kbd>?</kbd></dt><dd>This panel</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Diagram" hidden>
+  <button class="help-popover-close" id="lbClose" type="button" aria-label="Close diagram">&times;</button>
+  <img id="lbImg" alt="">
+</div>
+
+<div class="menu" id="menu" hidden>
+  <div class="mwrap">
+    <h2>Contents</h2>
+    <ul class="mlist" id="mlist"></ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var each = function(list, fn){ Array.prototype.forEach.call(list, fn); };
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var idx = 0;
+  var root = document.documentElement;
+  var deck = $('deck'), curEl = $('cur'), totalEl = $('total'), prog = $('progress');
+  var menu = $('menu'), mlist = $('mlist'), dotsEl = $('dots'), keys = $('keys');
+  totalEl.textContent = total;
+
+  var ARROW = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>';
+
+  // ---------- Content enhancements (presentation only; text is never rewritten) ----------
+  function renderFlow(p){
+    if(p.previousElementSibling && p.previousElementSibling.classList.contains('flow')) return;
+    var keyText = Array.prototype.map.call(p.querySelectorAll('strong'), function(s){ return s.textContent.trim(); });
+    var parts = p.textContent.split('->').map(function(t){ return t.trim(); }).filter(Boolean);
+    if(parts.length < 2) return;
+    var flow = document.createElement('div');
+    flow.className = 'flow'; flow.setAttribute('aria-hidden','true');
+    parts.forEach(function(t, i){
+      if(i){ var a = document.createElement('span'); a.className='flow-arrow'; a.style.setProperty('--i', i); a.innerHTML='<i></i>'; flow.appendChild(a); }
+      var n = document.createElement('span');
+      n.className = 'flow-node' + (keyText.indexOf(t) >= 0 ? ' key' : '');
+      n.style.setProperty('--i', i); n.textContent = t; flow.appendChild(n);
+    });
+    p.parentNode.insertBefore(flow, p);
+    p.classList.add('flow-caption');
+  }
+
+  function enhance(scope){
+    each(scope.querySelectorAll('[data-flow]'), renderFlow);
+    each(scope.querySelectorAll('p'), function(p){
+      var f = p.firstChild;
+      if(!f || f.nodeType !== 1 || f.tagName !== 'STRONG') return;
+      var t = f.textContent.trim();
+      if(/^The Problem:/.test(t)) p.classList.add('lbl-problem');
+      else if(/^(Static Routing Fails:|With Static Routing:|Static Approach:)/.test(t)) p.classList.add('lbl-static');
+      else if(/^(Dynamic Routing Solution:|Dynamic Approach)/.test(t)) p.classList.add('lbl-dynamic');
+      else if(/^(Result:|Total =)/.test(t)) p.classList.add('lbl-result');
+      else if(p.childNodes.length === 1 && /:$/.test(t) && !p.closest('.steps-p,.param-grid')) p.classList.add('eyebrow-p');
+    });
+    each(scope.querySelectorAll('.note'), function(n){
+      var tag = n.querySelector('.tag');
+      if(tag && /Technical Example/.test(tag.textContent)) n.classList.add('example');
+    });
+    each(scope.querySelectorAll('p.quote'), function(q){ if(/Router Analysis/.test(q.textContent)) q.classList.add('callout'); });
+    each(scope.querySelectorAll('pre'), function(pre){
+      if(pre.parentNode.classList.contains('code-wrap')) return;
+      var code = pre.querySelector('code'); if(!code) return;
+      var src = code.textContent;
+      var lang = /^\s*[\{\[]/.test(src) ? 'json' : 'python';
+      if(window.hljs){ try{ code.innerHTML = window.hljs.highlight(src, {language:lang, ignoreIllegals:true}).value; }catch(e){} }
+      var wrap = document.createElement('div'); wrap.className = 'code-wrap';
+      var bar = document.createElement('div'); bar.className = 'code-bar';
+      bar.innerHTML = '<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="lang">'+lang+'</span>';
+      var btn = document.createElement('button'); btn.type='button'; btn.className='copy-btn'; btn.textContent='Copy';
+      btn.addEventListener('click', function(){
+        var done = function(){ btn.textContent='Copied ✓'; btn.classList.add('ok'); setTimeout(function(){ btn.textContent='Copy'; btn.classList.remove('ok'); }, 1600); };
+        try{ navigator.clipboard.writeText(src).then(done, fallback); }catch(e){ fallback(); }
+        function fallback(){ var ta=document.createElement('textarea'); ta.value=src; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); done(); }catch(e){} ta.remove(); }
+      });
+      bar.appendChild(btn);
+      pre.parentNode.insertBefore(wrap, pre); wrap.appendChild(bar); wrap.appendChild(pre);
+    });
+  }
+
+  // Deep-dive cards on the Part slides
+  slides.forEach(function(s){
+    each(s.querySelectorAll('.stagger'), function(g){ each(g.children, function(el, i){ el.style.setProperty('--i', i); }); });
+    var items = s.querySelectorAll('.help-list-item');
+    each(items, function(li, i){
+      li.style.setProperty('--i', i + 2);
+      var btn = li.querySelector('.help-btn'), span = li.querySelector('span');
+      var disc = document.createElement('span'); disc.className = 'dd-disc';
+      var m = span.firstChild && span.firstChild.nodeType === 3 && span.firstChild.nodeValue.match(/^(\d+\.)\s*/);
+      if(m){ disc.textContent = m[1]; span.firstChild.nodeValue = span.firstChild.nodeValue.slice(m[0].length); }
+      else { disc.textContent = String(i + 1).padStart(2, '0'); disc.setAttribute('aria-hidden', 'true'); }
+      var body = document.createElement('span'); body.className = 'dd-body';
+      span.className = 'dd-title';
+      var meta = document.createElement('span'); meta.className = 'dd-meta'; meta.setAttribute('aria-hidden','true'); meta.textContent = 'Deep dive';
+      li.insertBefore(disc, li.firstChild); li.insertBefore(body, span); body.appendChild(span); body.appendChild(meta);
+      btn.innerHTML = ARROW;
+    });
+    var cnt = s.querySelector('.side-label .cnt'); if(cnt) cnt.textContent = items.length;
+  });
+  enhance(deck);
+
+  // ---------- Slide engine ----------
+  function setAccent(a){ root.setAttribute('data-accent', a); deck.setAttribute('data-accent', a); }
+  function render(){
+    slides.forEach(function(s,i){ s.hidden = (i!==idx); });
+    curEl.textContent = idx+1;
+    prog.style.width = (total > 1 ? idx/(total-1)*100 : 100)+'%';
+    var active = slides[idx];
+    if(active){ active.scrollTop = 0; var inr = active.querySelector('.inner'); if(inr) inr.scrollTop = 0; setAccent(active.dataset.accent || 'orange'); }
+    try{ history.replaceState(null,'','#'+slides[idx].id); }catch(e){}
+    each(mlist.querySelectorAll('.mitem[data-i]'), function(b){ b.classList.toggle('cur', +b.dataset.i === idx); });
+    each(dotsEl.children, function(d, i){ d.classList.toggle('cur', i === idx); d.setAttribute('aria-current', i === idx ? 'step' : 'false'); });
+  }
+  function go(i){ idx = Math.max(0, Math.min(total-1, i)); render(); }
+  function next(){ go(idx+1); }
+  function prev(){ go(idx-1); }
+  $('nextBtn').addEventListener('click', next);
+  $('prevBtn').addEventListener('click', prev);
+
+  // Dots + contents menu (with nested deep dives)
+  slides.forEach(function(s,i){
+    var d = document.createElement('button');
+    d.type = 'button'; d.className = 'dot-btn'; d.dataset.accent = s.dataset.accent || 'orange';
+    d.setAttribute('aria-label', 'Slide '+(i+1)+': '+(s.dataset.title || s.id));
+    d.title = s.dataset.title || s.id;
+    d.addEventListener('click', function(){ go(i); });
+    dotsEl.appendChild(d);
+
+    var li = document.createElement('li'); li.dataset.accent = s.dataset.accent || 'orange';
+    var b = document.createElement('button');
+    b.className = 'mitem' + (s.dataset.section==='true' ? ' sec' : '');
+    b.dataset.i = i;
+    b.innerHTML = '<span class="mn">'+String(i+1).padStart(2,'0')+'</span><span></span>';
+    b.lastChild.textContent = s.dataset.title || s.id;
+    b.addEventListener('click', function(){ closeMenu(); go(i); });
+    li.appendChild(b);
+    var dives = s.querySelectorAll('.help-btn');
+    if(dives.length){
+      var sub = document.createElement('ul'); sub.className = 'msub';
+      each(dives, function(hb){
+        var sl = document.createElement('li'), sb = document.createElement('button');
+        var card = hb.closest('li'), disc = card.querySelector('.dd-disc'), t = card.querySelector('.dd-title').textContent.trim();
+        sb.className = 'mitem'; sb.textContent = disc.hasAttribute('aria-hidden') ? t : disc.textContent + ' ' + t;
+        sb.addEventListener('click', function(){ closeMenu(); go(i); openHelp(hb); });
+        sl.appendChild(sb); sub.appendChild(sl);
+      });
+      li.appendChild(sub);
+    }
+    mlist.appendChild(li);
+  });
+
+  function openMenu(){ menu.hidden=false; var c = mlist.querySelector('.mitem.cur'); if(c) c.focus(); }
+  function closeMenu(){ menu.hidden=true; }
+  function toggleMenu(){ menu.hidden ? openMenu() : closeMenu(); }
+  $('menuBtn').addEventListener('click', toggleMenu);
+  menu.addEventListener('click', function(e){ if(e.target===menu) closeMenu(); });
+
+  // Theme
+  var themeBtn = $('themeBtn');
+  function currentTheme(){
+    var attr = root.getAttribute('data-theme'); if(attr) return attr;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  themeBtn.addEventListener('click', function(){
+    var t = currentTheme()==='dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', t);
+    try{ localStorage.setItem('poc-theme', t); }catch(e){}
+  });
+  try{ var saved = localStorage.getItem('poc-theme'); if(saved) root.setAttribute('data-theme', saved); }catch(e){}
+
+  // Fullscreen + keyboard overlay
+  var fsBtn = $('fsBtn');
+  function toggleFs(){
+    try{ if(document.fullscreenElement) document.exitFullscreen(); else root.requestFullscreen(); }catch(e){}
+  }
+  if(!root.requestFullscreen) fsBtn.hidden = true;
+  fsBtn.addEventListener('click', toggleFs);
+  function toggleKeys(){ keys.hidden = !keys.hidden; }
+  $('keysBtn').addEventListener('click', toggleKeys);
+  keys.addEventListener('click', function(e){ if(e.target===keys || e.target.closest('[data-close]')) keys.hidden = true; });
+
+  document.addEventListener('keydown', function(e){
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    if(e.key==='Escape'){ if(!menu.hidden){ closeMenu(); e.preventDefault(); } return; }
+    if(!menu.hidden) return;
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': case 'Spacebar': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp': prev(); e.preventDefault(); break;
+      case 'Home': go(0); e.preventDefault(); break;
+      case 'End': go(total-1); e.preventDefault(); break;
+      case 'c': case 'C': toggleMenu(); e.preventDefault(); break;
+      case 't': case 'T': themeBtn.click(); e.preventDefault(); break;
+      case 'f': case 'F': toggleFs(); e.preventDefault(); break;
+      case '?': toggleKeys(); e.preventDefault(); break;
+      case 'Enter': {
+        var first = slides[idx].querySelector('.help-btn');
+        if(first && document.activeElement === document.body){ openHelp(first); e.preventDefault(); }
+        break;
+      }
+    }
+  });
+
+  var sx=0, sy=0;
+  deck.addEventListener('touchstart', function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; }, {passive:true});
+  deck.addEventListener('touchend', function(e){
+    var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)){ dx<0 ? next() : prev(); }
+  }, {passive:true});
+
+  var h = (location.hash||'').replace('#','');
+  if(h){ var found = slides.findIndex(function(s){ return s.id===h; }); if(found>=0) idx=found; }
+  setTimeout(function(){ var el=$('hint'); if(el) el.style.opacity='0'; }, 4500);
+
+  // ---------- Deep-dive popover ----------
+  var helpPop = $('helpPop'), helpBody = $('helpBody');
+  var popPart = $('popPart'), popCount = $('popCount'), popPips = $('popPips'), popProg = $('popProg');
+  var popPrev = $('popPrev'), popNext = $('popNext');
+  var dives = [], diveIdx = 0;
+  function updProg(){
+    var max = helpBody.scrollHeight - helpBody.clientHeight;
+    popProg.style.width = (max > 0 ? Math.min(100, helpBody.scrollTop / max * 100) : 100) + '%';
+  }
+  helpBody.addEventListener('scroll', updProg, {passive:true});
+  function openHelp(btn){
+    var tpl = $('help-' + btn.dataset.help);
+    if(!tpl) return;
+    var slide = btn.closest('.slide');
+    dives = Array.prototype.slice.call(slide.querySelectorAll('.help-btn'));
+    diveIdx = dives.indexOf(btn);
+    helpBody.innerHTML = '';
+    helpBody.appendChild(tpl.content.cloneNode(true));
+    enhance(helpBody);
+    var h2 = helpBody.querySelector('h2'); if(h2) h2.id = 'helpTitle';
+    popPart.textContent = slide.dataset.title || '';
+    popCount.textContent = 'Deep dive ' + (diveIdx+1) + ' of ' + dives.length;
+    popPips.innerHTML = dives.map(function(_, i){ return '<i class="'+(i===diveIdx?'on':'')+'"></i>'; }).join('');
+    popPrev.disabled = diveIdx <= 0;
+    popNext.disabled = diveIdx >= dives.length-1;
+    helpPop.setAttribute('data-accent', slide.dataset.accent || 'orange');
+    helpPop.hidden = false;
+    helpBody.scrollTop = 0; updProg();
+    helpBody.focus({preventScroll:true});
+  }
+  function stepHelp(d){ var n = diveIdx + d; if(n >= 0 && n < dives.length) openHelp(dives[n]); }
+  function closeHelp(){
+    helpPop.hidden = true; helpBody.innerHTML = '';
+    var back = dives[diveIdx]; if(back) back.focus({preventScroll:true});
+  }
+  each(document.querySelectorAll('.help-btn'), function(b){
+    b.addEventListener('click', function(e){ e.preventDefault(); openHelp(b); });
+  });
+  popPrev.addEventListener('click', function(){ stepHelp(-1); });
+  popNext.addEventListener('click', function(){ stepHelp(1); });
+  $('helpClose').addEventListener('click', closeHelp);
+  helpPop.addEventListener('click', function(e){ if(e.target===helpPop) closeHelp(); });
+
+  // ---------- Image lightbox ----------
+  var lb = $('lightbox'), lbImg = $('lbImg'), lbFrom = null;
+  each(document.querySelectorAll('[data-zoom]'), function(b){
+    b.addEventListener('click', function(){ var img = b.querySelector('img'); lbImg.src = img.src; lbImg.alt = img.alt; lbFrom = b; lb.hidden = false; $('lbClose').focus(); });
+  });
+  function closeLb(){ lb.hidden = true; if(lbFrom) lbFrom.focus(); }
+  lb.addEventListener('click', closeLb);
+
+  function trap(e, box){
+    var f = Array.prototype.filter.call(box.querySelectorAll('button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])'), function(el){ return el.offsetParent !== null; });
+    if(!f.length) return;
+    var first = f[0], last = f[f.length-1];
+    if(e.shiftKey && (document.activeElement === first || !box.contains(document.activeElement))){ last.focus(); e.preventDefault(); }
+    else if(!e.shiftKey && document.activeElement === last){ first.focus(); e.preventDefault(); }
+  }
+  // Overlays own the keyboard while open, so the deck never navigates underneath them.
+  document.addEventListener('keydown', function(e){
+    if(!lb.hidden){
+      e.stopImmediatePropagation();
+      if(e.key==='Escape'){ closeLb(); e.preventDefault(); } else if(e.key!=='Tab'){ e.preventDefault(); }
+      return;
+    }
+    if(!keys.hidden){
+      e.stopImmediatePropagation();
+      if(e.key==='Escape' || e.key==='?'){ keys.hidden = true; e.preventDefault(); }
+      return;
+    }
+    if(helpPop.hidden) return;
+    e.stopImmediatePropagation();
+    if(e.key==='Escape'){ closeHelp(); e.preventDefault(); }
+    else if(e.key==='ArrowRight'){ stepHelp(1); e.preventDefault(); }
+    else if(e.key==='ArrowLeft'){ stepHelp(-1); e.preventDefault(); }
+    else if(e.key==='Tab'){ trap(e, helpPop); }
+  }, true);
+  deck.addEventListener('touchstart', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+  deck.addEventListener('touchend', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+
+  render();
+})();
+</script>
+
+</body></html>
