@@ -1,0 +1,1662 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+  /* ---- Help icon + deep-dive popover ---- */
+  .q-inline{display:inline-flex;align-items:center;justify-content:center;width:1.15em;height:1.15em;border-radius:50%;font-weight:700;font-size:.85em;background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);vertical-align:middle}
+  .help-list{list-style:none;padding:0;margin:14px 0 4px;display:flex;flex-direction:column;gap:9px;max-width:78ch}
+  .help-list-item{display:flex;align-items:flex-start;gap:12px;background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--local-accent,var(--accent));border-radius:11px;padding:12px 15px;box-shadow:var(--shadow)}
+  .help-list-item span{font-size:clamp(14.5px,1.4vw,17px);line-height:1.45;color:var(--text);font-weight:500;padding-top:2px}
+  .help-btn{appearance:none;flex:none;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-weight:700;font-size:15px;line-height:1;border-radius:50%;cursor:pointer;border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));transition:transform .15s,background .15s,color .15s}
+  .help-btn:hover,.help-btn:focus-visible{background:var(--local-accent,var(--accent));color:#fff;transform:scale(1.12);outline:none}
+  .help-btn:focus-visible{outline:2px solid var(--local-accent,var(--accent));outline-offset:2px}
+
+  /* Deep dive: full-viewport overlay with an opaque surface so the slide never shows through;
+     close button pinned to the top-right corner above everything. Accent is copied from the
+     active slide onto the popover via --pop-accent (set in openHelp). */
+  .help-popover{--pop-accent:var(--accent);--local-accent:var(--pop-accent);position:fixed;top:calc(60px + env(safe-area-inset-top,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));left:14px;right:14px;max-width:1300px;margin-inline:auto;z-index:100;display:flex;flex-direction:column;background:linear-gradient(color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),linear-gradient(90deg, color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--pop-accent) 14%,transparent), transparent 45%),radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),var(--surface);background-size:46px 46px,46px 46px,auto,auto,auto;border:1px solid var(--border);border-top:4px solid var(--pop-accent);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;animation:helpPop .28s cubic-bezier(.16,1,.3,1)}
+  @media (max-width:600px){.help-popover{left:8px;right:8px}}
+  .help-popover[hidden]{display:none}
+  .help-popover[data-accent="orange"]{--pop-accent:var(--c-orange)}
+  .help-popover[data-accent="teal"]{--pop-accent:var(--c-teal)}
+  .help-popover[data-accent="purple"]{--pop-accent:var(--c-purple)}
+  .help-popover[data-accent="green"]{--pop-accent:var(--c-green)}
+  .help-popover[data-accent="blue"]{--pop-accent:var(--c-blue)}
+  .help-popover[data-accent="pink"]{--pop-accent:var(--c-pink)}
+  .help-popover[data-accent="red"]{--pop-accent:var(--c-red)}
+  .help-popover[data-accent="amber"]{--pop-accent:var(--c-amber)}
+  @keyframes helpPop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.help-popover{animation:none}}
+  .help-popover-close{position:absolute;top:14px;right:16px;z-index:101;width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:50%;cursor:pointer;color:var(--pop-accent);border:1px solid color-mix(in srgb,var(--pop-accent) 45%,transparent);background:color-mix(in srgb,var(--pop-accent) 14%,var(--surface))}
+  .help-popover-close:hover{background:var(--pop-accent);color:#fff;border-color:var(--pop-accent)}
+  .help-popover-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:64px 24px 40px;display:flex;justify-content:center}
+  .help-popover-body .inner{margin:0}
+
+</style></head><body>
+<title>Advanced Validation Techniques Across AWS Services</title>
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#DEE4EC; --surface:#FFFFFF; --surface-2:#F1F4F8;
+    --text:#152230; --muted:#000000; --faint:#7A8899;
+    --accent:#C2570B; --accent-soft:#F4E4D5; --accent2:#0E6E7D; --accent2-soft:#DDEEF0;
+    --c-orange:#C2570B; --c-teal:#0E6E7D; --c-purple:#7C3AED; --c-green:#1F8A4C;
+    --c-blue:#1E63C4; --c-pink:#C0357E; --c-red:#CB4335; --c-amber:#B7791F;
+    --border:#D4DBE3; --code-bg:#F1F4F8; --code-text:#152230; --deck-bg:#eaeef2;
+    --shadow:0 1px 3px rgba(20,34,48,.08),0 8px 30px rgba(20,34,48,.06); --shadow-lg:0 6px 16px rgba(20,34,48,.12),0 20px 50px rgba(20,34,48,.16);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+      --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+      --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+      --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+      --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+      --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+      --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+    --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+    --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+    --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+    --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+    --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'IBM Plex Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  code,pre,.mono{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace}
+
+  #progress{position:fixed; top:0; left:0; height:3px; background:var(--accent); width:0; z-index:60; transition:width .25s ease}
+  @media (prefers-reduced-motion: reduce){#progress{transition:none}}
+
+  .topbar{
+    position:fixed; left:0; right:0; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 18px; padding-top:calc(10px + env(safe-area-inset-top,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex; align-items:center; gap:10px; min-width:0}
+  .brand .dot{width:12px;height:12px;border-radius:3px;background:var(--accent);flex:none}
+  .brand b{font-weight:600; font-size:14px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .brand span{color:var(--faint); font-size:13px; white-space:nowrap}
+  .tools{display:flex; align-items:center; gap:8px; flex:none}
+  .btn{
+    appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--text);
+    font:inherit; font-size:13px; font-weight:500; padding:7px 12px; border-radius:9px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; line-height:1;
+  }
+  .btn:hover{border-color:var(--accent)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .btn.icon{padding:7px 9px}
+
+  /* The deck is a card floating on the (darker) page, holding one slide at a time. */
+  .deck{
+    --slide-accent:var(--accent); --local-accent:var(--slide-accent);
+    position:fixed;
+    top:calc(60px + env(safe-area-inset-top,0px));
+    bottom:calc(60px + env(safe-area-inset-bottom,0px));
+    left:14px; right:14px;
+    background:var(--deck-bg);
+    border:1px solid var(--border);
+    border-top:4px solid var(--slide-accent);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    transition:border-top-color .25s ease;
+  }
+  .deck[data-accent="orange"]{--slide-accent:var(--c-orange)}
+  .deck[data-accent="teal"]{--slide-accent:var(--c-teal)}
+  .deck[data-accent="purple"]{--slide-accent:var(--c-purple)}
+  .deck[data-accent="green"]{--slide-accent:var(--c-green)}
+  .deck[data-accent="blue"]{--slide-accent:var(--c-blue)}
+  .deck[data-accent="pink"]{--slide-accent:var(--c-pink)}
+  .deck[data-accent="red"]{--slide-accent:var(--c-red)}
+  .deck[data-accent="amber"]{--slide-accent:var(--c-amber)}
+  @media (max-width:600px){.deck{left:8px; right:8px}}
+
+  .slide{
+    --local-accent:var(--accent);
+    position:absolute; inset:0; overflow-y:auto; overflow-x:hidden;
+    padding:32px 30px calc(28px + env(safe-area-inset-bottom,0px));
+    display:flex; justify-content:center;
+    background:transparent;
+  }
+  .slide[data-accent="orange"]{--local-accent:var(--c-orange)}
+  .slide[data-accent="teal"]{--local-accent:var(--c-teal)}
+  .slide[data-accent="purple"]{--local-accent:var(--c-purple)}
+  .slide[data-accent="green"]{--local-accent:var(--c-green)}
+  .slide[data-accent="blue"]{--local-accent:var(--c-blue)}
+  .slide[data-accent="pink"]{--local-accent:var(--c-pink)}
+  .slide[data-accent="red"]{--local-accent:var(--c-red)}
+  .slide[data-accent="amber"]{--local-accent:var(--c-amber)}
+  .slide:not([hidden]){animation:fade .3s ease both}
+  @media (prefers-reduced-motion: reduce){.slide:not([hidden]){animation:none}}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  .inner{width:100%; max-width:1000px; margin:auto 0; padding-block:8px}
+  /* Content card: distinct --surface, floats on the --surface-2 deck backdrop */
+  .slide .inner{
+    background:
+      linear-gradient(color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--local-accent) 14%,transparent), transparent 45%),
+      radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),
+      var(--surface);
+    background-size:46px 46px,46px 46px,auto,auto,auto;
+    border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-lg); padding:28px 32px;
+    width:100%; max-width:1300px; aspect-ratio:16 / 9; max-height:100%; overflow-y:auto; overflow-x:hidden}
+
+  .kicker{
+    font-size:12.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase;
+    color:var(--local-accent,var(--accent)); margin:0 0 14px;
+  }
+  h1{font-size:clamp(30px,5vw,56px); line-height:1.05; font-weight:700; margin:0 0 18px; letter-spacing:-.02em; text-wrap:balance}
+  h2{font-size:clamp(23px,3.1vw,38px); line-height:1.12; font-weight:600; margin:0 0 16px; letter-spacing:-.01em; text-wrap:balance; color:var(--local-accent,var(--text))}
+  h3{font-size:clamp(16px,1.85vw,21px); font-weight:600; margin:22px 0 9px; color:var(--text)}
+  p{font-size:clamp(14.5px,1.45vw,17.5px); line-height:1.55; color:var(--muted); margin:0 0 12px; max-width:76ch}
+  p strong,li strong,td strong{color:var(--text); font-weight:600}
+  .lead{font-size:clamp(16px,1.85vw,21px); line-height:1.5; color:var(--text)}
+  ul,ol{margin:0 0 12px; padding-left:22px; max-width:78ch}
+  li{font-size:clamp(14.5px,1.4vw,17px); line-height:1.5; color:var(--muted); margin:0 0 7px}
+  em{font-style:italic}
+  hr.div{border:none; border-top:1px solid var(--border); margin:20px 0}
+
+  code:not(pre code){
+    background:var(--surface-2); border:1px solid var(--border); border-radius:6px;
+    padding:.08em .4em; font-size:.85em; color:var(--text); word-break:break-word;
+  }
+  pre{
+    background:color-mix(in srgb,var(--local-accent,var(--accent)) 6%,var(--code-bg)); color:var(--code-text);
+    border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 22%,var(--border));
+    border-left:3px solid var(--local-accent,var(--accent));
+    border-radius:12px; margin:6px 0 16px;
+    padding:16px 18px; overflow-x:auto;
+    font-size:clamp(11.5px,1.2vw,13.5px); line-height:1.55;
+  }
+  pre code{color:inherit; white-space:pre}
+
+  .tbl{overflow-x:auto; margin:8px 0 16px; border:1px solid var(--border); border-radius:12px}
+  table{border-collapse:collapse; width:100%; font-size:clamp(13px,1.25vw,15px)}
+  th,td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:9px 12px; text-align:left; vertical-align:top; color:var(--muted)}
+  th{background:var(--surface-2); color:var(--text); font-weight:600; white-space:nowrap}
+  tr td:last-child,tr th:last-child{border-right:none}
+  tbody tr:last-child td{border-bottom:none}
+
+  .note{
+    background:var(--surface-2); border:1px solid var(--border); border-left:4px solid var(--accent2);
+    border-radius:12px; padding:16px 18px; margin:10px 0 14px; box-shadow:var(--shadow);
+  }
+  .note .tag{display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent2); margin-bottom:6px}
+  .note p:last-child{margin-bottom:0}
+  .note.tip{border-left-color:var(--local-accent,var(--accent))}
+  .note.tip .tag{color:var(--local-accent,var(--accent))}
+  .quote{
+    border-left:3px solid var(--accent2); padding:4px 0 4px 18px; margin:0 0 12px;
+    color:var(--text); font-size:clamp(14px,1.45vw,17px); line-height:1.5;
+  }
+  .badge{display:inline-block; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; background:var(--accent2-soft); color:var(--accent2); margin-bottom:12px}
+
+  #cover .inner{max-width:1000px}
+  #cover .meta{font-size:13px; color:var(--faint); letter-spacing:2px; text-transform:uppercase; margin-top:16px}
+  #cover .src{font-size:12px; color:var(--faint); letter-spacing:0; text-transform:none; margin-top:10px; word-break:break-all}
+  #cover .src a{color:var(--faint)}
+  .divider{background:transparent}
+  .divider .num{font-size:13px; font-weight:700; letter-spacing:3px; color:var(--local-accent); text-transform:uppercase; margin-bottom:14px}
+
+  .navbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    padding:12px 18px; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-top:1px solid var(--border);
+  }
+  .counter{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; min-width:64px; text-align:center}
+  .counter b{color:var(--text); font-weight:600}
+
+  .menu{
+    position:fixed; inset:0; z-index:70; background:color-mix(in srgb,var(--bg) 92%,transparent);
+    backdrop-filter:blur(6px); padding:calc(70px + env(safe-area-inset-top,0px)) 18px 30px; overflow-y:auto;
+  }
+  .menu .mwrap{max-width:860px; margin:0 auto}
+  .menu h2{font-size:20px; margin-bottom:16px}
+  .mlist{list-style:none; padding:0; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:2px 28px; align-content:start}
+  @media (max-width:600px){.mlist{grid-template-columns:1fr}}
+  .mitem{
+    width:100%; text-align:left; display:flex; gap:12px; align-items:baseline;
+    background:none; border:none; border-radius:9px; color:var(--text); font:inherit; padding:9px 12px; cursor:pointer;
+  }
+  .mitem:hover{background:var(--surface)}
+  .mitem .mn{color:var(--faint); font-size:12.5px; font-variant-numeric:tabular-nums; min-width:26px}
+  .mitem.sec{font-weight:600; margin-top:6px}
+  .mitem.sec .mn{color:var(--accent)}
+  .mitem.cur{background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--border)}
+  .hint{position:fixed; bottom:70px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--faint); z-index:40; pointer-events:none; transition:opacity .5s}
+  @media (max-width:600px){.hint{display:none}}
+</style>
+<style>
+  /* ================================================================
+     v2 presentation layer — layout, visuals, popover polish
+     ================================================================ */
+  :root{--hl-kw:var(--c-purple);--hl-str:var(--c-green);--hl-com:var(--faint);--hl-num:var(--c-amber);--hl-fn:var(--c-blue);--hl-attr:var(--c-teal);--hl-bi:var(--c-orange)}
+  [data-accent="orange"]{--a:var(--c-orange)} [data-accent="teal"]{--a:var(--c-teal)} [data-accent="purple"]{--a:var(--c-purple)}
+  [data-accent="green"]{--a:var(--c-green)} [data-accent="blue"]{--a:var(--c-blue)} [data-accent="pink"]{--a:var(--c-pink)}
+  [data-accent="red"]{--a:var(--c-red)} [data-accent="amber"]{--a:var(--c-amber)}
+
+  #progress{background:var(--a,var(--accent)); box-shadow:0 0 12px color-mix(in srgb,var(--a,var(--accent)) 60%,transparent)}
+  .brand .dot{background:var(--a,var(--accent)); transition:background .3s}
+  .deck{box-shadow:var(--shadow-lg)}
+  .slide .inner{position:relative; padding:36px 44px}
+  .slide .inner > *{position:relative}
+
+  /* ---------- Progressive build-in ---------- */
+  .slide:not([hidden]) .stagger > *,
+  .slide:not([hidden]) .help-list-item{animation:rise .6s cubic-bezier(.16,1,.3,1) both; animation-delay:calc(var(--i,0) * 70ms + 120ms)}
+  @keyframes rise{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+
+  /* ---------- Cover / hero ---------- */
+  #cover .inner.hero{max-width:1300px; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); align-items:center; gap:24px 40px}
+  .hero-copy .num{display:inline-flex; align-items:center; gap:10px; padding:6px 14px; border-radius:999px; background:color-mix(in srgb,var(--local-accent) 12%,transparent); border:1px solid color-mix(in srgb,var(--local-accent) 35%,transparent)}
+  .hero-copy .num::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--local-accent); box-shadow:0 0 0 4px color-mix(in srgb,var(--local-accent) 22%,transparent)}
+  .hero h1{font-size:clamp(40px,6.2vw,80px); line-height:1; margin:18px 0 22px; letter-spacing:-.035em;
+    background:linear-gradient(100deg,var(--text) 0%,var(--text) 40%,var(--local-accent) 75%,var(--c-purple) 100%); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero h1::after{content:""; display:block; width:88px; height:5px; border-radius:5px; margin-top:22px; background:linear-gradient(90deg,var(--local-accent),var(--c-purple))}
+  .hero .lead{font-size:clamp(18px,2.2vw,26px); line-height:1.4; font-weight:500; max-width:28ch; color:var(--text)}
+  #cover .hero .meta{letter-spacing:.2px; text-transform:none; font-size:13.5px; color:var(--muted); margin-top:26px; line-height:2.1}
+  kbd{display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:24px; padding:0 7px; margin:0 1px; border-radius:7px;
+    font:600 12px 'JetBrains Mono',ui-monospace,monospace; color:var(--text); background:var(--surface); border:1px solid var(--border); box-shadow:0 2px 0 var(--border); vertical-align:middle}
+  #cover .hero .src{grid-column:1 / -1; margin:6px 0 0; font-size:11.5px; opacity:.75}
+  .hero-art{width:100%; height:auto; max-height:430px; overflow:visible}
+  .hero-art .ln{fill:none; stroke:color-mix(in srgb,var(--text) 18%,transparent); stroke-width:2}
+  .hero-art .pulse{fill:none; stroke-width:3; stroke-linecap:round; stroke-dasharray:14 400; animation:flowdash 3.2s linear infinite}
+  .hero-art .route{animation:routeglow 6.4s ease-in-out infinite}
+  .hero-art .m{fill:var(--surface); stroke-width:2}
+  .hero-art .hb{opacity:.55}
+  .hero-art .router-ring{fill:none; stroke:var(--local-accent); stroke-width:2; opacity:.4; transform-origin:250px 200px; animation:ring 3s ease-out infinite}
+  @keyframes flowdash{from{stroke-dashoffset:414} to{stroke-dashoffset:0}}
+  @keyframes ring{from{transform:scale(1); opacity:.5} to{transform:scale(1.55); opacity:0}}
+  @keyframes routeglow{0%,100%{opacity:.35} 12%,30%{opacity:1}}
+
+  /* ---------- Part slides ---------- */
+  .part-mark{position:absolute!important; bottom:6px; right:28px; z-index:0; font-size:clamp(90px,13vw,170px); font-weight:700; line-height:1; letter-spacing:-.05em;
+    color:transparent; -webkit-text-stroke:1.5px color-mix(in srgb,var(--local-accent) 30%,transparent); pointer-events:none; user-select:none}
+  .part-grid{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:30px 40px; align-items:start}
+  .part-main > .num{display:inline-block; padding:5px 12px; border-radius:8px; background:color-mix(in srgb,var(--local-accent) 12%,transparent); margin-bottom:18px; font-size:12px}
+  .part-main > p:not(.num){color:var(--text); opacity:.88}
+  .pull{font-size:clamp(17px,1.9vw,22px)!important; line-height:1.4!important; color:var(--text)!important; opacity:1!important; font-weight:500;
+    border-left:4px solid var(--local-accent); padding:4px 0 4px 16px; margin:16px 0 18px!important}
+  .pull strong{color:var(--local-accent)!important}
+  .part-side{position:sticky; top:0; padding:20px; border-radius:16px; background:color-mix(in srgb,var(--local-accent) 5%,var(--surface-2)); border:1px solid color-mix(in srgb,var(--local-accent) 20%,var(--border))}
+  .side-label{display:flex; align-items:center; justify-content:space-between; font-size:11.5px!important; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--local-accent)!important; margin:0 0 12px!important}
+  .side-label .cnt{letter-spacing:0; font-size:11.5px; padding:3px 9px; border-radius:999px; background:color-mix(in srgb,var(--local-accent) 15%,transparent)}
+  .part-side > p:not(.side-label){font-size:14.5px; color:var(--muted); margin-bottom:12px}
+
+  /* deep-dive cards */
+  .part-side .help-list{margin:0; gap:10px; max-width:none}
+  .part-side .help-list-item{position:relative; align-items:center; gap:14px; padding:14px 14px 14px 14px; cursor:pointer;
+    background:var(--surface); border:1px solid var(--border); border-radius:13px; box-shadow:var(--shadow);
+    transition:transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s, border-color .2s}
+  .part-side .help-list-item:hover,.part-side .help-list-item:focus-within{transform:translateY(-2px); border-color:color-mix(in srgb,var(--local-accent) 60%,var(--border)); box-shadow:var(--shadow-lg)}
+  .help-list-item .dd-disc{flex:none; width:36px; height:36px; padding:0; border-radius:11px; display:grid; place-items:center; font-size:14px; font-weight:700;
+    color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 14%,transparent); border:1px solid color-mix(in srgb,var(--local-accent) 30%,transparent); font-variant-numeric:tabular-nums}
+  .help-list-item .dd-body{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; padding:0}
+  .help-list-item .dd-body .dd-title{font-size:clamp(14px,1.3vw,16px); font-weight:600; line-height:1.35; color:var(--text); padding:0}
+  .help-list-item .dd-body .dd-meta{font-size:11.5px; font-weight:600; letter-spacing:.6px; text-transform:uppercase; color:var(--faint); padding:0; transition:color .2s}
+  .help-list-item:hover .dd-meta{color:var(--local-accent)}
+  .part-side .help-btn{order:3; width:32px; height:32px; transform:none!important; position:static}
+  .part-side .help-btn::after{content:""; position:absolute; inset:0; border-radius:13px}
+  .part-side .help-btn svg{width:15px; height:15px; transition:transform .2s}
+  .part-side .help-list-item:hover .help-btn{background:var(--local-accent); color:var(--surface)}
+  .part-side .help-list-item:hover .help-btn svg{transform:translateX(2px)}
+
+  /* Static vs Dynamic */
+  .versus{display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:stretch; gap:10px; margin:12px 0 16px}
+  .versus .note{margin:0; display:flex; flex-direction:column}
+  .vs-static{border-left-color:var(--c-red)!important; background:color-mix(in srgb,var(--c-red) 5%,var(--surface-2))!important}
+  .vs-static .tag{color:var(--c-red)!important}
+  .vs-dynamic{background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))!important; box-shadow:0 0 0 1px color-mix(in srgb,var(--local-accent) 30%,transparent),var(--shadow-lg)!important}
+  .vs-badge{align-self:center; width:40px; height:40px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:800; letter-spacing:1px;
+    color:var(--surface); background:linear-gradient(135deg,var(--c-red),var(--local-accent)); box-shadow:var(--shadow)}
+
+  /* Part 05 tiles */
+  ol.tiles{list-style:none; padding:0; margin:12px 0 4px; display:grid; gap:10px; counter-reset:tile; max-width:none}
+  ol.tiles li{counter-increment:tile; position:relative; margin:0; padding:14px 16px 14px 62px; border-radius:13px; background:var(--surface-2); border:1px solid var(--border); color:var(--muted); box-shadow:var(--shadow)}
+  ol.tiles li::before{content:counter(tile,decimal-leading-zero); position:absolute; left:14px; top:50%; transform:translateY(-50%); width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+    font-weight:700; font-size:13px; color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 14%,transparent)}
+  ol.tiles li strong{display:block; font-size:1.06em; color:var(--text); margin-bottom:2px}
+
+  /* ---------- Flow diagrams (built from the note text) ---------- */
+  .note{container-type:inline-size}
+  .flow{display:flex; align-items:stretch; margin:8px 0 12px}
+  .flow-node{flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px 10px; border-radius:11px;
+    background:var(--surface); border:1px solid var(--border); font-size:12.5px; font-weight:600; line-height:1.3; color:var(--text); box-shadow:var(--shadow);
+    animation:rise .5s cubic-bezier(.16,1,.3,1) both; animation-delay:calc(var(--i,0) * 110ms + 250ms)}
+  .flow-node.key{border-color:var(--local-accent); color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 11%,var(--surface))}
+  .flow-arrow{flex:0 0 26px; align-self:center; position:relative; height:2px; background:color-mix(in srgb,var(--local-accent) 45%,transparent); overflow:visible}
+  .flow-arrow::after{content:""; position:absolute; right:-1px; top:-4px; border:5px solid transparent; border-left:7px solid color-mix(in srgb,var(--local-accent) 70%,transparent); border-right:0}
+  .flow-arrow i{position:absolute; top:-2px; left:0; width:6px; height:6px; border-radius:50%; background:var(--local-accent); animation:travel 1.8s ease-in-out infinite; animation-delay:calc(var(--i,0) * 220ms)}
+  @keyframes travel{0%{left:0; opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{left:calc(100% - 6px); opacity:0}}
+  @container (max-width:540px){
+    .flow{flex-direction:column; align-items:stretch}
+    .flow-arrow{flex:0 0 20px; width:2px; height:auto; align-self:center}
+    .flow-arrow::after{right:auto; top:auto; bottom:-1px; left:-4px; border:5px solid transparent; border-top:7px solid color-mix(in srgb,var(--local-accent) 70%,transparent); border-bottom:0}
+    .flow-arrow i{left:-2px; animation-name:travelY}
+  }
+  @keyframes travelY{0%{top:0; opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{top:calc(100% - 6px); opacity:0}}
+  .flow-caption{font-size:12.5px!important; color:var(--faint)!important; margin:0!important; font-style:italic}
+  .flow-caption strong{color:var(--muted)!important}
+  p.quote.flow-caption{border:none; padding:0}
+
+  /* figure + lightbox */
+  .fig{margin:4px 0 6px}
+  .fig-btn{appearance:none; display:block; width:100%; padding:10px; border-radius:14px; cursor:zoom-in; background:#fff; border:1px solid var(--border); box-shadow:var(--shadow); position:relative; transition:box-shadow .2s, transform .2s}
+  .fig-btn:hover{box-shadow:var(--shadow-lg); transform:translateY(-1px)}
+  .fig-btn:focus-visible{outline:2px solid var(--local-accent); outline-offset:3px}
+  .fig-btn img{display:block; width:100%; height:auto; border-radius:6px}
+  .fig-btn .zoom{position:absolute; right:10px; bottom:10px; width:30px; height:30px; border-radius:9px; display:grid; place-items:center; background:var(--local-accent); color:#fff; font-size:15px; box-shadow:var(--shadow)}
+  .lightbox{position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center; padding:70px 20px 30px; background:color-mix(in srgb,var(--bg) 88%,transparent); backdrop-filter:blur(10px); cursor:zoom-out; animation:helpPop .25s ease}
+  .lightbox[hidden]{display:none}
+  .lightbox img{max-width:min(1500px,100%); max-height:100%; border-radius:12px; background:#fff; padding:14px; box-shadow:var(--shadow-lg)}
+  .lightbox .help-popover-close{position:fixed; top:16px; right:18px; --pop-accent:var(--a,var(--accent))}
+
+  /* ---------- Deep-dive popover ---------- */
+  .help-popover-close{position:static; flex:none}
+  .pop-head{flex:none; display:flex; align-items:center; gap:14px; padding:12px 14px 12px 22px; border-bottom:1px solid var(--border); background:color-mix(in srgb,var(--surface) 86%,transparent); backdrop-filter:blur(8px); z-index:2}
+  .pop-crumb{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
+  .pop-part{font-size:11.5px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--pop-accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .pop-count{font-size:12.5px; color:var(--faint); font-variant-numeric:tabular-nums}
+  .pop-pips{display:flex; gap:5px; margin-top:3px}
+  .pop-pips i{width:18px; height:4px; border-radius:4px; background:var(--border); transition:background .2s,width .2s}
+  .pop-pips i.on{background:var(--pop-accent); width:30px}
+  .pop-nav{display:flex; gap:8px}
+  .pop-nav .btn:disabled{opacity:.4; cursor:default; border-color:var(--border)}
+  .pop-progress{flex:none; height:3px; background:color-mix(in srgb,var(--pop-accent) 12%,transparent)}
+  .pop-progress i{display:block; height:100%; width:0; background:var(--pop-accent); transition:width .1s linear}
+  .help-popover-body{padding:34px 28px 56px; scroll-behavior:smooth}
+  .help-popover-body:focus{outline:none}
+  .help-popover-body .inner{max-width:900px}
+  .help-popover-body .inner > *{animation:rise .5s cubic-bezier(.16,1,.3,1) both}
+  .help-popover-body h2{font-size:clamp(25px,3.2vw,40px); padding-bottom:16px; margin-bottom:22px; border-bottom:1px solid var(--border); position:relative}
+  .help-popover-body h2::after{content:""; position:absolute; left:0; bottom:-2px; width:72px; height:3px; border-radius:3px; background:var(--pop-accent)}
+  .help-popover-body h3{display:flex; align-items:center; gap:10px; font-size:clamp(17px,1.9vw,22px); margin-top:30px}
+  .help-popover-body h3::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--pop-accent); transform:rotate(45deg)}
+  .help-popover-body p,.help-popover-body ul,.help-popover-body ol{max-width:72ch}
+  .help-popover-body li::marker{color:var(--pop-accent); font-weight:700}
+  @media (max-width:600px){.pop-nav .lbl{display:none} .help-popover-body{padding:24px 16px 40px} .pop-head{padding-left:14px}}
+
+  /* labelled paragraphs */
+  .eyebrow-p{margin-top:22px!important}
+  .eyebrow-p strong{display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--local-accent)!important}
+  .eyebrow-p strong::before{content:""; width:16px; height:2px; background:currentColor}
+  .lbl-problem,.lbl-static,.lbl-dynamic,.lbl-result{padding:12px 16px; border-radius:11px; border:1px solid var(--border); background:var(--surface-2)}
+  .lbl-problem{border-left:4px solid var(--c-amber)} .lbl-problem > strong:first-child{color:var(--c-amber)}
+  .lbl-static{border-left:4px solid var(--c-red)} .lbl-static > strong:first-child{color:var(--c-red)}
+  .lbl-dynamic{border-left:4px solid var(--c-green)} .lbl-dynamic > strong:first-child{color:var(--c-green)}
+  .lbl-result{border-left:4px solid var(--local-accent); background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))}
+  .lbl-result > strong:first-child{color:var(--local-accent)}
+  p.lbl-dynamic:only-child,p.lbl-static:only-child{padding:0; border:none; background:none}
+
+  /* example cards & callouts */
+  .note.example{border-left-color:var(--local-accent); background:linear-gradient(180deg,color-mix(in srgb,var(--local-accent) 6%,var(--surface-2)),var(--surface-2))}
+  .note.example .tag{color:var(--local-accent); display:inline-flex; align-items:center; gap:8px}
+  .note.example .tag::before{content:"</>"; font:700 11px 'JetBrains Mono',monospace; padding:3px 6px; border-radius:6px; background:var(--local-accent); color:var(--surface); letter-spacing:0}
+  .quote.callout{border-left:none; padding:12px 16px 12px 46px; border-radius:11px; background:var(--surface); border:1px dashed color-mix(in srgb,var(--local-accent) 45%,var(--border)); position:relative; font-size:clamp(13.5px,1.35vw,16px)}
+  .quote.callout::before{content:"⇢"; position:absolute; left:14px; top:11px; font-size:20px; color:var(--local-accent); line-height:1}
+
+  /* steppers */
+  ol.steps,.steps-p{position:relative; list-style:none; padding-left:0; counter-reset:st}
+  ol.steps > li,.steps-p > p{counter-increment:st; position:relative; padding:2px 0 14px 50px; margin:0}
+  .steps-p > ul{margin:-6px 0 14px 50px; padding:12px 16px 4px 34px; border-radius:11px; background:var(--surface-2); border:1px solid var(--border)}
+  ol.steps > li::before{content:counter(st); position:absolute; left:0; top:0; width:32px; height:32px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:14px;
+    color:var(--local-accent); background:var(--surface); border:2px solid var(--local-accent); box-shadow:0 0 0 5px color-mix(in srgb,var(--local-accent) 12%,transparent); z-index:1}
+  .steps-p > p::before{content:""; position:absolute; left:9px; top:4px; width:14px; height:14px; border-radius:50%; background:var(--local-accent); box-shadow:0 0 0 5px color-mix(in srgb,var(--local-accent) 16%,transparent); z-index:1}
+  ol.steps::before,.steps-p::before{content:""; position:absolute; left:15px; top:16px; bottom:24px; width:2px; background:linear-gradient(var(--local-accent),color-mix(in srgb,var(--local-accent) 15%,transparent))}
+
+  /* param grid (a/b/c/d) */
+  .param-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:6px 0 18px; max-width:880px}
+  .param-grid p{margin:0; padding:14px 16px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); border-top:3px solid var(--local-accent); max-width:none}
+  .param-grid p code{display:inline-block; margin-top:6px}
+  @media (max-width:600px){.param-grid{grid-template-columns:1fr}}
+
+  /* tables */
+  .tbl{box-shadow:var(--shadow); background:var(--surface)}
+  table tr:nth-child(odd) td{background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
+  table tr:hover td{background:color-mix(in srgb,var(--local-accent) 7%,transparent)}
+  th{font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--local-accent)!important; background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))!important}
+  td:first-child strong{color:var(--text)}
+  .tier-table tr td:first-child{border-left:4px solid var(--tc,transparent)}
+  .tier-table tr:nth-child(2){--tc:var(--c-purple)} .tier-table tr:nth-child(3){--tc:var(--c-teal)}
+  .tier-table tr:nth-child(4){--tc:var(--c-pink)} .tier-table tr:nth-child(5){--tc:var(--c-amber)}
+
+  /* code blocks */
+  .code-wrap{position:relative; margin:8px 0 18px; border-radius:12px; overflow:hidden; border:1px solid color-mix(in srgb,var(--local-accent) 22%,var(--border)); box-shadow:var(--shadow)}
+  .code-wrap pre{margin:0; border:none; border-radius:0; border-left:3px solid var(--local-accent)}
+  .code-bar{display:flex; align-items:center; gap:10px; padding:7px 10px 7px 14px; background:color-mix(in srgb,var(--local-accent) 10%,var(--code-bg)); border-bottom:1px solid color-mix(in srgb,var(--local-accent) 18%,var(--border))}
+  .code-bar .dots{display:flex; gap:5px} .code-bar .dots i{width:9px; height:9px; border-radius:50%; background:var(--border)}
+  .code-bar .dots i:nth-child(1){background:#ff5f57} .code-bar .dots i:nth-child(2){background:#febc2e} .code-bar .dots i:nth-child(3){background:#28c840}
+  .code-bar .lang{flex:1; font:600 11px 'JetBrains Mono',monospace; letter-spacing:1px; text-transform:uppercase; color:var(--muted)}
+  .copy-btn{appearance:none; font:600 11.5px 'IBM Plex Sans',sans-serif; padding:5px 10px; border-radius:7px; cursor:pointer; color:var(--text); background:var(--surface); border:1px solid var(--border)}
+  .copy-btn:hover{border-color:var(--local-accent); color:var(--local-accent)}
+  .copy-btn.ok{background:var(--c-green); border-color:var(--c-green); color:#fff}
+  .hljs-keyword,.hljs-literal,.hljs-meta{color:var(--hl-kw); font-weight:500}
+  .hljs-string{color:var(--hl-str)}
+  .hljs-comment{color:var(--hl-com); font-style:italic}
+  .hljs-number{color:var(--hl-num)}
+  .hljs-title,.hljs-title.function_,.hljs-function .hljs-title{color:var(--hl-fn)}
+  .hljs-attr,.hljs-property,.hljs-params{color:var(--hl-attr)}
+  .hljs-built_in,.hljs-type{color:var(--hl-bi)}
+  .hljs-subst{color:inherit}
+
+  /* ---------- Data visuals ---------- */
+  .viz{margin:12px 0 18px; padding:16px 18px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow); max-width:860px}
+  .viz-h{font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--faint); margin-bottom:10px; display:flex; justify-content:space-between; gap:10px}
+  .viz-row{display:grid; grid-template-columns:80px minmax(0,1fr); align-items:center; gap:12px; margin:8px 0}
+  .viz-lbl{font-size:12.5px; font-weight:600; color:var(--muted)}
+  .split{display:flex; height:34px; border-radius:9px; overflow:hidden; background:var(--surface-2); gap:2px}
+  .seg{width:var(--w); background:var(--c); color:#fff; display:flex; align-items:center; gap:6px; padding:0 10px; font-size:12px; white-space:nowrap; overflow:hidden; transform-origin:left; animation:grow .9s cubic-bezier(.16,1,.3,1) both .2s}
+  :root[data-theme="dark"] .seg{color:#0b1118}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg{color:#0b1118}}
+  .bar{position:relative; height:30px; border-radius:9px; background:var(--surface-2); display:flex; align-items:center}
+  .bar i{display:block; height:100%; width:var(--w); border-radius:9px; background:var(--c); transform-origin:left; animation:grow 1s cubic-bezier(.16,1,.3,1) both .35s}
+  .bar b{position:absolute; left:calc(var(--w) + 10px); font-size:14px; color:var(--text); font-variant-numeric:tabular-nums}
+  .bar.full b{left:auto; right:10px; color:#fff}
+  :root[data-theme="dark"] .bar.full b{color:#0b1118}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bar.full b{color:#0b1118}}
+  @keyframes grow{from{transform:scaleX(0)} to{transform:none}}
+  .legend{display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:10px; font-size:12px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .legend span::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--c)}
+  .delta{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; color:var(--c-green); background:color-mix(in srgb,var(--c-green) 14%,transparent)}
+  .lat-row{display:grid; grid-template-columns:120px minmax(0,1fr); gap:12px; align-items:center; margin:9px 0}
+  .lat-name{font-size:12.5px; font-weight:600; color:var(--text); line-height:1.2}
+  .lat-name small{display:block; font-weight:500; color:var(--faint); font-size:11px}
+  .lat-track{position:relative; height:22px; border-radius:6px; background:repeating-linear-gradient(90deg,var(--surface-2) 0 calc(20% - 1px),var(--border) calc(20% - 1px) 20%)}
+  .lat-track i{position:absolute; top:3px; bottom:3px; left:var(--l); width:var(--w); border-radius:5px; background:var(--c); transform-origin:left; animation:grow .9s cubic-bezier(.16,1,.3,1) both .25s}
+  .lat-track i.open{background:linear-gradient(90deg,var(--c) 60%,transparent)}
+  .lat-axis{display:grid; grid-template-columns:120px minmax(0,1fr); gap:12px}
+  .lat-axis div{display:flex; justify-content:space-between; font:500 10.5px 'JetBrains Mono',monospace; color:var(--faint)}
+  @media (max-width:600px){.lat-row,.lat-axis{grid-template-columns:84px minmax(0,1fr)} .viz-row{grid-template-columns:64px minmax(0,1fr)}}
+
+  /* ---------- Chrome: dots, keys overlay, menu ---------- */
+  .dots-nav{display:flex; align-items:center; gap:7px}
+  .dot-btn{appearance:none; border:none; padding:0; width:9px; height:9px; border-radius:99px; cursor:pointer; background:color-mix(in srgb,var(--a) 30%,var(--border)); transition:width .3s cubic-bezier(.16,1,.3,1), background .3s}
+  .dot-btn:hover{background:var(--a)}
+  .dot-btn.cur{width:28px; background:var(--a)}
+  .dot-btn:focus-visible{outline:2px solid var(--a); outline-offset:3px}
+  @media (max-width:520px){.dots-nav{display:none}}
+  .keys{position:fixed; inset:0; z-index:110; display:flex; align-items:center; justify-content:center; padding:20px; background:color-mix(in srgb,var(--bg) 80%,transparent); backdrop-filter:blur(8px)}
+  .keys[hidden]{display:none}
+  .keys-card{width:min(440px,100%); padding:24px 26px; border-radius:16px; background:var(--surface); border:1px solid var(--border); border-top:4px solid var(--a,var(--accent)); box-shadow:var(--shadow-lg); animation:helpPop .25s ease}
+  .keys-card h2{font-size:20px; color:var(--text); margin-bottom:14px}
+  .keys-card dl{display:grid; grid-template-columns:auto 1fr; gap:10px 18px; margin:0; font-size:14px; color:var(--muted); align-items:center}
+  .keys-card dt{white-space:nowrap}
+  .keys-card dd{margin:0}
+  .mitem .mn{color:var(--a,var(--faint))}
+  .msub{list-style:none; margin:0 0 8px 38px; padding:0 0 0 12px; border-left:2px solid color-mix(in srgb,var(--a) 35%,var(--border))}
+  .msub .mitem{padding:6px 10px; font-size:13.5px; color:var(--muted)}
+  .msub .mitem:hover{color:var(--text)}
+  .mlist{grid-template-columns:1fr 1fr}
+  .mlist > li{break-inside:avoid}
+
+  code,pre{font-variant-ligatures:none}
+  .versus code{box-decoration-break:clone; -webkit-box-decoration-break:clone}
+  .mlist > li .mitem.sec .mn{color:var(--a)}
+  @media (max-width:600px){.brand span{display:none} #keysBtn{display:none}}
+
+  /* ---------- Small screens: let slides flow ---------- */
+  @media (max-width:900px){
+    .slide .inner{aspect-ratio:auto; max-height:none; overflow:visible; padding:26px 22px}
+    .part-grid,#cover .inner.hero{grid-template-columns:1fr}
+    .part-side{position:static}
+    .hero-art{max-height:240px; order:-1}
+    .versus{grid-template-columns:1fr} .vs-badge{justify-self:center}
+    .part-mark{display:none}
+  }
+  @media (max-width:600px){.slide{padding:16px 10px 20px}}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important; transition:none!important}
+    .help-popover-body{scroll-behavior:auto}
+  }
+</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<div id="progress"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <b>Advanced Validation Techniques Across AWS Services</b>
+    <span>· AWS Generative AI · Ch.03</span>
+  </div>
+  <div class="tools">
+    <button class="btn" id="menuBtn" aria-haspopup="true">☰ Contents</button>
+    <button class="btn icon" id="keysBtn" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">⌨</button>
+    <button class="btn icon" id="fsBtn" title="Fullscreen (F)" aria-label="Toggle fullscreen">⛶</button>
+    <button class="btn icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+  </div>
+</header>
+
+<main class="deck" id="deck">
+
+  <!-- Cover -->
+  <section class="slide divider" id="cover" data-accent="orange" data-title="Advanced Validation Techniques Across AWS Services" data-section="true">
+    <div class="inner hero">
+      <div class="hero-copy stagger">
+      <p class="num">Course 03 · Chapter 03</p>
+      <h1>Advanced Validation Techniques Across AWS Services</h1>
+      <p class="meta"><kbd>←</kbd> <kbd>→</kbd> or <kbd>Space</kbd> to navigate · Press <kbd>C</kbd> for contents · <kbd>T</kbd> for theme</p>
+      </div>
+      <svg class="hero-art" viewBox="0 0 520 400" aria-hidden="true" focusable="false">
+        <defs><radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--c-orange)" stop-opacity=".35"/><stop offset="1" stop-color="var(--c-orange)" stop-opacity="0"/></radialGradient></defs>
+        <circle cx="250" cy="200" r="120" fill="url(#rg)"/>
+        <path class="ln" d="M70 200 H204"/>
+        <path class="ln" d="M296 200 C360 200 360 70 410 70"/><path class="ln" d="M296 200 C360 200 360 157 410 157"/>
+        <path class="ln" d="M296 200 C360 200 360 243 410 243"/><path class="ln" d="M296 200 C360 200 360 330 410 330"/>
+        <path class="pulse" stroke="var(--c-orange)" d="M70 200 H204"/>
+        <g class="route" style="animation-delay:0s"><path class="pulse" stroke="var(--c-purple)" d="M296 200 C360 200 360 70 410 70"/><rect class="m" x="410" y="48" width="96" height="44" rx="12" stroke="var(--c-purple)"/><rect class="hb" x="426" y="63" width="50" height="5" rx="2.5" fill="var(--c-purple)"/><rect class="hb" x="426" y="74" width="32" height="5" rx="2.5" fill="var(--c-purple)"/></g>
+        <g class="route" style="animation-delay:1.6s"><path class="pulse" stroke="var(--c-teal)" d="M296 200 C360 200 360 157 410 157" style="animation-delay:.4s"/><rect class="m" x="410" y="135" width="96" height="44" rx="12" stroke="var(--c-teal)"/><rect class="hb" x="426" y="150" width="56" height="5" rx="2.5" fill="var(--c-teal)"/><rect class="hb" x="426" y="161" width="38" height="5" rx="2.5" fill="var(--c-teal)"/></g>
+        <g class="route" style="animation-delay:3.2s"><path class="pulse" stroke="var(--c-green)" d="M296 200 C360 200 360 243 410 243" style="animation-delay:.8s"/><rect class="m" x="410" y="221" width="96" height="44" rx="12" stroke="var(--c-green)"/><rect class="hb" x="426" y="236" width="44" height="5" rx="2.5" fill="var(--c-green)"/><rect class="hb" x="426" y="247" width="60" height="5" rx="2.5" fill="var(--c-green)"/></g>
+        <g class="route" style="animation-delay:4.8s"><path class="pulse" stroke="var(--c-blue)" d="M296 200 C360 200 360 330 410 330" style="animation-delay:1.2s"/><rect class="m" x="410" y="308" width="96" height="44" rx="12" stroke="var(--c-blue)"/><rect class="hb" x="426" y="323" width="52" height="5" rx="2.5" fill="var(--c-blue)"/><rect class="hb" x="426" y="334" width="30" height="5" rx="2.5" fill="var(--c-blue)"/></g>
+        <circle cx="52" cy="200" r="18" fill="var(--surface)" stroke="var(--c-orange)" stroke-width="2"/><circle cx="52" cy="200" r="6" fill="var(--c-orange)"/>
+        <circle class="router-ring" cx="250" cy="200" r="46"/>
+        <circle cx="250" cy="200" r="46" fill="var(--surface)" stroke="var(--c-orange)" stroke-width="2.5"/>
+        <path d="M232 188 h22 l-6 -6 M268 212 h-22 l6 6 M232 212 h10 M258 188 h10" stroke="var(--c-orange)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p class="src"><a href="https://www.meta.ai/prompt/a114eb39-bf2c-4e42-8029-3cc88b85109c">https://www.meta.ai/prompt/a114eb39-bf2c-4e42-8029-3cc88b85109c</a></p>
+    </div>
+  </section>
+
+  <!-- ===== PART 1: LAMBDA + BEDROCK ===== -->
+  <section class="slide divider" id="lambda" data-accent="orange" data-title="Part 01 · The Pattern: Real-time and Custom Validation with AWS Lambda + Amazon Bedrock" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">01</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 01 · The Pattern: Real-time and Custom Validation with AWS Lambda + Amazon Bedrock</p>
+      <p><strong>Traditional Problem:</strong> Rule-based validators like regex, JSON Schema, or AWS Glue Data Quality are great for <code>is this field empty?</code> but they fail at <code>does this product image actually match its description?</code> or <code>is this insurance claim narrative fraudulent?</code></p>
+      <p><strong>Architectural Solution:</strong> AWS Lambda gives you a serverless, event-driven compute layer to run <strong>sophisticated, custom validation</strong> — including calling external APIs and Generative AI models. The key is to design for scale, performance, and failure.</p>
+      <p class="pull">We use this pattern heavily in production for semantic validation.</p>
+      <div class="note"><p><strong>Production-Level Example we will use throughout: AI-Powered Seller Listing Validation for an E-commerce Marketplace</strong><br>Sellers upload listings as JSON, CSV, images, and PDFs to S3. We need to validate in real-time: 1. Schema is correct 2. Image is not counterfeit 3. Description has no banned content or PII 4. Price vs description makes semantic sense. A rule engine can't do #2, #3, #4. We use Lambda + Amazon Bedrock.</p></div>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="lam-lead" aria-label="Open deep dive: Step 1: Design Your Validation Architecture for Scale">?</button><span>Step 1: Design Your Validation Architecture for Scale</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="lam-events" aria-label="Open deep dive: Step 2: Implement Event-Driven, Real-Time Validation">?</button><span>Step 2: Implement Event-Driven, Real-Time Validation</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="lam-perf" aria-label="Open deep dive: Step 3: Optimize for Performance and Cost Within Lambda Limits">?</button><span>Step 3: Optimize for Performance and Cost Within Lambda Limits</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="lam-formats" aria-label="Open deep dive: Step 4: Handle Dynamic and Unstructured Content Formats Dynamically">?</button><span>Step 4: Handle Dynamic and Unstructured Content Formats Dynamically</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 2: LAMBDA AS A DQ FIREWALL ===== -->
+  <section class="slide divider" id="firewall" data-accent="teal" data-title="Part 02 · Refined Concept: Lambda as a Data Quality Firewall for Foundation Models" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">02</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 02 · Refined Concept: Lambda as a Data Quality Firewall for Foundation Models</p>
+      <p><strong>Why this matters:</strong> Foundation Models follow the principle of Garbage In, Garbage Out. If you fine-tune <code>Claude 3.5 on Amazon Bedrock</code> or ingest data into a <code>Knowledge Base for Amazon Bedrock</code>, one bad record with PII, toxic content, or gibberish can degrade your model or cause a guardrail violation in prod.</p>
+      <p class="pull">This Lambda is your <strong>pre-processing validation layer</strong> in your data pipeline. It intercepts every record before it hits S3 -&gt; Bedrock.</p>
+      <p><strong>What the code actually does in simple terms:</strong></p>
+      <ol class="steps">
+        <li><strong>Ingest:</strong> It receives a batch of records from an Event Source like SQS / Kinesis / S3.</li>
+        <li><strong>Extract:</strong> For each record, it pulls out <code>document_id</code> and <code>content</code>.</li>
+        <li><strong>Validate via 3 Checks:</strong> Length, Format, and Safety.</li>
+        <li><strong>Report:</strong> It returns a structured JSON with pass/fail status and exact reasons, so you can route good data forward and bad data to a DLQ.</li>
+      </ol>
+      <div class="note"><p><strong>Production-Level Real World Example we will use: RAG Ingestion Pipeline for a BFSI Customer</strong><br>A bank is building an investment advisor chatbot on Bedrock. They are dumping 100K PDFs, chat transcripts, and call center notes from S3 into a Knowledge Base. We MUST validate before embedding. A transcript with 20 characters <code>ok thanks bye</code> is useless. A transcript with customer credit card numbers or abusive language is dangerous. This Lambda sits between <code>S3 -&gt; SQS -&gt; Lambda Validator -&gt; Validated S3 Bucket -&gt; Bedrock Knowledge Base</code>. Only records where <code>passed: true</code> proceed to <code>Titan Embeddings</code>.</p></div>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="fw-lead" aria-label="Open deep dive: The Sample Code - Fixed and Explained">?</button><span>The Sample Code - Fixed and Explained</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="fw-prod" aria-label="Open deep dive: What is Missing for Production? My Architect Recommendations">?</button><span>What is Missing for Production? My Architect Recommendations</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 3: NOVA VALIDATION GATES ===== -->
+  <section class="slide divider" id="nova" data-accent="purple" data-title="Part 03 · The Core Idea: The Right Nova for the Right Validation Gate" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">03</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 03 · The Core Idea: The Right Nova for the Right Validation Gate</p>
+      <p class="pull">Think of it as a 3-tier quality control line.</p>
+      <div class="tbl tier-table"><table>
+        <tr><th>Model</th><th>Think of it as</th><th>Strength</th><th>Prod Cost &amp; Latency Profile</th></tr>
+        <tr><td><strong>Nova 2 Pro</strong></td><td>The Expert Auditor</td><td>Deep reasoning, multi-step logic</td><td>Highest accuracy, higher cost, ~1-2 sec latency</td></tr>
+        <tr><td><strong>Nova 2 Lite</strong></td><td>The Efficient Operator</td><td>High throughput, low cost</td><td>70% cheaper than Pro, 2x faster, good accuracy for simple tasks</td></tr>
+        <tr><td><strong>Nova 2 Sonic</strong></td><td>The Real-time Gatekeeper</td><td>Ultra-low latency</td><td>Sub-300ms response, optimized for streaming &amp; conversational</td></tr>
+      </table></div>
+      <p>We never use them in isolation in production. We chain them.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="nova-lead" aria-label="Open deep dive: 1. Nova 2 Pro: Complex Validation - When Accuracy is Non-Negotiable">?</button><span>1. Nova 2 Pro: Complex Validation - When Accuracy is Non-Negotiable</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="nova-lite" aria-label="Open deep dive: 2. Nova 2 Lite: High-Volume Validation - The Workhorse">?</button><span>2. Nova 2 Lite: High-Volume Validation - The Workhorse</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="nova-sonic" aria-label="Open deep dive: 3. Nova 2 Sonic: Real-time Validation - When Every Millisecond Matters">?</button><span>3. Nova 2 Sonic: Real-time Validation - When Every Millisecond Matters</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="tiered" data-accent="purple" data-title="My Production Architecture Pattern: The Tiered Validation Pipeline">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 03 · The Core Idea: The Right Nova for the Right Validation Gate</p>
+      <h2>My Production Architecture Pattern: The Tiered Validation Pipeline</h2>
+      <p>In production, we don't pick one. We chain them in <strong>AWS Step Functions</strong>:</p>
+      <p data-flow><strong>S3 Upload -&gt; Lambda Router</strong></p>
+      <ol class="steps">
+        <li><strong>Gate 1 - Sonic:</strong> Is this request malicious / PII leak? If yes, block instantly.</li>
+        <li><strong>Gate 2 - Lite:</strong> Does this pass basic format, schema, quality? Process 10M records cheaply. If <code>confidence &lt; 0.85</code>, escalate.</li>
+        <li><strong>Gate 3 - Pro:</strong> Only 5% complex cases reach here for deep semantic and business rule validation.</li>
+      </ol>
+      <p class="pull">This gives you <strong>Pro-level accuracy at Lite-level cost with Sonic-level latency.</strong></p>
+      <p>Start with Lite for everything. Measure your failure rate. Then add Sonic at the front for UX and Pro at the end for accuracy.</p>
+    </div></div>
+  </section>
+
+  <!-- ===== PART 4: DQDL ===== -->
+  <section class="slide divider" id="dqdl" data-accent="green" data-title="Part 04 · Refined Concept: DQDL - Data Quality Definition Language in 】 Glue" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">04</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 04 · Refined Concept: DQDL - Data Quality Definition Language in 】 Glue</p>
+      <p><strong>What is it?</strong> DQDL is a simple, English-like language inside <strong>AWS Glue Data Quality</strong> to write validation rules. You don't write complex PySpark code. You write <code>IsComplete "content"</code> and Glue runs it at scale on your Data Lake.</p>
+      <p>It works on both your Glue Data Catalog table and directly on S3 datasets. It gives you a quality score in CloudWatch and can fail a Glue ETL Job if data is bad.</p>
+      <div class="note"><p><strong>Production-Level Example we will use: RAG Knowledge Base Curation for a Support Chatbot</strong><br>A telecom customer has 5 Million support articles, FAQs, and chat transcripts in S3, cataloged by <strong>AWS Glue Crawler</strong>. Before we ingest this into <strong>Amazon Bedrock Knowledge Base</strong> with Titan Embeddings, we must run a nightly Glue Job with DQDL to guarantee only high-quality data is embedded. Bad data = bad chatbot answers and hallucinations.</p></div>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="dq-lead" aria-label="Open deep dive: 1. Text Data Validation - Cleaning Unstructured Data for FMs">?</button><span>1. Text Data Validation - Cleaning Unstructured Data for FMs</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="dq-struct" aria-label="Open deep dive: 2. Structured Data Validation - Guarding Your Metadata">?</button><span>2. Structured Data Validation - Guarding Your Metadata</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="dq-custom" aria-label="Open deep dive: 3. Custom Extensions - Where GenAI Validation Comes In">?</button><span>3. Custom Extensions - Where GenAI Validation Comes In</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 5: BIG PICTURE + 4-STEP FRAMEWORK ===== -->
+  <section class="slide divider" id="bigpic" data-accent="blue" data-title="Part 05 · The Big Picture: 3 Dimensions of FM Data Quality" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">05</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 05 · The Big Picture: 3 Dimensions of FM Data Quality</p>
+      <p class="pull">Think of DQDL as your quality control checklist with 3 layers. You need all 3 before data hits <strong>Amazon Bedrock</strong>.</p>
+      <p><strong>1. Text Data Validation = Content Quality:</strong> Is the actual content useful? <code>IsComplete "content"</code>, <code>ColumnLength</code>, language checks.<br><strong>2. Structured Data Validation = Metadata Consistency:</strong> Is the data around the text correct? <code>IsUnique "document_id"</code>, <code>ColumnDataType "timestamp"</code>.<br><strong>3. Custom Extensions = GenAI-Specific Checks:</strong> Is it safe and FM-ready? <code>token_count()</code>, <code>content_safety_score()</code> via <strong>Bedrock Guardrails</strong>.</p>
+      <p>In production, we never mix these. We organize them into separate rule sets.</p>
+      <div class="note"><p><strong>Production Example: RAG Pipeline for a Healthcare Provider</strong><br>Customer is building a medical assistant on Bedrock Knowledge Base using 2M clinical notes, doctor FAQs, and discharge summaries. A single bad record with PII or wrong language can cause HIPAA violation. We implemented DQDL with 85% acceptance threshold. Anything below fails the Glue Job.</p></div>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <h3>Setting Up Data Quality Rules - The 4-Step Framework I Use</h3>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="rs-lead" aria-label="Open deep dive: Step 1: Define Quality Requirements - Start with the FM Use Case">?</button><span>Step 1: Define Quality Requirements - Start with the FM Use Case</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="rs-sets" aria-label="Open deep dive: Step 2: Create Rule Sets - Organize Like Microservices">?</button><span>Step 2: Create Rule Sets - Organize Like Microservices</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="rs-score" aria-label="Open deep dive: Step 3: Configure Quality Scoring - Make Quality Measurable">?</button><span>Step 3: Configure Quality Scoring - Make Quality Measurable</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="rs-test" aria-label="Open deep dive: Step 4: Test and Refine - The Iterative Loop">?</button><span>Step 4: Test and Refine - The Iterative Loop</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="rs-wrangler" aria-label="Open deep dive: Where SageMaker Data Wrangler Fits In - The Missing Piece">?</button><span>Where SageMaker Data Wrangler Fits In - The Missing Piece</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 6: SAGEMAKER DATA WRANGLER ===== -->
+  <section class="slide" id="dw-profiling" data-accent="pink" data-title="1. Data Profiling for Model Training Datasets - See Your Data Before You Train">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 06</p>
+      <h2>1. Data Profiling for Model Training Datasets - See Your Data Before You Train</h2>
+      <p><strong>Refined Content:</strong> Data Wrangler auto-generates a full health report of your dataset in one click - no code needed. For FMs, this is not just row counts, it's content intelligence.</p>
+      <p><strong>What it shows you:</strong></p>
+      <ul>
+        <li><strong>Statistical properties:</strong> Mean, median, distribution of document length, null % for each column</li>
+        <li><strong>Quality issues:</strong> Missing values, duplicate <code>document_id</code>, inconsistent formatting</li>
+        <li><strong>FM-specific insights:</strong> Vocabulary diversity, language distribution, topic coverage</li>
+      </ul>
+      <p><strong>In our FinTech Prod Example:</strong><br>We loaded 100k loan agreement samples into Data Wrangler. In 2 minutes, its <strong>Data Quality and Insights Report</strong> showed:</p>
+      <ul>
+        <li>Document length distribution: 60% are 500-2000 chars, but 15% are &lt;100 chars - useless for embedding.</li>
+        <li>8% duplicate content - same FAQ copied 5 times - would waste OpenSearch vector storage.</li>
+        <li>5% missing <code>category</code> values - our RAG filtering would break.</li>
+      </ul>
+      <p>We didn't write a single line of PySpark. We just saw it visually and then decided: "Our DQDL rule should be <code>ColumnLength between 100 and 8000</code> and <code>IsUnique document_id</code>". Data Wrangler helped us <em>define</em> the requirements.</p>
+    </div></div>
+  </section>
+
+  <section class="slide" id="dw-drift" data-accent="pink" data-title="2. Statistical Validation for Distribution Shifts - Detect Model Drift Early">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 06</p>
+      <h2>2. Statistical Validation for Distribution Shifts - Detect Model Drift Early</h2>
+      <p><strong>Refined Content:</strong> Foundation Models degrade when production data starts looking different from training data. This is called <strong>Data Drift or Distribution Shift</strong>. Data Wrangler can compare your new batch vs. your baseline and alert you.</p>
+      <p><strong>Technical Capability:</strong> It runs statistical tests - e.g., comparing mean token length, embedding drift, category distribution - and flags when a metric crosses a threshold.</p>
+      <p><strong>In our FinTech Prod Example:</strong><br>Our Knowledge Base was trained on data from Jan. In April, we ingested new chat logs. Data Wrangler's drift report showed:</p>
+      <ul>
+        <li>Baseline mean length: 1200 chars. New batch mean length: 350 chars - users are now sending much shorter queries.</li>
+        <li>New category <code>UPI_Fraud</code> appeared 20% of the time, but was 0% in baseline.</li>
+      </ul>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>Mean length</span></div>
+        <div class="viz-row"><span class="viz-lbl">Baseline</span><div class="bar full" style="--w:100%"><i style="--c:var(--c-blue)"></i><b>1200 chars</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">New batch</span><div class="bar" style="--w:29.2%"><i style="--c:var(--c-red)"></i><b>350 chars</b></div></div>
+      </div>
+      <p>We configured an alert: If <code>avg_token_count</code> shifts by &gt;20%, trigger an <strong>Amazon SNS</strong> notification. This told us our Bedrock model needed re-evaluation and our DQDL thresholds needed updating. Without this, your chatbot accuracy silently drops in production.</p>
+      <p class="pull">This is critical for production systems - you don't want to find drift from customer complaints.</p>
+    </div></div>
+  </section>
+
+  <section class="slide" id="dw-transform" data-accent="pink" data-title="3. Custom Transformations for Specialized Preprocessing - Clean Once, Reuse Everywhere">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 06</p>
+      <h2>3. Custom Transformations for Specialized Preprocessing - Clean Once, Reuse Everywhere</h2>
+      <p><strong>Refined Content:</strong> Data Wrangler has 300+ built-in transforms, plus you can write your own Python/PySpark code in the UI. You can clean data for FMs and save that cleaning recipe as a reusable component for your <strong>SageMaker Pipelines</strong> or <strong>Glue Jobs</strong>.</p>
+      <p><strong>What you build:</strong></p>
+      <ul>
+        <li><strong>Text normalization:</strong> Lowercasing, removing HTML tags <code>&lt;p&gt;</code>, stripping PII patterns, standardizing dates</li>
+        <li><strong>Content filtering:</strong> Remove lines with <code>confidential</code>, filter non-English</li>
+        <li><strong>Format standardization:</strong> Convert all timestamps to ISO, extract clean text from PDFs</li>
+      </ul>
+      <p><strong>In our FinTech Prod Example:</strong><br>Our FAQs had HTML: <code>&lt;div&gt;&lt;b&gt;What is interest rate?&lt;/b&gt;&lt;/div&gt;</code>. For Titan Embeddings, HTML is noise.</p>
+      <p>In Data Wrangler, we used:</p>
+      <ol class="steps">
+        <li>Built-in transform: <code>Find and Replace HTML tags</code> -&gt; regex <code>&lt;[^&gt;]*&gt;</code> -&gt; empty</li>
+        <li>Custom transform: Python code to call <code>Amazon Comprehend PII detection</code> to mask account numbers</li>
+        <li>We saved this as <code>fintech_fm_cleaning.flow</code> and exported it as a SageMaker Pipeline step. Now every new file from S3 goes through the same cleaning, ensuring consistency. No more "it worked in my notebook" issues.</li>
+      </ol>
+    </div></div>
+  </section>
+
+  <section class="slide" id="dw-structure" data-accent="pink" data-title="4. Content Structure Analysis for Unstructured Articles - Understand the Layout">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 06</p>
+      <h2>4. Content Structure Analysis for Unstructured Articles - Understand the Layout</h2>
+      <p><strong>Refined Content:</strong> For unstructured data like articles and docs, <em>structure</em> matters. A well-structured FAQ with sections <code>Question, Answer, Example</code> trains a better FM than a wall of text. Data Wrangler can parse and extract these features.</p>
+      <p><strong>In our FinTech Prod Example:</strong><br>Our blog articles have sections: Title, Intro, Steps, FAQs. Data Wrangler helped us:</p>
+      <ul>
+        <li>Analyze information density: Articles with &lt;3 sections had low retrieval accuracy in RAG.</li>
+        <li>Extract features: Number of headings, avg paragraph length, presence of code blocks.</li>
+      </ul>
+      <p>We created a new derived column <code>information_density_score</code> and added a DQDL rule: <code>information_density_score &gt; 0.6</code>. Low-density articles were sent for human enrichment, not to Bedrock.</p>
+      <p><strong>Architect Note on Scale:</strong></p>
+      <div class="note tip"><p>When you work with large datasets in Data Wrangler, always use sampling. Don't load 3M docs. Use <strong>SageMaker Data Wrangler's sampling strategies</strong> - random sampling or stratified sampling by <code>category</code>. Analyze 50k representative rows interactively, design your flow, then run that flow at scale via a Glue Job or SageMaker Processing Job on the full 3M. Interactive UI is for design, not for full-scale execution.</p></div>
+    </div></div>
+  </section>
+
+  <section class="slide" id="dw-connect" data-accent="pink" data-title="How It All Connects - The End-to-End Validation Strategy">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 06</p>
+      <h2>How It All Connects - The End-to-End Validation Strategy</h2>
+      <p>You now have the full picture:</p>
+      <p><strong>Lab Phase:</strong> <code>S3 Raw -&gt; Data Wrangler [Profile, Detect Drift, Build Cleaning Flow]</code><br><strong>Factory Phase:</strong> <code>S3 Raw -&gt; AWS Glue Job with DQDL [Enforce QualityScore &gt; 85% using rules you discovered in Data Wrangler]</code><br><strong>Real-time Phase:</strong> <code>API/S3 Event -&gt; AWS Lambda + Nova Sonic / Bedrock Guardrails [Live safety check]</code><br><strong>Final Destination:</strong> <code>S3 Validated -&gt; Bedrock Knowledge Base / Fine-tuning</code></p>
+      <p class="pull">Data Wrangler is where you <em>learn</em> what good data looks like. Glue and Lambda are where you <em>enforce</em> it.</p>
+    </div></div>
+  </section>
+
+  <!-- ===== PART 7: CLOUDWATCH + STEP FUNCTIONS ===== -->
+  <section class="slide" id="cw-metrics" data-accent="red" data-title="1. CloudWatch Metrics Integration - Make Your Pipeline Observable">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 07</p>
+      <h2>1. CloudWatch Metrics Integration - Make Your Pipeline Observable</h2>
+      <p><strong>Refined Content:</strong> Don't just log. Publish business metrics as <strong>Custom CloudWatch Metrics</strong>. This gives you dashboards, trends, and the ability to alarm.</p>
+      <p>Your sample code is correct but too basic for prod. In prod, we always add <strong>Dimensions</strong>.</p>
+      <p><strong>Prod-Grade Code - Refined:</strong></p>
+<pre><code>import boto3
+cloudwatch = boto3.client('cloudwatch')
+
+def publish_validation_metrics(validation_results, data_source="support_faqs"):
+    total = len(validation_results)
+    passed = sum(1 for r in validation_results if r['passed'])
+    failed_safety = sum(1 for r in validation_results if 'safety' in str(r['issues']).lower())
+
+    success_rate = (passed / total) * 100 if total &gt; 0 else 0
+
+    # Prod best practice: Use Dimensions to slice by data source and model
+    cloudwatch.put_metric_data(
+        Namespace='DataValidation/FoundationModels', # Your custom namespace
+        MetricData=[
+            {
+                'MetricName': 'ValidationSuccessRate',
+                'Value': success_rate,
+                'Unit': 'Percent',
+                'Dimensions': [{'Name': 'DataSource', 'Value': data_source}]
+            },
+            {
+                'MetricName': 'ProcessedRecords',
+                'Value': total,
+                'Unit': 'Count',
+                'Dimensions': [{'Name': 'DataSource', 'Value': data_source}]
+            },
+            {
+                'MetricName': 'SafetyFailures',
+                'Value': failed_safety,
+                'Unit': 'Count'
+            },
+            {
+                'MetricName': 'ProcessingLatency',
+                'Value': 1.2, # from your Lambda duration
+                'Unit': 'Seconds'
+            }
+        ]
+    )</code></pre>
+      <p><strong>Why this matters:</strong> In CloudWatch Dashboard, you can now see: <code>ValidationSuccessRate for DataSource=loan_agreements dropped from 92% to 60% yesterday</code>. Without Dimensions, you just see an aggregate 85% and you have no idea which data source broke. We also track <strong>Data Quality Score from Glue DQDL</strong> and <strong>Bedrock Guardrail intervention rate</strong> in the same namespace.</p>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>ValidationSuccessRate · DataSource=loan_agreements</span></div>
+        <div class="viz-row"><span class="viz-lbl">Before</span><div class="bar" style="--w:92%"><i style="--c:var(--c-green)"></i><b>92%</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">Yesterday</span><div class="bar" style="--w:60%"><i style="--c:var(--c-red)"></i><b>60%</b></div></div>
+      </div>
+      <div class="note tip"><p><strong>Architect Tip:</strong> Use <strong>AWS Lambda Powertools</strong> - it has a <code>Metrics</code> decorator that auto-publishes these metrics with one line, and handles batching.</p></div>
+    </div></div>
+  </section>
+
+  <section class="slide" id="cw-alarms" data-accent="red" data-title="2. Automated Alerting - From Reactive to Proactive">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 07</p>
+      <h2>2. Automated Alerting - From Reactive to Proactive</h2>
+      <p><strong>Refined Content:</strong> Metrics are useless without alarms. Set up <strong>CloudWatch Alarms</strong> to notify you <em>before</em> bad data poisons your Foundation Model.</p>
+      <p><strong>Prod Setup I deploy for every customer:</strong></p>
+      <ul>
+        <li><strong>Alarm 1 - Quality Drop:</strong> <code>ValidationSuccessRate &lt; 85% for 2 consecutive evaluation periods of 15 mins</code> -&gt; Action: Send to <strong>Amazon SNS topic -&gt; PagerDuty + Slack</strong>. This catches upstream data issues.</li>
+        <li><strong>Alarm 2 - Safety Spike:</strong> <code>SafetyFailures &gt; 100 in 5 mins</code> -&gt; Action: SNS -&gt; Lambda to auto-pause the Glue Job. This could be a data leak or prompt injection attack.</li>
+        <li><strong>Alarm 3 - Latency:</strong> <code>ProcessingLatency p95 &gt; 3 sec</code> -&gt; Action: Indicates Bedrock throttling or Lambda cold starts. Auto-scale.</li>
+      </ul>
+      <p><strong>In our FinTech Example:</strong><br>At 3 AM, a new vendor uploaded 20k chat logs full of PII. Our <code>SafetyFailures</code> alarm fired. CloudWatch Alarm triggered SNS, which triggered a Lambda that automatically set the Glue Job's DQDL threshold to 100% for safety rules and quarantined the batch in <code>s3://quarantine/pii-leak-2024-10/</code>. The Bedrock Knowledge Base was never polluted. The on-call engineer got a Slack message with a CloudWatch Dashboard link, not a customer complaint at 9 AM.</p>
+      <p class="pull">This is proactive governance.</p>
+    </div></div>
+  </section>
+
+  <section class="slide" id="cw-orch" data-accent="red" data-title="3. Cross-Service Orchestration - The Glue That Holds It All Together">
+    <div class="inner"><div class="stagger">
+      <p class="kicker" aria-hidden="true">Part 07</p>
+      <h2>3. Cross-Service Orchestration - The Glue That Holds It All Together</h2>
+      <p><strong>Refined Content:</strong> You have 4 services: Lambda, Glue Data Quality, Data Wrangler flow, and Bedrock ingestion. If you run them with separate cron jobs, you have no visibility, no retry, no error handling. Use <strong>AWS Step Functions</strong> as your orchestrator.</p>
+      <p class="pull"><strong>Think of Step Functions as your assembly line manager.</strong></p>
+      <p><strong>Prod State Machine Design:</strong></p>
+      <p><code>Step Functions Workflow: FM_Validation_Pipeline</code></p>
+<pre><code>1. [Lambda: RealTimeCheck] -&gt; Uses Nova Sonic + Guardrails. If fails -&gt; Go to Quarantine State
+2. [Glue Job: BatchQualityCheck] -&gt; Runs your 3 DQDL rulesets. Glue publishes QualityScore to CloudWatch.
+3. [Choice State: Is QualityScore &gt; 85?]
+   -&gt; If No: Go to [SNS: Alert + Human Approval State]
+   -&gt; If Yes: Go to Next
+4. [Bedrock: Ingest to Knowledge Base] -&gt; StartIngestionJob
+5. [Parallel State: Publish Metrics] -&gt; In parallel, publish final metrics to CloudWatch and update DynamoDB audit table.</code></pre>
+      <p><strong>Why Step Functions in Prod?</strong></p>
+      <ul>
+        <li><strong>Visibility:</strong> You see a visual map of where validation failed - was it Lambda or Glue?</li>
+        <li><strong>Sophisticated Error Handling:</strong> If <code>Bedrock ApplyGuardrail</code> throttles, Step Functions can retry with exponential backoff automatically. Your Lambda code doesn't need retry logic.</li>
+        <li><strong>Audit Trail:</strong> Every execution is logged. For compliance, you can prove that <code>document_id 12345</code> passed all 3 validation gates before entering the FM.</li>
+        <li><strong>Integration:</strong> It natively integrates with Lambda, Glue, Bedrock, SNS, and SQS.</li>
+      </ul>
+      <p><strong>In our FinTech Example:</strong><br>We have one Step Functions execution per night. If the Glue DQDL step fails, it does NOT run Bedrock ingestion. It routes to a <code>Human Choice</code> state in Step Functions that waits for approval in Slack via callback. Once approved, it resumes. This saved us from manually orchestrating 5 separate services.</p>
+      <p><strong>Final Production Architecture - The Complete View:</strong></p>
+      <p><code>S3 Event -&gt; SQS -&gt; Step Functions</code><br><code>Step Functions orchestrates: Lambda [Sonic + publish CloudWatch metrics] -&gt; Glue Data Quality [DQDL + publish QualityScore] -&gt; Choice [QualityScore &gt; 85] -&gt; Bedrock KB Ingestion</code><br><code>CloudWatch Alarms on top of all metrics -&gt; SNS -&gt; Slack/PagerDuty</code><br><code>CloudWatch Dashboard: Single pane of glass for ValidationSuccessRate, SafetyFailures, Latency, Glue Quality Score</code></p>
+      <p class="pull">With this, you move from "we validate data" to "we have a governed, monitored, and auditable data supply chain for our Foundation Models."</p>
+    </div></div>
+  </section>
+
+</main>
+
+<!-- Help popover: full-viewport overlay (kept outside the deck so it can't be clipped/trapped) -->
+<div class="help-popover" id="helpPop" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
+  <div class="pop-head">
+    <div class="pop-crumb"><span class="pop-part" id="popPart"></span><span class="pop-count" id="popCount"></span><span class="pop-pips" id="popPips" aria-hidden="true"></span></div>
+    <div class="pop-nav">
+      <button class="btn" id="popPrev" type="button" aria-label="Previous deep dive">← <span class="lbl">Prev</span></button>
+      <button class="btn" id="popNext" type="button" aria-label="Next deep dive"><span class="lbl">Next</span> →</button>
+    </div>
+    <button class="help-popover-close" id="helpClose" type="button" aria-label="Close deep dive">&times;</button>
+  </div>
+  <div class="pop-progress" aria-hidden="true"><i id="popProg"></i></div>
+  <div class="help-popover-body" id="helpBody" tabindex="-1"></div>
+</div>
+
+<!-- Deep-dive content (verbatim copies of the source sub-sections) -->
+
+  <!-- ===== PART 1 DIVES ===== -->
+  <template id="help-lam-lead">
+    <div class="inner">
+      <h2>Step 1: Design Your Validation Architecture for Scale</h2>
+      <p><strong>Refined Content:</strong> Don't just write a Lambda function. Architect for your peak load. You must define your non-functional requirements upfront.</p>
+      <p><strong>What to consider as an Architect:</strong></p>
+      <ul>
+        <li><strong>Memory &amp; Timeout:</strong> A standard validation needs 256MB and 5 sec. A GenAI validation that calls <code>Amazon Bedrock InvokeModel</code> and processes images needs 1024MB - 2048MB and 30-60 sec timeout. Memory is directly proportional to CPU and network bandwidth in Lambda.</li>
+        <li><strong>Concurrency Model:</strong> How many validations at once? Use <code>Reserved Concurrency</code> to protect downstream services like Bedrock, and <code>Provisioned Concurrency</code> to avoid cold starts for real-time APIs.</li>
+        <li><strong>Error Handling Path:</strong> Always design your Dead Letter Queue (DLQ).</li>
+      </ul>
+      <p><strong>In our Prod Example:</strong><br>For Big Billion Day sale, we expect 5,000 listings/minute. We set Lambda with 1024MB, 45s timeout, and Reserved Concurrency of 1000. We place an Amazon SQS queue in front of Lambda as an event source with <code>Batch Window = 5 sec</code>. If Bedrock validation fails, the event goes to SQS DLQ for human review, not dropped.</p>
+    </div>
+  </template>
+
+  <template id="help-lam-events">
+    <div class="inner">
+      <h2>Step 2: Implement Event-Driven, Real-Time Validation</h2>
+      <p><strong>Refined Content:</strong> Configure Lambda to be triggered automatically by data events, instead of polling. This gives you near real-time validation.</p>
+      <p><strong>Architecture:</strong></p>
+      <ul>
+        <li><code>Amazon S3 Event Notifications -&gt; SQS -&gt; Lambda</code> : Best for file uploads. SQS decouples and handles throttling.</li>
+        <li><code>Amazon Kinesis Data Streams -&gt; Lambda</code> : Best for continuous streams like clickstream or chat messages.</li>
+        <li><code>Amazon DynamoDB Streams -&gt; Lambda</code> : Best for validating database changes.</li>
+      </ul>
+      <p><strong>In our Prod Example:</strong><br>Seller uploads <code>listing_123.jpg + listing_123.json</code> to S3. S3 PutObject event -&gt; SQS -&gt; Lambda Validator is invoked.</p>
+      <p>Inside Lambda:</p>
+      <ol class="steps">
+        <li>Lambda uses <code>Amazon Textract</code> to extract text from image.</li>
+        <li>Lambda then calls <code>Amazon Bedrock - Claude 3.5 Sonnet</code> with a prompt: "You are a listing validator. Does this image {image} match this description {description}? Return JSON: {is_valid: bool, reason: string}"</li>
+        <li>Lambda also calls <code>Amazon Bedrock Guardrails</code> to check for PII, toxicity, and banned words.<br>This entire semantic check happens in &lt;2 seconds of arrival.</li>
+      </ol>
+    </div>
+  </template>
+
+  <template id="help-lam-perf">
+    <div class="inner">
+      <h2>Step 3: Optimize for Performance and Cost Within Lambda Limits</h2>
+      <p><strong>Refined Content:</strong> Lambda has a 15-minute max execution limit. For large datasets and LLM calls, you must optimize.</p>
+      <p><strong>Architect Best Practices:</strong></p>
+      <ol class="tiles">
+        <li><strong>Connection Reuse:</strong> Initialize boto3 clients for S3 and Bedrock OUTSIDE the handler. This reuses connections across warm invocations and avoids cold start penalties.</li>
+        <li><strong>Caching:</strong> Use <code>Amazon ElastiCache Serverless</code> or <code>DynamoDB</code> to cache Bedrock Guardrail results. If 100 sellers write "100% cotton", don't call Bedrock 100 times.</li>
+        <li><strong>Batch Processing:</strong> Use <code>SQS Batch Item Failures</code> and process 10 messages per Lambda invocation instead of 1.</li>
+        <li><strong>Observability:</strong> Monitor with <code>Amazon CloudWatch Metrics</code> - Duration, ErrorRate, Throttles, ConcurrentExecutions - and use <code>AWS Lambda Powertools for Python</code> for structured logging and tracing with AWS X-Ray.</li>
+      </ol>
+      <p><strong>In our Prod Example:</strong><br>We implemented caching and saw 40% reduction in Bedrock calls. We also use Lambda Powertools Idempotency to make sure if SQS delivers the same listing twice, we don't double-charge the seller or double-validate.</p>
+    </div>
+  </template>
+
+  <template id="help-lam-formats">
+    <div class="inner">
+      <h2>Step 4: Handle Dynamic and Unstructured Content Formats Dynamically</h2>
+      <p><strong>Refined Content:</strong> Real-world data is never clean. Your validator must be format-agnostic. This is where Generative AI excels over rules.</p>
+      <p><strong>Architecture:</strong><br>Design your Lambda to first normalize, then validate. Use a multi-modal LLM to act as your universal parser.</p>
+      <p><strong>In our Prod Example:</strong><br>A seller might upload a PDF invoice, an Excel sheet, or just a phone photo of a product. Our Lambda logic is:</p>
+<pre><code># Pseudo-code
+if file_type == 'image':
+    text = Textract + Bedrock Claude (multimodal)
+else:
+    text = parse_json/csv
+
+validation_prompt = f"Normalize this to our standard schema: {text}"
+normalized_data = Bedrock.invoke(prompt=validation_prompt)
+
+is_valid = Guardrails + Business Rules check on normalized_data</code></pre>
+      <p>Instead of writing 10 different parsers, one Bedrock call handles JSON, CSV, and image-to-text normalization. This is <strong>semantic validation</strong>, not just syntactic validation.</p>
+      <p><strong>Final Production Checklist I give to all customers:</strong></p>
+      <ul>
+        <li>Use SQS between S3 and Lambda - never direct S3-&gt;Lambda for prod workloads</li>
+        <li>Enable DLQ and CloudWatch Alarms on <code>Errors &gt; 1%</code></li>
+        <li>Keep Bedrock calls in a separate try/except - if GenAI is throttled, fallback to rule-based validation</li>
+        <li>Use Step Functions if your validation has more than 2 steps: <code>Textract -&gt; Bedrock -&gt; Business Rules -&gt; DynamoDB</code></li>
+      </ul>
+      <p class="pull">In short: Use Lambda for orchestration and speed, use Bedrock for intelligence and flexibility.</p>
+    </div>
+  </template>
+
+  <!-- ===== PART 2 DIVES ===== -->
+  <template id="help-fw-lead">
+    <div class="inner">
+      <h2>The Sample Code - Fixed and Explained</h2>
+      <p>Your sample had a small bug in length check. Here is the corrected, easy-to-understand logic:</p>
+<pre><code># 1. LENGTH VALIDATION: Foundation models have context window limits and cost per token
+# Too short = no signal, Too long = will be truncated and cost you money
+if len(content) &lt; 100 or len(content) &gt; 10000:
+    issues.append('Content length outside acceptable range 100-10,000 chars')
+    passed = False
+
+# 2. FORMAT VALIDATION: Is this human-readable text or binary/corrupted data?
+if not validate_text_format(content): # e.g., checks for excessive special chars, HTML tags, encoding issues
+    issues.append('Invalid text format detected')
+    passed = False
+
+# 3. SAFETY &amp; QUALITY VALIDATION: The GenAI check
+safety_score = assess_content_safety(content) # 0.0 to 1.0
+if safety_score &lt; 0.8:
+    issues.append(f'Content safety score too low: {safety_score}')
+    passed = False</code></pre>
+    </div>
+  </template>
+
+  <template id="help-fw-prod">
+    <div class="inner">
+      <h2>What is Missing for Production? My Architect Recommendations</h2>
+      <p>The sample code shows the <em>idea</em>. For a real prod workload serving millions of records, you need to harden it:</p>
+      <p><strong>1. The Safety Check should not be a dummy function. Use Amazon Bedrock Guardrails:</strong><br>Don't write your own toxicity classifier. In prod, we call a managed service.</p>
+<pre><code>import boto3
+bedrock = boto3.client('bedrock-runtime')
+
+def assess_content_safety(content: str) -&gt; float:
+    # Prod approach: Use Bedrock Guardrails API
+    response = bedrock.apply_guardrail(
+        guardrailIdentifier='your-guardrail-id', # Contains PII, Toxicity, Prompt Attack filters
+        guardrailVersion='DRAFT',
+        source='INPUT',
+        content=[{'text': {'text': content}}]
+    )
+    # If guardrail intervenes, score is 0.0, else 1.0
+    # You can also use Comprehend for more granular scoring
+    return 0.0 if response['action'] == 'GUARDRAIL_INTERVENED' else 1.0</code></pre>
+      <p><strong>2. The Architecture Should Be Resilient:</strong></p>
+      <p>Your <code>lambda_handler</code> returns one 200 even if 1 out of 10 records failed. In prod with SQS, that will delete all 10 records from the queue, losing the 9 good ones.</p>
+      <p><strong>Prod Pattern:</strong> Use <code>SQS Batch Item Failures</code> to only retry the failed <code>document_id</code>s.</p>
+<pre><code>from aws_lambda_powertools.utilities.batch import BatchProcessor, EventType, batch_processor
+
+processor = BatchProcessor(event_type=EventType.SQS)
+
+@batch_processor(processor=processor, record_handler=validate_content)
+def lambda_handler(event, context):
+    # Powertools automatically handles partial failures
+    return processor.response()</code></pre>
+      <p><strong>3. Production-Ready Refactored Handler:</strong></p>
+      <p>Here is how I would write it for a customer:</p>
+<pre><code>import os, json
+import boto3
+from aws_lambda_powertools import Logger
+
+logger = Logger()
+s3_client = boto3.client('s3') # Reuse outside handler for performance
+bedrock_client = boto3.client('bedrock-runtime')
+
+MIN_LEN = int(os.environ.get('MIN_LENGTH', 100))
+MAX_LEN = int(os.environ.get('MAX_LENGTH', 10000))
+SAFETY_THRESHOLD = float(os.environ.get('SAFETY_THRESHOLD', 0.8))
+
+def lambda_handler(event, context):
+    results = []
+    for record in event.get('Records', []):
+        data = extract_data_from_record(record) # Handles S3, SQS, Kinesis parsing
+        result = validate_content(data)
+        results.append(result)
+
+        # Route based on result - this is key
+        if result['passed']:
+            s3_client.put_object(Bucket='validated-dataset-bucket', Key=f"good/{result['document_id']}.json", Body=json.dumps(data))
+        else:
+            s3_client.put_object(Bucket='validated-dataset-bucket', Key=f"quarantine/{result['document_id']}.json", Body=json.dumps(result))
+            logger.warning(f"Validation failed for {result['document_id']}", extra=result)
+
+    return {'processed_records': len(results), 'failed_records': sum(1 for r in results if not r['passed'])}</code></pre>
+      <p><strong>Bottom Line as an Architect:</strong></p>
+      <p>Your original function is the <strong>core logic</strong>. For production, wrap it with:</p>
+      <ul>
+        <li><strong>Event Source:</strong> S3 -&gt; SQS -&gt; Lambda for durability</li>
+        <li><strong>Intelligence:</strong> Replace <code>assess_content_safety()</code> with <code>Bedrock Guardrails</code> + <code>Amazon Comprehend</code> for PII detection</li>
+        <li><strong>Observability:</strong> Lambda Powertools + CloudWatch Metrics for <code>failed_records</code></li>
+        <li><strong>Routing:</strong> Good data -&gt; Bedrock Knowledge Base, Bad data -&gt; S3 quarantine bucket + SQS DLQ for human review</li>
+      </ul>
+      <p class="pull">This way, you guarantee your Foundation Model only learns from clean, safe, and meaningful data.</p>
+    </div>
+  </template>
+
+  <!-- ===== PART 3 DIVES ===== -->
+  <template id="help-nova-lead">
+    <div class="inner">
+      <h2>1. Nova 2 Pro: Complex Validation - When Accuracy is Non-Negotiable</h2>
+      <p><strong>Refined Content:</strong> This is your most capable model for tasks that need nuanced understanding, context, and multi-step reasoning. It doesn't just check if text exists, it checks if it <em>makes sense</em>.</p>
+      <p><strong>Technical Capabilities:</strong></p>
+      <ul>
+        <li>Semantic validation and contextual understanding</li>
+        <li>Multi-condition business rule evaluation</li>
+        <li>Multi-dimensional quality scoring with chain-of-thought reasoning</li>
+        <li>Long context window - can compare a 50-page contract against a claim</li>
+      </ul>
+      <p><strong>When to choose:</strong> When a false positive costs you money or compliance risk.</p>
+      <p><strong>Prod-Level Real World Example: Insurance Claim Fraud Detection</strong><br>A customer like Bajaj Allianz receives a claim: 3 PDFs, 10 images of car damage, and a free-text narrative.</p>
+      <p>Our validation Lambda calls <strong>Nova 2 Pro on Bedrock</strong> with this prompt:</p>
+      <p class="quote">"You are a claim auditor. Rule 1: Repair cost must match damage severity in images. Rule 2: Incident date in narrative must match police report date. Rule 3: Policy must cover this incident type. Evaluate all 3 and give a risk_score 0-1 with reasoning."</p>
+      <p>Pro can do cross-document reasoning that Lite cannot. We only run 5% of claims through Pro that failed Lite checks. Yes, it costs more per <code>InvokeModel</code> call, but it prevents a $10,000 fraudulent payout.</p>
+      <div class="note tip"><p><strong>Architect Tip:</strong> Use Pro as a Judge. Use Lite to filter 95% of data, and only escalate the ambiguous 5% to Pro.</p></div>
+      <div class="viz" aria-hidden="true"><div class="split"><span class="seg" style="--w:95%;--c:var(--c-teal)"><b>95%</b> Lite</span><span class="seg" style="--w:5%;--c:var(--c-purple)"></span></div><div class="legend"><span style="--c:var(--c-teal)">Lite · 95%</span><span style="--c:var(--c-purple)">Pro · 5%</span></div></div>
+    </div>
+  </template>
+
+  <template id="help-nova-lite">
+    <div class="inner">
+      <h2>2. Nova 2 Lite: High-Volume Validation - The Workhorse</h2>
+      <p><strong>Refined Content:</strong> This is your cost-optimized model for straightforward, high-speed validation where you need to process millions of records overnight.</p>
+      <p><strong>Technical Capabilities:</strong></p>
+      <ul>
+        <li>Schema compliance and format validation</li>
+        <li>Straightforward content classification - e.g., is this <code>Electronics</code> or <code>Apparel</code>?</li>
+        <li>Basic quality checks: language detection, length, gibberish detection</li>
+        <li>Perfect for batch processing with <code>SQS Batch Window</code> and <code>Kinesis</code></li>
+      </ul>
+      <p><strong>When to choose:</strong> When you have massive volume and cost control is priority.</p>
+      <p><strong>Prod-Level Real World Example: E-commerce Catalog Validation for Meesho / Amazon</strong></p>
+      <p>Every night, 10 Million seller listings are updated via S3. We need to validate:<br><code>Does this JSON have all required fields? Is description in English? Is category valid?</code></p>
+      <p>We trigger a Lambda with 1000 concurrency that calls <strong>Nova 2 Lite</strong>. Prompt: <code>Classify this product description into our 500 categories. Return only JSON.</code></p>
+      <p>Lite processes ~100 records/sec at 1/5th the cost of Pro. If Lite confidence is &lt; 0.85, we mark it for Pro review. This is your <strong>preliminary validation gate</strong>. It handles 95% of the work.</p>
+      <div class="note tip"><p><strong>Architect Tip:</strong> Set <code>max_tokens</code> to 200 and <code>temperature</code> to 0 for Lite validation jobs. You want deterministic, cheap, fast JSON output, not creative writing.</p></div>
+    </div>
+  </template>
+
+  <template id="help-nova-sonic">
+    <div class="inner">
+      <h2>3. Nova 2 Sonic: Real-time Validation - When Every Millisecond Matters</h2>
+      <p><strong>Refined Content:</strong> Sonic is purpose-built for low-latency, streaming scenarios. It's a speech-to-speech and text model optimized for sub-second inference. It’s not for deep reasoning, it’s for immediate feedback.</p>
+      <p><strong>Technical Capabilities:</strong></p>
+      <ul>
+        <li>Streaming data validation with immediate response</li>
+        <li>Conversational guardrails - PII, toxicity, prompt injection detection in real-time</li>
+        <li>Interactive validation workflows where user is waiting</li>
+      </ul>
+      <p><strong>When to choose:</strong> When latency directly impacts User Experience - UX.</p>
+      <p><strong>Prod-Level Real World Example: Live Chatbot Guardrail for a Banking App</strong></p>
+      <p>A user is chatting with your Bedrock-powered banking assistant. Before their message <code>My card 4111-1111-1111-1111 is blocked</code> even reaches Claude, it must be checked.</p>
+      <p>An <strong>Amazon Kinesis + Lambda</strong> function calls <strong>Nova 2 Sonic</strong>:</p>
+      <p>Sonic checks in &lt; 250ms: <code>Contains PII? Yes. Contains prompt injection? No. Action: Mask PII and proceed.</code></p>
+      <p>If you used Pro here, user would wait 2 seconds and leave. Sonic is integrated with <code>Amazon Bedrock Guardrails</code> and <code>Amazon Connect</code> for voice bots to do real-time validation without killing conversation flow.</p>
+      <div class="note tip"><p><strong>Architect Tip:</strong> Use Sonic at the edge - in API Gateway Lambda Authorizers or in Kinesis Data Analytics for real-time streams.</p></div>
+    </div>
+  </template>
+
+  <!-- ===== PART 4 DIVES ===== -->
+  <template id="help-dq-lead">
+    <div class="inner">
+      <h2>1. Text Data Validation - Cleaning Unstructured Data for FMs</h2>
+      <p><strong>Refined Content:</strong> For FMs, text must be complete, clean, and not corrupted. DQDL lets you check this without coding.</p>
+      <p><strong>Your Rule - Explained Simply:</strong></p>
+<pre><code>Rules = [
+    -- Rule 1: Length check - FMs need enough context, but not too much to overflow token limit
+    ColumnLength "content" between 100 and 10000,
+
+    -- Rule 2: Format check - Must be readable letters/numbers/punctuation, not binary junk or corrupted encoding
+    ColumnValues "content" matches "[\\p{L}\\p{N}\\p{P}\\p{Z}]+",
+
+    -- Rule 3: Completeness - No nulls allowed. Null = embedding will fail
+    IsComplete "content",
+
+    -- Rule 4: Business sanity check - No error logs ingested as knowledge
+    CustomSql "SELECT COUNT(*) FROM primary WHERE content LIKE '%[ERROR]%'" = 0
+]</code></pre>
+      <p><strong>In our Prod Example:</strong><br>Our Glue Data Quality job runs on the <code>support_articles</code> table. Last night it found 2,000 articles where <code>content</code> was only 20 chars like "See attachment". The <code>ColumnLength</code> rule failed them, Glue marked the dataset quality score as 85%, and automatically moved those records to <code>s3://quarantine-bucket/</code> instead of sending them to Bedrock. We prevented 2,000 useless embeddings.</p>
+      <div class="note tip"><p><strong>Architect Tip:</strong> <code>ColumnLength</code> in DQDL is character length. For FM token limits, you need a custom token count, which brings us to point 3.</p></div>
+    </div>
+  </template>
+
+  <template id="help-dq-struct">
+    <div class="inner">
+      <h2>2. Structured Data Validation - Guarding Your Metadata</h2>
+      <p><strong>Refined Content:</strong> Your text has metadata - <code>document_id</code>, <code>timestamp</code>, <code>category</code>, <code>title</code>. If metadata is broken, your RAG filters and citations break. DQDL validates the structured part.</p>
+      <p><strong>Your Rule - Explained Simply:</strong></p>
+<pre><code>Rules = [
+    -- Rule 1: Type check - timestamp must be a real timestamp for time-based filtering
+    ColumnDataType "timestamp" = "timestamp",
+
+    -- Rule 2: Domain check - category must be from our allowed list, not random values
+    ColumnValues "category" in ["FAQ", "Documentation", "Article"],
+
+    -- Rule 3: Uniqueness - document_id must be unique, else you get duplicate embeddings and pay double
+    IsUnique "document_id",
+
+    -- Rule 4: Completeness of business-critical field - title cannot be empty for citation
+    ColumnNullCount "title" = 0
+]</code></pre>
+      <p><strong>In our Prod Example:</strong><br>The crawler inferred <code>document_id</code> as string, but some upstream system sent duplicates. <code>IsUnique "document_id"</code> failed. We configured Glue Data Quality to <strong>Stop the ETL Job</strong> on failure. This prevented us from ingesting 50k duplicate vectors into OpenSearch Serverless and saved ~$400/month in vector storage cost. This is Data Governance.</p>
+    </div>
+  </template>
+
+  <template id="help-dq-custom">
+    <div class="inner">
+      <h2>3. Custom Extensions - Where GenAI Validation Comes In</h2>
+      <p><strong>Refined Content:</strong> This is the most powerful part for GenAI. Native DQDL can't count tokens or detect toxicity. But <code>CustomSql</code> lets you call your own Python functions - like calling Amazon Bedrock or Comprehend from within Glue.</p>
+      <p><strong>This is how we make DQDL GenAI-aware:</strong></p>
+<pre><code>Rules = [
+    -- Custom 1: Token Guardrail - Titan Embedding has 8192 token limit. Anything &gt;4000 tokens will be truncated in RAG.
+    -- token_count() is a custom UDF you register in Glue that calls tiktoken / Bedrock Tokenizer
+    CustomSql "SELECT COUNT(*) FROM primary WHERE token_count(content) &gt; 4000" = 0,
+
+    -- Custom 2: Language Guardrail - Your chatbot is English-only. Don't embed Hindi/French data.
+    -- detect_language() calls Amazon Comprehend DetectDominantLanguage
+    CustomSql "SELECT COUNT(*) FROM primary WHERE detect_language(content) != 'en'" = 0,
+
+    -- Custom 3: Safety Guardrail - The most critical for FM
+    -- content_safety_score() calls Amazon Bedrock Guardrails or Amazon Comprehend Toxicity Detection
+    CustomSql "SELECT COUNT(*) FROM primary WHERE content_safety_score(content) &lt; 0.8" = 0
+]</code></pre>
+      <p><strong>In our Prod Example - How we implemented it:</strong><br>In our <strong>AWS Glue Studio Notebook</strong>, we created a Python UDF:</p>
+<pre><code>def content_safety_score(text):
+    # Inside UDF, call Bedrock Guardrails API
+    response = bedrock_client.apply_guardrail(...)
+    return 0.0 if response['action'] == 'GUARDRAIL_INTERVENED' else 1.0</code></pre>
+      <p>Now our nightly Glue Job runs at scale: <strong>Glue Spark Job -&gt; runs DQDL ruleset stored in S3 -&gt; calls Bedrock Guardrails for each row via UDF -&gt; Generates Data Quality Score -&gt; Publishes metrics to CloudWatch -&gt; Only records passing all 3 custom rules go to Bedrock Knowledge Base.</strong></p>
+      <p><strong>Final Production Pattern I recommend:</strong></p>
+      <p>Don't choose between Lambda and Glue. Use both:</p>
+      <p><strong>Real-time Path:</strong> <code>S3 Put -&gt; SQS -&gt; Lambda + Nova Sonic</code> for instant checks.<br><strong>Batch Governance Path:</strong> <code>S3 Lake -&gt; Glue Crawler -&gt; Glue Job + DQDL + Bedrock Guardrails</code> for nightly deep cleaning before Bedrock ingestion.</p>
+      <p>Store your DQDL ruleset as a file in S3: <code>s3://dq-rules/bedrock-kb-rules.dqdl</code> and version it. Enable <strong>AWS Glue Data Quality Alerts</strong> to SNS when quality drops below 95%.</p>
+    </div>
+  </template>
+
+  <!-- ===== PART 5 DIVES ===== -->
+  <template id="help-rs-lead">
+    <div class="inner">
+      <h2>Step 1: Define Quality Requirements - Start with the FM Use Case</h2>
+      <p><strong>Refined:</strong> Don't write rules in isolation. Start from what your FM will do.</p>
+      <p>Ask: What will break my model?</p>
+      <ul>
+        <li>For <strong>fine-tuning Claude on Bedrock</strong>: You need long, high-quality text. So length = 500-8000 chars.</li>
+        <li>For <strong>RAG with Titan Embeddings</strong>: You need clean text, no PII.</li>
+        <li>For <strong>Multi-lingual chatbot</strong>: You need language = 'en' only.</li>
+      </ul>
+      <p><strong>In our Healthcare Example:</strong> We defined:</p>
+      <ul>
+        <li>Length: 100-10,000 chars - too short has no medical context</li>
+        <li>Format: No <code>[ERROR]</code> logs, must be UTF-8</li>
+        <li>Safety: PII = 0, Toxicity score &gt; 0.8</li>
+        <li>Language: Must be English</li>
+      </ul>
+      <p class="pull">This becomes your Quality Contract document.</p>
+    </div>
+  </template>
+
+  <template id="help-rs-sets">
+    <div class="inner">
+      <h2>Step 2: Create Rule Sets - Organize Like Microservices</h2>
+      <p><strong>Refined:</strong> Don't put 20 rules in one file. It becomes unmanageable. Create logical groups.</p>
+      <p><strong>Prod Pattern I use in S3:</strong></p>
+      <p><code>s3://my-dq-rules/fm-pipeline/</code></p>
+      <ul>
+        <li><code>01_text_quality.dqdl</code> -&gt; All text rules</li>
+        <li><code>02_structured_quality.dqdl</code> -&gt; All metadata rules</li>
+        <li><code>03_genai_safety.dqdl</code> -&gt; All custom Bedrock/Comprehend rules</li>
+      </ul>
+      <p>This way, your data engineering team owns <code>02</code>, your GenAI team owns <code>03</code>, and you can run them independently in <strong>AWS Glue Data Quality</strong>. Glue lets you evaluate ruleset-by-ruleset and see which dimension failed.</p>
+    </div>
+  </template>
+
+  <template id="help-rs-score">
+    <div class="inner">
+      <h2>Step 3: Configure Quality Scoring - Make Quality Measurable</h2>
+      <p><strong>Refined:</strong> A simple pass/fail is not enough for enterprise. You need a score.</p>
+      <p>AWS Glue Data Quality calculates this automatically, but the formula is:</p>
+<pre><code>QualityScore = (PassedRules / TotalRules) * 100
+AcceptanceThreshold = 85  // Prod standard</code></pre>
+      <p><strong>How it works in Prod:</strong><br>Glue runs your 20 rules on 1 Million rows. 18 rules passed.<br>QualityScore = 18/20 * 100 = 90%. Since 90% &gt; 85% threshold, Glue Job succeeds and pushes data to <code>s3://validated-bucket/</code>.</p>
+      <p>If QualityScore = 82%, Glue Job fails, triggers an <strong>Amazon SNS</strong> alert, and publishes metrics to <strong>Amazon CloudWatch</strong>: <code>glue.data.quality.score</code>. We set a CloudWatch Alarm on it.</p>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>QualityScore vs AcceptanceThreshold</span></div>
+        <div class="viz-row"><span class="viz-lbl">18/20 rules</span><div class="bar" style="--w:90%"><i style="--c:var(--c-green)"></i><b>90%</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">Threshold</span><div class="bar" style="--w:85%"><i style="--c:var(--c-blue)"></i><b>85%</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">Fails</span><div class="bar" style="--w:82%"><i style="--c:var(--c-red)"></i><b>82%</b></div></div>
+      </div>
+      <div class="note tip"><p><strong>Architect Tip:</strong> Don't set threshold to 100 in prod. Real-world data is messy. 85-95 is the sweet spot. Balance quality with throughput. For HIPAA workloads, set safety rules to 100 and length rules to 85.</p></div>
+    </div>
+  </template>
+
+  <template id="help-rs-test">
+    <div class="inner">
+      <h2>Step 4: Test and Refine - The Iterative Loop</h2>
+      <p><strong>Refined:</strong> Never deploy rules directly on 5M records. Test on a sample.</p>
+      <p><strong>Prod Workflow:</strong></p>
+      <ol class="steps">
+        <li>Sample 10k records in <strong>Amazon SageMaker Data Wrangler</strong></li>
+        <li>Run your DQDL ruleset against sample</li>
+        <li>See what failed - maybe your <code>token_count &gt; 4000</code> is too strict and failing 40% of good data</li>
+        <li>Refine threshold to 6000, re-test.</li>
+      </ol>
+      <p class="pull">This is a continuous loop. Business requirements change, so should your rules.</p>
+    </div>
+  </template>
+
+  <template id="help-rs-wrangler">
+    <div class="inner">
+      <h2>Where SageMaker Data Wrangler Fits In - The Missing Piece</h2>
+      <p>After you have automated DQDL in Glue, you still need interactive exploration. That's where <strong>SageMaker Data Wrangler</strong> comes in.</p>
+      <p><strong>Think of it like this:</strong> Glue DQDL is your automated factory inspector. Data Wrangler is your lab where you inspect samples manually.</p>
+      <p><strong>In our Healthcare Example:</strong><br>Before we wrote DQDL, our data scientist opened 100k clinical notes in Data Wrangler inside <strong>SageMaker Studio</strong>. She used its built-in profiling:</p>
+      <ul>
+        <li>She saw token length distribution histogram - 90% of notes were &lt; 4000 tokens, so we set <code>token_count &gt; 4000</code> rule.</li>
+        <li>She saw 12% of notes had <code>detect_language = 'es'</code> - so we added language rule.</li>
+        <li>She used Data Wrangler's transform to clean HTML tags with one click, exported that as a PySpark step for Glue.</li>
+      </ul>
+      <p>Data Wrangler helps you <em>discover</em> the quality requirements for Step 1. Glue DQDL helps you <em>enforce</em> them at scale.</p>
+      <p><strong>Final Production Architecture I Deploy:</strong></p>
+      <p><code>S3 Raw Data -&gt; Glue Crawler -&gt; Data Wrangler [Explore &amp; Prototype Rules] -&gt; S3 DQDL Ruleset -&gt; Glue ETL Job with Glue Data Quality [Enforce Rules, Calculate QualityScore] -&gt; If Score &gt; 85 -&gt; S3 Validated -&gt; Bedrock Knowledge Base. If Score &lt; 85 -&gt; S3 Quarantine + SNS Alert</code></p>
+      <p class="pull">Start small: 3 rules, 85% threshold, one Data Wrangler session. Then expand.</p>
+    </div>
+  </template>
+
+
+<nav class="navbar">
+  <button class="btn" id="prevBtn" aria-label="Previous slide">← Prev</button>
+  <div class="counter"><b id="cur">1</b> / <span id="total">1</span></div>
+  <div class="dots-nav" id="dots" role="group" aria-label="Slides"></div>
+  <button class="btn" id="nextBtn" aria-label="Next slide">Next →</button>
+</nav>
+
+<div class="hint" id="hint">← → to move · C for contents · T for theme</div>
+
+<div class="keys" id="keys" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" hidden>
+  <div class="keys-card">
+    <h2>Keyboard shortcuts</h2>
+    <dl>
+      <dt><kbd>←</kbd> <kbd>→</kbd> <kbd>Space</kbd></dt><dd>Previous / next slide</dd>
+      <dt><kbd>Enter</kbd></dt><dd>Open the first deep dive</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>In a deep dive: previous / next dive</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Close deep dive or menu</dd>
+      <dt><kbd>C</kbd></dt><dd>Contents</dd>
+      <dt><kbd>T</kbd></dt><dd>Toggle theme</dd>
+      <dt><kbd>F</kbd></dt><dd>Fullscreen</dd>
+      <dt><kbd>?</kbd></dt><dd>This panel</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Diagram" hidden>
+  <button class="help-popover-close" id="lbClose" type="button" aria-label="Close diagram">&times;</button>
+  <img id="lbImg" alt="">
+</div>
+
+<div class="menu" id="menu" hidden>
+  <div class="mwrap">
+    <h2>Contents</h2>
+    <ul class="mlist" id="mlist"></ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var each = function(list, fn){ Array.prototype.forEach.call(list, fn); };
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var idx = 0;
+  var root = document.documentElement;
+  var deck = $('deck'), curEl = $('cur'), totalEl = $('total'), prog = $('progress');
+  var menu = $('menu'), mlist = $('mlist'), dotsEl = $('dots'), keys = $('keys');
+  totalEl.textContent = total;
+
+  var ARROW = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>';
+
+  // ---------- Content enhancements (presentation only; text is never rewritten) ----------
+  function renderFlow(p){
+    if(p.previousElementSibling && p.previousElementSibling.classList.contains('flow')) return;
+    var keyText = Array.prototype.map.call(p.querySelectorAll('strong'), function(s){ return s.textContent.trim(); });
+    var parts = p.textContent.split('->').map(function(t){ return t.trim(); }).filter(Boolean);
+    if(parts.length < 2) return;
+    var flow = document.createElement('div');
+    flow.className = 'flow'; flow.setAttribute('aria-hidden','true');
+    parts.forEach(function(t, i){
+      if(i){ var a = document.createElement('span'); a.className='flow-arrow'; a.style.setProperty('--i', i); a.innerHTML='<i></i>'; flow.appendChild(a); }
+      var n = document.createElement('span');
+      n.className = 'flow-node' + (keyText.indexOf(t) >= 0 ? ' key' : '');
+      n.style.setProperty('--i', i); n.textContent = t; flow.appendChild(n);
+    });
+    p.parentNode.insertBefore(flow, p);
+    p.classList.add('flow-caption');
+  }
+
+  function enhance(scope){
+    each(scope.querySelectorAll('[data-flow]'), renderFlow);
+    each(scope.querySelectorAll('p'), function(p){
+      var f = p.firstChild;
+      if(!f || f.nodeType !== 1 || f.tagName !== 'STRONG') return;
+      var t = f.textContent.trim();
+      if(/^The Problem:/.test(t)) p.classList.add('lbl-problem');
+      else if(/^(Static Routing Fails:|With Static Routing:|Static Approach:)/.test(t)) p.classList.add('lbl-static');
+      else if(/^(Dynamic Routing Solution:|Dynamic Approach)/.test(t)) p.classList.add('lbl-dynamic');
+      else if(/^(Result:|Total =)/.test(t)) p.classList.add('lbl-result');
+      else if(p.childNodes.length === 1 && /:$/.test(t) && !p.closest('.steps-p,.param-grid')) p.classList.add('eyebrow-p');
+    });
+    each(scope.querySelectorAll('.note'), function(n){
+      var tag = n.querySelector('.tag');
+      if(tag && /Technical Example/.test(tag.textContent)) n.classList.add('example');
+    });
+    each(scope.querySelectorAll('p.quote'), function(q){ if(/Router Analysis/.test(q.textContent)) q.classList.add('callout'); });
+    each(scope.querySelectorAll('pre'), function(pre){
+      if(pre.parentNode.classList.contains('code-wrap')) return;
+      var code = pre.querySelector('code'); if(!code) return;
+      var src = code.textContent;
+      var lang = /^\s*[\{\[]/.test(src) ? 'json' : 'python';
+      if(window.hljs){ try{ code.innerHTML = window.hljs.highlight(src, {language:lang, ignoreIllegals:true}).value; }catch(e){} }
+      var wrap = document.createElement('div'); wrap.className = 'code-wrap';
+      var bar = document.createElement('div'); bar.className = 'code-bar';
+      bar.innerHTML = '<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="lang">'+lang+'</span>';
+      var btn = document.createElement('button'); btn.type='button'; btn.className='copy-btn'; btn.textContent='Copy';
+      btn.addEventListener('click', function(){
+        var done = function(){ btn.textContent='Copied ✓'; btn.classList.add('ok'); setTimeout(function(){ btn.textContent='Copy'; btn.classList.remove('ok'); }, 1600); };
+        try{ navigator.clipboard.writeText(src).then(done, fallback); }catch(e){ fallback(); }
+        function fallback(){ var ta=document.createElement('textarea'); ta.value=src; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); done(); }catch(e){} ta.remove(); }
+      });
+      bar.appendChild(btn);
+      pre.parentNode.insertBefore(wrap, pre); wrap.appendChild(bar); wrap.appendChild(pre);
+    });
+  }
+
+  // Deep-dive cards on the Part slides
+  slides.forEach(function(s){
+    each(s.querySelectorAll('.stagger'), function(g){ each(g.children, function(el, i){ el.style.setProperty('--i', i); }); });
+    var items = s.querySelectorAll('.help-list-item');
+    each(items, function(li, i){
+      li.style.setProperty('--i', i + 2);
+      var btn = li.querySelector('.help-btn'), span = li.querySelector('span');
+      var disc = document.createElement('span'); disc.className = 'dd-disc';
+      var m = span.firstChild && span.firstChild.nodeType === 3 && span.firstChild.nodeValue.match(/^(\d+\.)\s*/);
+      if(m){ disc.textContent = m[1]; span.firstChild.nodeValue = span.firstChild.nodeValue.slice(m[0].length); }
+      else { disc.textContent = String(i + 1).padStart(2, '0'); disc.setAttribute('aria-hidden', 'true'); }
+      var body = document.createElement('span'); body.className = 'dd-body';
+      span.className = 'dd-title';
+      var meta = document.createElement('span'); meta.className = 'dd-meta'; meta.setAttribute('aria-hidden','true'); meta.textContent = 'Deep dive';
+      li.insertBefore(disc, li.firstChild); li.insertBefore(body, span); body.appendChild(span); body.appendChild(meta);
+      btn.innerHTML = ARROW;
+    });
+    var cnt = s.querySelector('.side-label .cnt'); if(cnt) cnt.textContent = items.length;
+  });
+  enhance(deck);
+
+  // ---------- Slide engine ----------
+  function setAccent(a){ root.setAttribute('data-accent', a); deck.setAttribute('data-accent', a); }
+  function render(){
+    slides.forEach(function(s,i){ s.hidden = (i!==idx); });
+    curEl.textContent = idx+1;
+    prog.style.width = (total > 1 ? idx/(total-1)*100 : 100)+'%';
+    var active = slides[idx];
+    if(active){ active.scrollTop = 0; var inr = active.querySelector('.inner'); if(inr) inr.scrollTop = 0; setAccent(active.dataset.accent || 'orange'); }
+    try{ history.replaceState(null,'','#'+slides[idx].id); }catch(e){}
+    each(mlist.querySelectorAll('.mitem[data-i]'), function(b){ b.classList.toggle('cur', +b.dataset.i === idx); });
+    each(dotsEl.children, function(d, i){ d.classList.toggle('cur', i === idx); d.setAttribute('aria-current', i === idx ? 'step' : 'false'); });
+  }
+  function go(i){ idx = Math.max(0, Math.min(total-1, i)); render(); }
+  function next(){ go(idx+1); }
+  function prev(){ go(idx-1); }
+  $('nextBtn').addEventListener('click', next);
+  $('prevBtn').addEventListener('click', prev);
+
+  // Dots + contents menu (with nested deep dives)
+  slides.forEach(function(s,i){
+    var d = document.createElement('button');
+    d.type = 'button'; d.className = 'dot-btn'; d.dataset.accent = s.dataset.accent || 'orange';
+    d.setAttribute('aria-label', 'Slide '+(i+1)+': '+(s.dataset.title || s.id));
+    d.title = s.dataset.title || s.id;
+    d.addEventListener('click', function(){ go(i); });
+    dotsEl.appendChild(d);
+
+    var li = document.createElement('li'); li.dataset.accent = s.dataset.accent || 'orange';
+    var b = document.createElement('button');
+    b.className = 'mitem' + (s.dataset.section==='true' ? ' sec' : '');
+    b.dataset.i = i;
+    b.innerHTML = '<span class="mn">'+String(i+1).padStart(2,'0')+'</span><span></span>';
+    b.lastChild.textContent = s.dataset.title || s.id;
+    b.addEventListener('click', function(){ closeMenu(); go(i); });
+    li.appendChild(b);
+    var dives = s.querySelectorAll('.help-btn');
+    if(dives.length){
+      var sub = document.createElement('ul'); sub.className = 'msub';
+      each(dives, function(hb){
+        var sl = document.createElement('li'), sb = document.createElement('button');
+        var card = hb.closest('li'), disc = card.querySelector('.dd-disc'), t = card.querySelector('.dd-title').textContent.trim();
+        sb.className = 'mitem'; sb.textContent = disc.hasAttribute('aria-hidden') ? t : disc.textContent + ' ' + t;
+        sb.addEventListener('click', function(){ closeMenu(); go(i); openHelp(hb); });
+        sl.appendChild(sb); sub.appendChild(sl);
+      });
+      li.appendChild(sub);
+    }
+    mlist.appendChild(li);
+  });
+
+  function openMenu(){ menu.hidden=false; var c = mlist.querySelector('.mitem.cur'); if(c) c.focus(); }
+  function closeMenu(){ menu.hidden=true; }
+  function toggleMenu(){ menu.hidden ? openMenu() : closeMenu(); }
+  $('menuBtn').addEventListener('click', toggleMenu);
+  menu.addEventListener('click', function(e){ if(e.target===menu) closeMenu(); });
+
+  // Theme
+  var themeBtn = $('themeBtn');
+  function currentTheme(){
+    var attr = root.getAttribute('data-theme'); if(attr) return attr;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  themeBtn.addEventListener('click', function(){
+    var t = currentTheme()==='dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', t);
+    try{ localStorage.setItem('poc-theme', t); }catch(e){}
+  });
+  try{ var saved = localStorage.getItem('poc-theme'); if(saved) root.setAttribute('data-theme', saved); }catch(e){}
+
+  // Fullscreen + keyboard overlay
+  var fsBtn = $('fsBtn');
+  function toggleFs(){
+    try{ if(document.fullscreenElement) document.exitFullscreen(); else root.requestFullscreen(); }catch(e){}
+  }
+  if(!root.requestFullscreen) fsBtn.hidden = true;
+  fsBtn.addEventListener('click', toggleFs);
+  function toggleKeys(){ keys.hidden = !keys.hidden; }
+  $('keysBtn').addEventListener('click', toggleKeys);
+  keys.addEventListener('click', function(e){ if(e.target===keys || e.target.closest('[data-close]')) keys.hidden = true; });
+
+  document.addEventListener('keydown', function(e){
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    if(e.key==='Escape'){ if(!menu.hidden){ closeMenu(); e.preventDefault(); } return; }
+    if(!menu.hidden) return;
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': case 'Spacebar': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp': prev(); e.preventDefault(); break;
+      case 'Home': go(0); e.preventDefault(); break;
+      case 'End': go(total-1); e.preventDefault(); break;
+      case 'c': case 'C': toggleMenu(); e.preventDefault(); break;
+      case 't': case 'T': themeBtn.click(); e.preventDefault(); break;
+      case 'f': case 'F': toggleFs(); e.preventDefault(); break;
+      case '?': toggleKeys(); e.preventDefault(); break;
+      case 'Enter': {
+        var first = slides[idx].querySelector('.help-btn');
+        if(first && document.activeElement === document.body){ openHelp(first); e.preventDefault(); }
+        break;
+      }
+    }
+  });
+
+  var sx=0, sy=0;
+  deck.addEventListener('touchstart', function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; }, {passive:true});
+  deck.addEventListener('touchend', function(e){
+    var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)){ dx<0 ? next() : prev(); }
+  }, {passive:true});
+
+  var h = (location.hash||'').replace('#','');
+  if(h){ var found = slides.findIndex(function(s){ return s.id===h; }); if(found>=0) idx=found; }
+  setTimeout(function(){ var el=$('hint'); if(el) el.style.opacity='0'; }, 4500);
+
+  // ---------- Deep-dive popover ----------
+  var helpPop = $('helpPop'), helpBody = $('helpBody');
+  var popPart = $('popPart'), popCount = $('popCount'), popPips = $('popPips'), popProg = $('popProg');
+  var popPrev = $('popPrev'), popNext = $('popNext');
+  var dives = [], diveIdx = 0;
+  function updProg(){
+    var max = helpBody.scrollHeight - helpBody.clientHeight;
+    popProg.style.width = (max > 0 ? Math.min(100, helpBody.scrollTop / max * 100) : 100) + '%';
+  }
+  helpBody.addEventListener('scroll', updProg, {passive:true});
+  function openHelp(btn){
+    var tpl = $('help-' + btn.dataset.help);
+    if(!tpl) return;
+    var slide = btn.closest('.slide');
+    dives = Array.prototype.slice.call(slide.querySelectorAll('.help-btn'));
+    diveIdx = dives.indexOf(btn);
+    helpBody.innerHTML = '';
+    helpBody.appendChild(tpl.content.cloneNode(true));
+    enhance(helpBody);
+    var h2 = helpBody.querySelector('h2'); if(h2) h2.id = 'helpTitle';
+    popPart.textContent = slide.dataset.title || '';
+    popCount.textContent = 'Deep dive ' + (diveIdx+1) + ' of ' + dives.length;
+    popPips.innerHTML = dives.map(function(_, i){ return '<i class="'+(i===diveIdx?'on':'')+'"></i>'; }).join('');
+    popPrev.disabled = diveIdx <= 0;
+    popNext.disabled = diveIdx >= dives.length-1;
+    helpPop.setAttribute('data-accent', slide.dataset.accent || 'orange');
+    helpPop.hidden = false;
+    helpBody.scrollTop = 0; updProg();
+    helpBody.focus({preventScroll:true});
+  }
+  function stepHelp(d){ var n = diveIdx + d; if(n >= 0 && n < dives.length) openHelp(dives[n]); }
+  function closeHelp(){
+    helpPop.hidden = true; helpBody.innerHTML = '';
+    var back = dives[diveIdx]; if(back) back.focus({preventScroll:true});
+  }
+  each(document.querySelectorAll('.help-btn'), function(b){
+    b.addEventListener('click', function(e){ e.preventDefault(); openHelp(b); });
+  });
+  popPrev.addEventListener('click', function(){ stepHelp(-1); });
+  popNext.addEventListener('click', function(){ stepHelp(1); });
+  $('helpClose').addEventListener('click', closeHelp);
+  helpPop.addEventListener('click', function(e){ if(e.target===helpPop) closeHelp(); });
+
+  // ---------- Image lightbox ----------
+  var lb = $('lightbox'), lbImg = $('lbImg'), lbFrom = null;
+  each(document.querySelectorAll('[data-zoom]'), function(b){
+    b.addEventListener('click', function(){ var img = b.querySelector('img'); lbImg.src = img.src; lbImg.alt = img.alt; lbFrom = b; lb.hidden = false; $('lbClose').focus(); });
+  });
+  function closeLb(){ lb.hidden = true; if(lbFrom) lbFrom.focus(); }
+  lb.addEventListener('click', closeLb);
+
+  function trap(e, box){
+    var f = Array.prototype.filter.call(box.querySelectorAll('button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])'), function(el){ return el.offsetParent !== null; });
+    if(!f.length) return;
+    var first = f[0], last = f[f.length-1];
+    if(e.shiftKey && (document.activeElement === first || !box.contains(document.activeElement))){ last.focus(); e.preventDefault(); }
+    else if(!e.shiftKey && document.activeElement === last){ first.focus(); e.preventDefault(); }
+  }
+  // Overlays own the keyboard while open, so the deck never navigates underneath them.
+  document.addEventListener('keydown', function(e){
+    if(!lb.hidden){
+      e.stopImmediatePropagation();
+      if(e.key==='Escape'){ closeLb(); e.preventDefault(); } else if(e.key!=='Tab'){ e.preventDefault(); }
+      return;
+    }
+    if(!keys.hidden){
+      e.stopImmediatePropagation();
+      if(e.key==='Escape' || e.key==='?'){ keys.hidden = true; e.preventDefault(); }
+      return;
+    }
+    if(helpPop.hidden) return;
+    e.stopImmediatePropagation();
+    if(e.key==='Escape'){ closeHelp(); e.preventDefault(); }
+    else if(e.key==='ArrowRight'){ stepHelp(1); e.preventDefault(); }
+    else if(e.key==='ArrowLeft'){ stepHelp(-1); e.preventDefault(); }
+    else if(e.key==='Tab'){ trap(e, helpPop); }
+  }, true);
+  deck.addEventListener('touchstart', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+  deck.addEventListener('touchend', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+
+  render();
+})();
+</script>
+
+</body></html>
