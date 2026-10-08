@@ -27,6 +27,9 @@ Treat that file as the **template**. The fastest correct path:
    - the entire final `<script>`
 2. Replace only the slide `<section>`s inside `<main class="deck">` and the deep-dive
    `<template>`s, generating them from the new Markdown with the markup patterns below.
+3. **Token override (required):** in the light-theme `:root` block of the base chassis, set
+   `--muted:#000000` (the reference still has `#4C5A69`). Leave the two dark-theme `--muted`
+   values (`#A6B6C6`) unchanged; black would be unreadable on the dark surfaces.
 
 Do not redesign the CSS or JS. Nearly all polish is applied **at runtime by the script**:
 - deep-dive cards
