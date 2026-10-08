@@ -1,0 +1,1454 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+  /* ---- Help icon + deep-dive popover ---- */
+  .q-inline{display:inline-flex;align-items:center;justify-content:center;width:1.15em;height:1.15em;border-radius:50%;font-weight:700;font-size:.85em;background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);vertical-align:middle}
+  .help-list{list-style:none;padding:0;margin:14px 0 4px;display:flex;flex-direction:column;gap:9px;max-width:78ch}
+  .help-list-item{display:flex;align-items:flex-start;gap:12px;background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--local-accent,var(--accent));border-radius:11px;padding:12px 15px;box-shadow:var(--shadow)}
+  .help-list-item span{font-size:clamp(14.5px,1.4vw,17px);line-height:1.45;color:var(--text);font-weight:500;padding-top:2px}
+  .help-btn{appearance:none;flex:none;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-weight:700;font-size:15px;line-height:1;border-radius:50%;cursor:pointer;border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 45%,transparent);background:color-mix(in srgb,var(--local-accent,var(--accent)) 15%,transparent);color:var(--local-accent,var(--accent));transition:transform .15s,background .15s,color .15s}
+  .help-btn:hover,.help-btn:focus-visible{background:var(--local-accent,var(--accent));color:#fff;transform:scale(1.12);outline:none}
+  .help-btn:focus-visible{outline:2px solid var(--local-accent,var(--accent));outline-offset:2px}
+
+  /* Deep dive: full-viewport overlay with an opaque surface so the slide never shows through;
+     close button pinned to the top-right corner above everything. Accent is copied from the
+     active slide onto the popover via --pop-accent (set in openHelp). */
+  .help-popover{--pop-accent:var(--accent);--local-accent:var(--pop-accent);position:fixed;top:calc(60px + env(safe-area-inset-top,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));left:14px;right:14px;max-width:1300px;margin-inline:auto;z-index:100;display:flex;flex-direction:column;background:linear-gradient(color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),linear-gradient(90deg, color-mix(in srgb,var(--pop-accent) 6%,transparent) 1px, transparent 1px),radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--pop-accent) 14%,transparent), transparent 45%),radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),var(--surface);background-size:46px 46px,46px 46px,auto,auto,auto;border:1px solid var(--border);border-top:4px solid var(--pop-accent);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;animation:helpPop .28s cubic-bezier(.16,1,.3,1)}
+  @media (max-width:600px){.help-popover{left:8px;right:8px}}
+  .help-popover[hidden]{display:none}
+  .help-popover[data-accent="orange"]{--pop-accent:var(--c-orange)}
+  .help-popover[data-accent="teal"]{--pop-accent:var(--c-teal)}
+  .help-popover[data-accent="purple"]{--pop-accent:var(--c-purple)}
+  .help-popover[data-accent="green"]{--pop-accent:var(--c-green)}
+  .help-popover[data-accent="blue"]{--pop-accent:var(--c-blue)}
+  .help-popover[data-accent="pink"]{--pop-accent:var(--c-pink)}
+  .help-popover[data-accent="red"]{--pop-accent:var(--c-red)}
+  .help-popover[data-accent="amber"]{--pop-accent:var(--c-amber)}
+  @keyframes helpPop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.help-popover{animation:none}}
+  .help-popover-close{position:absolute;top:14px;right:16px;z-index:101;width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:50%;cursor:pointer;color:var(--pop-accent);border:1px solid color-mix(in srgb,var(--pop-accent) 45%,transparent);background:color-mix(in srgb,var(--pop-accent) 14%,var(--surface))}
+  .help-popover-close:hover{background:var(--pop-accent);color:#fff;border-color:var(--pop-accent)}
+  .help-popover-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:64px 24px 40px;display:flex;justify-content:center}
+  .help-popover-body .inner{margin:0}
+
+</style></head><body>
+<title>Amazon Bedrock Cross-Region Inference</title>
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#DEE4EC; --surface:#FFFFFF; --surface-2:#F1F4F8;
+    --text:#152230; --muted:#4C5A69; --faint:#7A8899;
+    --accent:#C2570B; --accent-soft:#F4E4D5; --accent2:#0E6E7D; --accent2-soft:#DDEEF0;
+    --c-orange:#C2570B; --c-teal:#0E6E7D; --c-purple:#7C3AED; --c-green:#1F8A4C;
+    --c-blue:#1E63C4; --c-pink:#C0357E; --c-red:#CB4335; --c-amber:#B7791F;
+    --border:#D4DBE3; --code-bg:#F1F4F8; --code-text:#152230; --deck-bg:#eaeef2;
+    --shadow:0 1px 3px rgba(20,34,48,.08),0 8px 30px rgba(20,34,48,.06); --shadow-lg:0 6px 16px rgba(20,34,48,.12),0 20px 50px rgba(20,34,48,.16);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+      --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+      --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+      --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+      --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+      --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+      --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#080D14; --surface:#141F2B; --surface-2:#101922;
+    --text:#EBF1F7; --muted:#A6B6C6; --faint:#728196;
+    --accent:#F59842; --accent-soft:#2A2015; --accent2:#4FD1C5; --accent2-soft:#12262A;
+    --c-orange:#F59842; --c-teal:#4FD1C5; --c-purple:#A78BFA; --c-green:#4ADE80;
+    --c-blue:#60A5FA; --c-pink:#F472B6; --c-red:#F87171; --c-amber:#E0B341;
+    --border:#243240; --code-bg:#101922; --code-text:#EBF1F7; --deck-bg:#010409;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.35); --shadow-lg:0 6px 16px rgba(0,0,0,.5),0 20px 50px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'IBM Plex Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  code,pre,.mono{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace}
+
+  #progress{position:fixed; top:0; left:0; height:3px; background:var(--accent); width:0; z-index:60; transition:width .25s ease}
+  @media (prefers-reduced-motion: reduce){#progress{transition:none}}
+
+  .topbar{
+    position:fixed; left:0; right:0; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 18px; padding-top:calc(10px + env(safe-area-inset-top,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex; align-items:center; gap:10px; min-width:0}
+  .brand .dot{width:12px;height:12px;border-radius:3px;background:var(--accent);flex:none}
+  .brand b{font-weight:600; font-size:14px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .brand span{color:var(--faint); font-size:13px; white-space:nowrap}
+  .tools{display:flex; align-items:center; gap:8px; flex:none}
+  .btn{
+    appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--text);
+    font:inherit; font-size:13px; font-weight:500; padding:7px 12px; border-radius:9px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; line-height:1;
+  }
+  .btn:hover{border-color:var(--accent)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .btn.icon{padding:7px 9px}
+
+  /* The deck is a card floating on the (darker) page, holding one slide at a time. */
+  .deck{
+    --slide-accent:var(--accent); --local-accent:var(--slide-accent);
+    position:fixed;
+    top:calc(60px + env(safe-area-inset-top,0px));
+    bottom:calc(60px + env(safe-area-inset-bottom,0px));
+    left:14px; right:14px;
+    background:var(--deck-bg);
+    border:1px solid var(--border);
+    border-top:4px solid var(--slide-accent);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    transition:border-top-color .25s ease;
+  }
+  .deck[data-accent="orange"]{--slide-accent:var(--c-orange)}
+  .deck[data-accent="teal"]{--slide-accent:var(--c-teal)}
+  .deck[data-accent="purple"]{--slide-accent:var(--c-purple)}
+  .deck[data-accent="green"]{--slide-accent:var(--c-green)}
+  .deck[data-accent="blue"]{--slide-accent:var(--c-blue)}
+  .deck[data-accent="pink"]{--slide-accent:var(--c-pink)}
+  .deck[data-accent="red"]{--slide-accent:var(--c-red)}
+  .deck[data-accent="amber"]{--slide-accent:var(--c-amber)}
+  @media (max-width:600px){.deck{left:8px; right:8px}}
+
+  .slide{
+    --local-accent:var(--accent);
+    position:absolute; inset:0; overflow-y:auto; overflow-x:hidden;
+    padding:32px 30px calc(28px + env(safe-area-inset-bottom,0px));
+    display:flex; justify-content:center;
+    background:transparent;
+  }
+  .slide[data-accent="orange"]{--local-accent:var(--c-orange)}
+  .slide[data-accent="teal"]{--local-accent:var(--c-teal)}
+  .slide[data-accent="purple"]{--local-accent:var(--c-purple)}
+  .slide[data-accent="green"]{--local-accent:var(--c-green)}
+  .slide[data-accent="blue"]{--local-accent:var(--c-blue)}
+  .slide[data-accent="pink"]{--local-accent:var(--c-pink)}
+  .slide[data-accent="red"]{--local-accent:var(--c-red)}
+  .slide[data-accent="amber"]{--local-accent:var(--c-amber)}
+  .slide:not([hidden]){animation:fade .3s ease both}
+  @media (prefers-reduced-motion: reduce){.slide:not([hidden]){animation:none}}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  .inner{width:100%; max-width:1000px; margin:auto 0; padding-block:8px}
+  /* Content card: distinct --surface, floats on the --surface-2 deck backdrop */
+  .slide .inner{
+    background:
+      linear-gradient(color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb,var(--local-accent) 6%,transparent) 1px, transparent 1px),
+      radial-gradient(circle at 14% 18%, color-mix(in srgb,var(--local-accent) 14%,transparent), transparent 45%),
+      radial-gradient(circle at 86% 84%, color-mix(in srgb,var(--c-purple) 11%,transparent), transparent 50%),
+      var(--surface);
+    background-size:46px 46px,46px 46px,auto,auto,auto;
+    border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-lg); padding:28px 32px;
+    width:100%; max-width:1300px; aspect-ratio:16 / 9; max-height:100%; overflow-y:auto; overflow-x:hidden}
+
+  .kicker{
+    font-size:12.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase;
+    color:var(--local-accent,var(--accent)); margin:0 0 14px;
+  }
+  h1{font-size:clamp(30px,5vw,56px); line-height:1.05; font-weight:700; margin:0 0 18px; letter-spacing:-.02em; text-wrap:balance}
+  h2{font-size:clamp(23px,3.1vw,38px); line-height:1.12; font-weight:600; margin:0 0 16px; letter-spacing:-.01em; text-wrap:balance; color:var(--local-accent,var(--text))}
+  h3{font-size:clamp(16px,1.85vw,21px); font-weight:600; margin:22px 0 9px; color:var(--text)}
+  p{font-size:clamp(14.5px,1.45vw,17.5px); line-height:1.55; color:var(--muted); margin:0 0 12px; max-width:76ch}
+  p strong,li strong,td strong{color:var(--text); font-weight:600}
+  .lead{font-size:clamp(16px,1.85vw,21px); line-height:1.5; color:var(--text)}
+  ul,ol{margin:0 0 12px; padding-left:22px; max-width:78ch}
+  li{font-size:clamp(14.5px,1.4vw,17px); line-height:1.5; color:var(--muted); margin:0 0 7px}
+  em{font-style:italic}
+  hr.div{border:none; border-top:1px solid var(--border); margin:20px 0}
+
+  code:not(pre code){
+    background:var(--surface-2); border:1px solid var(--border); border-radius:6px;
+    padding:.08em .4em; font-size:.85em; color:var(--text); word-break:break-word;
+  }
+  pre{
+    background:color-mix(in srgb,var(--local-accent,var(--accent)) 6%,var(--code-bg)); color:var(--code-text);
+    border:1px solid color-mix(in srgb,var(--local-accent,var(--accent)) 22%,var(--border));
+    border-left:3px solid var(--local-accent,var(--accent));
+    border-radius:12px; margin:6px 0 16px;
+    padding:16px 18px; overflow-x:auto;
+    font-size:clamp(11.5px,1.2vw,13.5px); line-height:1.55;
+  }
+  pre code{color:inherit; white-space:pre}
+
+  .tbl{overflow-x:auto; margin:8px 0 16px; border:1px solid var(--border); border-radius:12px}
+  table{border-collapse:collapse; width:100%; font-size:clamp(13px,1.25vw,15px)}
+  th,td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:9px 12px; text-align:left; vertical-align:top; color:var(--muted)}
+  th{background:var(--surface-2); color:var(--text); font-weight:600; white-space:nowrap}
+  tr td:last-child,tr th:last-child{border-right:none}
+  tbody tr:last-child td{border-bottom:none}
+
+  .note{
+    background:var(--surface-2); border:1px solid var(--border); border-left:4px solid var(--accent2);
+    border-radius:12px; padding:16px 18px; margin:10px 0 14px; box-shadow:var(--shadow);
+  }
+  .note .tag{display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent2); margin-bottom:6px}
+  .note p:last-child{margin-bottom:0}
+  .note.tip{border-left-color:var(--local-accent,var(--accent))}
+  .note.tip .tag{color:var(--local-accent,var(--accent))}
+  .quote{
+    border-left:3px solid var(--accent2); padding:4px 0 4px 18px; margin:0 0 12px;
+    color:var(--text); font-size:clamp(14px,1.45vw,17px); line-height:1.5;
+  }
+  .badge{display:inline-block; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; background:var(--accent2-soft); color:var(--accent2); margin-bottom:12px}
+
+  #cover .inner{max-width:1000px}
+  #cover .meta{font-size:13px; color:var(--faint); letter-spacing:2px; text-transform:uppercase; margin-top:16px}
+  #cover .src{font-size:12px; color:var(--faint); letter-spacing:0; text-transform:none; margin-top:10px; word-break:break-all}
+  #cover .src a{color:var(--faint)}
+  .divider{background:transparent}
+  .divider .num{font-size:13px; font-weight:700; letter-spacing:3px; color:var(--local-accent); text-transform:uppercase; margin-bottom:14px}
+
+  .navbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    padding:12px 18px; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    background:color-mix(in srgb,var(--bg) 82%,transparent); backdrop-filter:blur(8px);
+    border-top:1px solid var(--border);
+  }
+  .counter{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; min-width:64px; text-align:center}
+  .counter b{color:var(--text); font-weight:600}
+
+  .menu{
+    position:fixed; inset:0; z-index:70; background:color-mix(in srgb,var(--bg) 92%,transparent);
+    backdrop-filter:blur(6px); padding:calc(70px + env(safe-area-inset-top,0px)) 18px 30px; overflow-y:auto;
+  }
+  .menu .mwrap{max-width:860px; margin:0 auto}
+  .menu h2{font-size:20px; margin-bottom:16px}
+  .mlist{list-style:none; padding:0; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:2px 28px; align-content:start}
+  @media (max-width:600px){.mlist{grid-template-columns:1fr}}
+  .mitem{
+    width:100%; text-align:left; display:flex; gap:12px; align-items:baseline;
+    background:none; border:none; border-radius:9px; color:var(--text); font:inherit; padding:9px 12px; cursor:pointer;
+  }
+  .mitem:hover{background:var(--surface)}
+  .mitem .mn{color:var(--faint); font-size:12.5px; font-variant-numeric:tabular-nums; min-width:26px}
+  .mitem.sec{font-weight:600; margin-top:6px}
+  .mitem.sec .mn{color:var(--accent)}
+  .mitem.cur{background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--border)}
+  .hint{position:fixed; bottom:70px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--faint); z-index:40; pointer-events:none; transition:opacity .5s}
+  @media (max-width:600px){.hint{display:none}}
+</style>
+<style>
+  /* ================================================================
+     v2 presentation layer — layout, visuals, popover polish
+     ================================================================ */
+  :root{--hl-kw:var(--c-purple);--hl-str:var(--c-green);--hl-com:var(--faint);--hl-num:var(--c-amber);--hl-fn:var(--c-blue);--hl-attr:var(--c-teal);--hl-bi:var(--c-orange)}
+  [data-accent="orange"]{--a:var(--c-orange)} [data-accent="teal"]{--a:var(--c-teal)} [data-accent="purple"]{--a:var(--c-purple)}
+  [data-accent="green"]{--a:var(--c-green)} [data-accent="blue"]{--a:var(--c-blue)} [data-accent="pink"]{--a:var(--c-pink)}
+  [data-accent="red"]{--a:var(--c-red)} [data-accent="amber"]{--a:var(--c-amber)}
+
+  #progress{background:var(--a,var(--accent)); box-shadow:0 0 12px color-mix(in srgb,var(--a,var(--accent)) 60%,transparent)}
+  .brand .dot{background:var(--a,var(--accent)); transition:background .3s}
+  .deck{box-shadow:var(--shadow-lg)}
+  .slide .inner{position:relative; padding:36px 44px}
+  .slide .inner > *{position:relative}
+
+  /* ---------- Progressive build-in ---------- */
+  .slide:not([hidden]) .stagger > *,
+  .slide:not([hidden]) .help-list-item{animation:rise .6s cubic-bezier(.16,1,.3,1) both; animation-delay:calc(var(--i,0) * 70ms + 120ms)}
+  @keyframes rise{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+
+  /* ---------- Cover / hero ---------- */
+  #cover .inner.hero{max-width:1300px; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); align-items:center; gap:24px 40px}
+  .hero-copy .num{display:inline-flex; align-items:center; gap:10px; padding:6px 14px; border-radius:999px; background:color-mix(in srgb,var(--local-accent) 12%,transparent); border:1px solid color-mix(in srgb,var(--local-accent) 35%,transparent)}
+  .hero-copy .num::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--local-accent); box-shadow:0 0 0 4px color-mix(in srgb,var(--local-accent) 22%,transparent)}
+  .hero h1{font-size:clamp(40px,6.2vw,80px); line-height:1; margin:18px 0 22px; letter-spacing:-.035em;
+    background:linear-gradient(100deg,var(--text) 0%,var(--text) 40%,var(--local-accent) 75%,var(--c-purple) 100%); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero h1::after{content:""; display:block; width:88px; height:5px; border-radius:5px; margin-top:22px; background:linear-gradient(90deg,var(--local-accent),var(--c-purple))}
+  .hero .lead{font-size:clamp(18px,2.2vw,26px); line-height:1.4; font-weight:500; max-width:28ch; color:var(--text)}
+  #cover .hero .meta{letter-spacing:.2px; text-transform:none; font-size:13.5px; color:var(--muted); margin-top:26px; line-height:2.1}
+  kbd{display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:24px; padding:0 7px; margin:0 1px; border-radius:7px;
+    font:600 12px 'JetBrains Mono',ui-monospace,monospace; color:var(--text); background:var(--surface); border:1px solid var(--border); box-shadow:0 2px 0 var(--border); vertical-align:middle}
+  #cover .hero .src{grid-column:1 / -1; margin:6px 0 0; font-size:11.5px; opacity:.75}
+  .hero-art{width:100%; height:auto; max-height:430px; overflow:visible}
+  .hero-art .ln{fill:none; stroke:color-mix(in srgb,var(--text) 18%,transparent); stroke-width:2}
+  .hero-art .pulse{fill:none; stroke-width:3; stroke-linecap:round; stroke-dasharray:14 400; animation:flowdash 3.2s linear infinite}
+  .hero-art .route{animation:routeglow 6.4s ease-in-out infinite}
+  .hero-art .m{fill:var(--surface); stroke-width:2}
+  .hero-art .hb{opacity:.55}
+  .hero-art .router-ring{fill:none; stroke:var(--local-accent); stroke-width:2; opacity:.4; transform-origin:250px 200px; animation:ring 3s ease-out infinite}
+  @keyframes flowdash{from{stroke-dashoffset:414} to{stroke-dashoffset:0}}
+  @keyframes ring{from{transform:scale(1); opacity:.5} to{transform:scale(1.55); opacity:0}}
+  @keyframes routeglow{0%,100%{opacity:.35} 12%,30%{opacity:1}}
+
+  /* ---------- Part slides ---------- */
+  .part-mark{position:absolute!important; bottom:6px; right:28px; z-index:0; font-size:clamp(90px,13vw,170px); font-weight:700; line-height:1; letter-spacing:-.05em;
+    color:transparent; -webkit-text-stroke:1.5px color-mix(in srgb,var(--local-accent) 30%,transparent); pointer-events:none; user-select:none}
+  .part-grid{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:30px 40px; align-items:start}
+  .part-main > .num{display:inline-block; padding:5px 12px; border-radius:8px; background:color-mix(in srgb,var(--local-accent) 12%,transparent); margin-bottom:18px; font-size:12px}
+  .part-main > p:not(.num){color:var(--text); opacity:.88}
+  .pull{font-size:clamp(17px,1.9vw,22px)!important; line-height:1.4!important; color:var(--text)!important; opacity:1!important; font-weight:500;
+    border-left:4px solid var(--local-accent); padding:4px 0 4px 16px; margin:16px 0 18px!important}
+  .pull strong{color:var(--local-accent)!important}
+  .part-side{position:sticky; top:0; padding:20px; border-radius:16px; background:color-mix(in srgb,var(--local-accent) 5%,var(--surface-2)); border:1px solid color-mix(in srgb,var(--local-accent) 20%,var(--border))}
+  .side-label{display:flex; align-items:center; justify-content:space-between; font-size:11.5px!important; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--local-accent)!important; margin:0 0 12px!important}
+  .side-label .cnt{letter-spacing:0; font-size:11.5px; padding:3px 9px; border-radius:999px; background:color-mix(in srgb,var(--local-accent) 15%,transparent)}
+  .part-side > p:not(.side-label){font-size:14.5px; color:var(--muted); margin-bottom:12px}
+
+  /* deep-dive cards */
+  .part-side .help-list{margin:0; gap:10px; max-width:none}
+  .part-side .help-list-item{position:relative; align-items:center; gap:14px; padding:14px 14px 14px 14px; cursor:pointer;
+    background:var(--surface); border:1px solid var(--border); border-radius:13px; box-shadow:var(--shadow);
+    transition:transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s, border-color .2s}
+  .part-side .help-list-item:hover,.part-side .help-list-item:focus-within{transform:translateY(-2px); border-color:color-mix(in srgb,var(--local-accent) 60%,var(--border)); box-shadow:var(--shadow-lg)}
+  .help-list-item .dd-disc{flex:none; width:36px; height:36px; padding:0; border-radius:11px; display:grid; place-items:center; font-size:14px; font-weight:700;
+    color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 14%,transparent); border:1px solid color-mix(in srgb,var(--local-accent) 30%,transparent); font-variant-numeric:tabular-nums}
+  .help-list-item .dd-body{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; padding:0}
+  .help-list-item .dd-body .dd-title{font-size:clamp(14px,1.3vw,16px); font-weight:600; line-height:1.35; color:var(--text); padding:0}
+  .help-list-item .dd-body .dd-meta{font-size:11.5px; font-weight:600; letter-spacing:.6px; text-transform:uppercase; color:var(--faint); padding:0; transition:color .2s}
+  .help-list-item:hover .dd-meta{color:var(--local-accent)}
+  .part-side .help-btn{order:3; width:32px; height:32px; transform:none!important; position:static}
+  .part-side .help-btn::after{content:""; position:absolute; inset:0; border-radius:13px}
+  .part-side .help-btn svg{width:15px; height:15px; transition:transform .2s}
+  .part-side .help-list-item:hover .help-btn{background:var(--local-accent); color:var(--surface)}
+  .part-side .help-list-item:hover .help-btn svg{transform:translateX(2px)}
+
+  /* Static vs Dynamic */
+  .versus{display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:stretch; gap:10px; margin:12px 0 16px}
+  .versus .note{margin:0; display:flex; flex-direction:column}
+  .vs-static{border-left-color:var(--c-red)!important; background:color-mix(in srgb,var(--c-red) 5%,var(--surface-2))!important}
+  .vs-static .tag{color:var(--c-red)!important}
+  .vs-dynamic{background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))!important; box-shadow:0 0 0 1px color-mix(in srgb,var(--local-accent) 30%,transparent),var(--shadow-lg)!important}
+  .vs-badge{align-self:center; width:40px; height:40px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:800; letter-spacing:1px;
+    color:var(--surface); background:linear-gradient(135deg,var(--c-red),var(--local-accent)); box-shadow:var(--shadow)}
+
+  /* Part 05 tiles */
+  ol.tiles{list-style:none; padding:0; margin:12px 0 4px; display:grid; gap:10px; counter-reset:tile; max-width:none}
+  ol.tiles li{counter-increment:tile; position:relative; margin:0; padding:14px 16px 14px 62px; border-radius:13px; background:var(--surface-2); border:1px solid var(--border); color:var(--muted); box-shadow:var(--shadow)}
+  ol.tiles li::before{content:counter(tile,decimal-leading-zero); position:absolute; left:14px; top:50%; transform:translateY(-50%); width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+    font-weight:700; font-size:13px; color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 14%,transparent)}
+  ol.tiles li strong{display:block; font-size:1.06em; color:var(--text); margin-bottom:2px}
+
+  /* ---------- Flow diagrams (built from the note text) ---------- */
+  .note{container-type:inline-size}
+  .flow{display:flex; align-items:stretch; margin:8px 0 12px}
+  .flow-node{flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px 10px; border-radius:11px;
+    background:var(--surface); border:1px solid var(--border); font-size:12.5px; font-weight:600; line-height:1.3; color:var(--text); box-shadow:var(--shadow);
+    animation:rise .5s cubic-bezier(.16,1,.3,1) both; animation-delay:calc(var(--i,0) * 110ms + 250ms)}
+  .flow-node.key{border-color:var(--local-accent); color:var(--local-accent); background:color-mix(in srgb,var(--local-accent) 11%,var(--surface))}
+  .flow-arrow{flex:0 0 26px; align-self:center; position:relative; height:2px; background:color-mix(in srgb,var(--local-accent) 45%,transparent); overflow:visible}
+  .flow-arrow::after{content:""; position:absolute; right:-1px; top:-4px; border:5px solid transparent; border-left:7px solid color-mix(in srgb,var(--local-accent) 70%,transparent); border-right:0}
+  .flow-arrow i{position:absolute; top:-2px; left:0; width:6px; height:6px; border-radius:50%; background:var(--local-accent); animation:travel 1.8s ease-in-out infinite; animation-delay:calc(var(--i,0) * 220ms)}
+  @keyframes travel{0%{left:0; opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{left:calc(100% - 6px); opacity:0}}
+  @container (max-width:540px){
+    .flow{flex-direction:column; align-items:stretch}
+    .flow-arrow{flex:0 0 20px; width:2px; height:auto; align-self:center}
+    .flow-arrow::after{right:auto; top:auto; bottom:-1px; left:-4px; border:5px solid transparent; border-top:7px solid color-mix(in srgb,var(--local-accent) 70%,transparent); border-bottom:0}
+    .flow-arrow i{left:-2px; animation-name:travelY}
+  }
+  @keyframes travelY{0%{top:0; opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{top:calc(100% - 6px); opacity:0}}
+  .flow-caption{font-size:12.5px!important; color:var(--faint)!important; margin:0!important; font-style:italic}
+  .flow-caption strong{color:var(--muted)!important}
+  p.quote.flow-caption{border:none; padding:0}
+
+  /* figure + lightbox */
+  .fig{margin:4px 0 6px}
+  .fig-btn{appearance:none; display:block; width:100%; padding:10px; border-radius:14px; cursor:zoom-in; background:#fff; border:1px solid var(--border); box-shadow:var(--shadow); position:relative; transition:box-shadow .2s, transform .2s}
+  .fig-btn:hover{box-shadow:var(--shadow-lg); transform:translateY(-1px)}
+  .fig-btn:focus-visible{outline:2px solid var(--local-accent); outline-offset:3px}
+  .fig-btn img{display:block; width:100%; height:auto; border-radius:6px}
+  .fig-btn .zoom{position:absolute; right:10px; bottom:10px; width:30px; height:30px; border-radius:9px; display:grid; place-items:center; background:var(--local-accent); color:#fff; font-size:15px; box-shadow:var(--shadow)}
+  .lightbox{position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center; padding:70px 20px 30px; background:color-mix(in srgb,var(--bg) 88%,transparent); backdrop-filter:blur(10px); cursor:zoom-out; animation:helpPop .25s ease}
+  .lightbox[hidden]{display:none}
+  .lightbox img{max-width:min(1500px,100%); max-height:100%; border-radius:12px; background:#fff; padding:14px; box-shadow:var(--shadow-lg)}
+  .lightbox .help-popover-close{position:fixed; top:16px; right:18px; --pop-accent:var(--a,var(--accent))}
+
+  /* ---------- Deep-dive popover ---------- */
+  .help-popover-close{position:static; flex:none}
+  .pop-head{flex:none; display:flex; align-items:center; gap:14px; padding:12px 14px 12px 22px; border-bottom:1px solid var(--border); background:color-mix(in srgb,var(--surface) 86%,transparent); backdrop-filter:blur(8px); z-index:2}
+  .pop-crumb{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
+  .pop-part{font-size:11.5px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--pop-accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .pop-count{font-size:12.5px; color:var(--faint); font-variant-numeric:tabular-nums}
+  .pop-pips{display:flex; gap:5px; margin-top:3px}
+  .pop-pips i{width:18px; height:4px; border-radius:4px; background:var(--border); transition:background .2s,width .2s}
+  .pop-pips i.on{background:var(--pop-accent); width:30px}
+  .pop-nav{display:flex; gap:8px}
+  .pop-nav .btn:disabled{opacity:.4; cursor:default; border-color:var(--border)}
+  .pop-progress{flex:none; height:3px; background:color-mix(in srgb,var(--pop-accent) 12%,transparent)}
+  .pop-progress i{display:block; height:100%; width:0; background:var(--pop-accent); transition:width .1s linear}
+  .help-popover-body{padding:34px 28px 56px; scroll-behavior:smooth}
+  .help-popover-body:focus{outline:none}
+  .help-popover-body .inner{max-width:900px}
+  .help-popover-body .inner > *{animation:rise .5s cubic-bezier(.16,1,.3,1) both}
+  .help-popover-body h2{font-size:clamp(25px,3.2vw,40px); padding-bottom:16px; margin-bottom:22px; border-bottom:1px solid var(--border); position:relative}
+  .help-popover-body h2::after{content:""; position:absolute; left:0; bottom:-2px; width:72px; height:3px; border-radius:3px; background:var(--pop-accent)}
+  .help-popover-body h3{display:flex; align-items:center; gap:10px; font-size:clamp(17px,1.9vw,22px); margin-top:30px}
+  .help-popover-body h3::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--pop-accent); transform:rotate(45deg)}
+  .help-popover-body p,.help-popover-body ul,.help-popover-body ol{max-width:72ch}
+  .help-popover-body li::marker{color:var(--pop-accent); font-weight:700}
+  @media (max-width:600px){.pop-nav .lbl{display:none} .help-popover-body{padding:24px 16px 40px} .pop-head{padding-left:14px}}
+
+  /* labelled paragraphs */
+  .eyebrow-p{margin-top:22px!important}
+  .eyebrow-p strong{display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--local-accent)!important}
+  .eyebrow-p strong::before{content:""; width:16px; height:2px; background:currentColor}
+  .lbl-problem,.lbl-static,.lbl-dynamic,.lbl-result{padding:12px 16px; border-radius:11px; border:1px solid var(--border); background:var(--surface-2)}
+  .lbl-problem{border-left:4px solid var(--c-amber)} .lbl-problem > strong:first-child{color:var(--c-amber)}
+  .lbl-static{border-left:4px solid var(--c-red)} .lbl-static > strong:first-child{color:var(--c-red)}
+  .lbl-dynamic{border-left:4px solid var(--c-green)} .lbl-dynamic > strong:first-child{color:var(--c-green)}
+  .lbl-result{border-left:4px solid var(--local-accent); background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))}
+  .lbl-result > strong:first-child{color:var(--local-accent)}
+  p.lbl-dynamic:only-child,p.lbl-static:only-child{padding:0; border:none; background:none}
+
+  /* example cards & callouts */
+  .note.example{border-left-color:var(--local-accent); background:linear-gradient(180deg,color-mix(in srgb,var(--local-accent) 6%,var(--surface-2)),var(--surface-2))}
+  .note.example .tag{color:var(--local-accent); display:inline-flex; align-items:center; gap:8px}
+  .note.example .tag::before{content:"</>"; font:700 11px 'JetBrains Mono',monospace; padding:3px 6px; border-radius:6px; background:var(--local-accent); color:var(--surface); letter-spacing:0}
+  .quote.callout{border-left:none; padding:12px 16px 12px 46px; border-radius:11px; background:var(--surface); border:1px dashed color-mix(in srgb,var(--local-accent) 45%,var(--border)); position:relative; font-size:clamp(13.5px,1.35vw,16px)}
+  .quote.callout::before{content:"⇢"; position:absolute; left:14px; top:11px; font-size:20px; color:var(--local-accent); line-height:1}
+
+  /* steppers */
+  ol.steps,.steps-p{position:relative; list-style:none; padding-left:0; counter-reset:st}
+  ol.steps > li,.steps-p > p{counter-increment:st; position:relative; padding:2px 0 14px 50px; margin:0}
+  .steps-p > ul{margin:-6px 0 14px 50px; padding:12px 16px 4px 34px; border-radius:11px; background:var(--surface-2); border:1px solid var(--border)}
+  ol.steps > li::before{content:counter(st); position:absolute; left:0; top:0; width:32px; height:32px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:14px;
+    color:var(--local-accent); background:var(--surface); border:2px solid var(--local-accent); box-shadow:0 0 0 5px color-mix(in srgb,var(--local-accent) 12%,transparent); z-index:1}
+  .steps-p > p::before{content:""; position:absolute; left:9px; top:4px; width:14px; height:14px; border-radius:50%; background:var(--local-accent); box-shadow:0 0 0 5px color-mix(in srgb,var(--local-accent) 16%,transparent); z-index:1}
+  ol.steps::before,.steps-p::before{content:""; position:absolute; left:15px; top:16px; bottom:24px; width:2px; background:linear-gradient(var(--local-accent),color-mix(in srgb,var(--local-accent) 15%,transparent))}
+
+  /* param grid (a/b/c/d) */
+  .param-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:6px 0 18px; max-width:880px}
+  .param-grid p{margin:0; padding:14px 16px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); border-top:3px solid var(--local-accent); max-width:none}
+  .param-grid p code{display:inline-block; margin-top:6px}
+  @media (max-width:600px){.param-grid{grid-template-columns:1fr}}
+
+  /* tables */
+  .tbl{box-shadow:var(--shadow); background:var(--surface)}
+  table tr:nth-child(odd) td{background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
+  table tr:hover td{background:color-mix(in srgb,var(--local-accent) 7%,transparent)}
+  th{font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--local-accent)!important; background:color-mix(in srgb,var(--local-accent) 8%,var(--surface-2))!important}
+  td:first-child strong{color:var(--text)}
+  .tier-table tr td:first-child{border-left:4px solid var(--tc,transparent)}
+  .tier-table tr:nth-child(2){--tc:var(--c-purple)} .tier-table tr:nth-child(3){--tc:var(--c-teal)}
+  .tier-table tr:nth-child(4){--tc:var(--c-pink)} .tier-table tr:nth-child(5){--tc:var(--c-amber)}
+
+  /* code blocks */
+  .code-wrap{position:relative; margin:8px 0 18px; border-radius:12px; overflow:hidden; border:1px solid color-mix(in srgb,var(--local-accent) 22%,var(--border)); box-shadow:var(--shadow)}
+  .code-wrap pre{margin:0; border:none; border-radius:0; border-left:3px solid var(--local-accent)}
+  .code-bar{display:flex; align-items:center; gap:10px; padding:7px 10px 7px 14px; background:color-mix(in srgb,var(--local-accent) 10%,var(--code-bg)); border-bottom:1px solid color-mix(in srgb,var(--local-accent) 18%,var(--border))}
+  .code-bar .dots{display:flex; gap:5px} .code-bar .dots i{width:9px; height:9px; border-radius:50%; background:var(--border)}
+  .code-bar .dots i:nth-child(1){background:#ff5f57} .code-bar .dots i:nth-child(2){background:#febc2e} .code-bar .dots i:nth-child(3){background:#28c840}
+  .code-bar .lang{flex:1; font:600 11px 'JetBrains Mono',monospace; letter-spacing:1px; text-transform:uppercase; color:var(--muted)}
+  .copy-btn{appearance:none; font:600 11.5px 'IBM Plex Sans',sans-serif; padding:5px 10px; border-radius:7px; cursor:pointer; color:var(--text); background:var(--surface); border:1px solid var(--border)}
+  .copy-btn:hover{border-color:var(--local-accent); color:var(--local-accent)}
+  .copy-btn.ok{background:var(--c-green); border-color:var(--c-green); color:#fff}
+  .hljs-keyword,.hljs-literal,.hljs-meta{color:var(--hl-kw); font-weight:500}
+  .hljs-string{color:var(--hl-str)}
+  .hljs-comment{color:var(--hl-com); font-style:italic}
+  .hljs-number{color:var(--hl-num)}
+  .hljs-title,.hljs-title.function_,.hljs-function .hljs-title{color:var(--hl-fn)}
+  .hljs-attr,.hljs-property,.hljs-params{color:var(--hl-attr)}
+  .hljs-built_in,.hljs-type{color:var(--hl-bi)}
+  .hljs-subst{color:inherit}
+
+  /* ---------- Data visuals ---------- */
+  .viz{margin:12px 0 18px; padding:16px 18px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow); max-width:860px}
+  .viz-h{font-size:11.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--faint); margin-bottom:10px; display:flex; justify-content:space-between; gap:10px}
+  .viz-row{display:grid; grid-template-columns:80px minmax(0,1fr); align-items:center; gap:12px; margin:8px 0}
+  .viz-lbl{font-size:12.5px; font-weight:600; color:var(--muted)}
+  .split{display:flex; height:34px; border-radius:9px; overflow:hidden; background:var(--surface-2); gap:2px}
+  .seg{width:var(--w); background:var(--c); color:#fff; display:flex; align-items:center; gap:6px; padding:0 10px; font-size:12px; white-space:nowrap; overflow:hidden; transform-origin:left; animation:grow .9s cubic-bezier(.16,1,.3,1) both .2s}
+  :root[data-theme="dark"] .seg{color:#0b1118}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg{color:#0b1118}}
+  .bar{position:relative; height:30px; border-radius:9px; background:var(--surface-2); display:flex; align-items:center}
+  .bar i{display:block; height:100%; width:var(--w); border-radius:9px; background:var(--c); transform-origin:left; animation:grow 1s cubic-bezier(.16,1,.3,1) both .35s}
+  .bar b{position:absolute; left:calc(var(--w) + 10px); font-size:14px; color:var(--text); font-variant-numeric:tabular-nums}
+  .bar.full b{left:auto; right:10px; color:#fff}
+  :root[data-theme="dark"] .bar.full b{color:#0b1118}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bar.full b{color:#0b1118}}
+  @keyframes grow{from{transform:scaleX(0)} to{transform:none}}
+  .legend{display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:10px; font-size:12px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .legend span::before{content:""; width:10px; height:10px; border-radius:3px; background:var(--c)}
+  .delta{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; color:var(--c-green); background:color-mix(in srgb,var(--c-green) 14%,transparent)}
+  .lat-row{display:grid; grid-template-columns:120px minmax(0,1fr); gap:12px; align-items:center; margin:9px 0}
+  .lat-name{font-size:12.5px; font-weight:600; color:var(--text); line-height:1.2}
+  .lat-name small{display:block; font-weight:500; color:var(--faint); font-size:11px}
+  .lat-track{position:relative; height:22px; border-radius:6px; background:repeating-linear-gradient(90deg,var(--surface-2) 0 calc(20% - 1px),var(--border) calc(20% - 1px) 20%)}
+  .lat-track i{position:absolute; top:3px; bottom:3px; left:var(--l); width:var(--w); border-radius:5px; background:var(--c); transform-origin:left; animation:grow .9s cubic-bezier(.16,1,.3,1) both .25s}
+  .lat-track i.open{background:linear-gradient(90deg,var(--c) 60%,transparent)}
+  .lat-axis{display:grid; grid-template-columns:120px minmax(0,1fr); gap:12px}
+  .lat-axis div{display:flex; justify-content:space-between; font:500 10.5px 'JetBrains Mono',monospace; color:var(--faint)}
+  @media (max-width:600px){.lat-row,.lat-axis{grid-template-columns:84px minmax(0,1fr)} .viz-row{grid-template-columns:64px minmax(0,1fr)}}
+
+  /* ---------- Chrome: dots, keys overlay, menu ---------- */
+  .dots-nav{display:flex; align-items:center; gap:7px}
+  .dot-btn{appearance:none; border:none; padding:0; width:9px; height:9px; border-radius:99px; cursor:pointer; background:color-mix(in srgb,var(--a) 30%,var(--border)); transition:width .3s cubic-bezier(.16,1,.3,1), background .3s}
+  .dot-btn:hover{background:var(--a)}
+  .dot-btn.cur{width:28px; background:var(--a)}
+  .dot-btn:focus-visible{outline:2px solid var(--a); outline-offset:3px}
+  @media (max-width:520px){.dots-nav{display:none}}
+  .keys{position:fixed; inset:0; z-index:110; display:flex; align-items:center; justify-content:center; padding:20px; background:color-mix(in srgb,var(--bg) 80%,transparent); backdrop-filter:blur(8px)}
+  .keys[hidden]{display:none}
+  .keys-card{width:min(440px,100%); padding:24px 26px; border-radius:16px; background:var(--surface); border:1px solid var(--border); border-top:4px solid var(--a,var(--accent)); box-shadow:var(--shadow-lg); animation:helpPop .25s ease}
+  .keys-card h2{font-size:20px; color:var(--text); margin-bottom:14px}
+  .keys-card dl{display:grid; grid-template-columns:auto 1fr; gap:10px 18px; margin:0; font-size:14px; color:var(--muted); align-items:center}
+  .keys-card dt{white-space:nowrap}
+  .keys-card dd{margin:0}
+  .mitem .mn{color:var(--a,var(--faint))}
+  .msub{list-style:none; margin:0 0 8px 38px; padding:0 0 0 12px; border-left:2px solid color-mix(in srgb,var(--a) 35%,var(--border))}
+  .msub .mitem{padding:6px 10px; font-size:13.5px; color:var(--muted)}
+  .msub .mitem:hover{color:var(--text)}
+  .mlist{grid-template-columns:1fr 1fr}
+  .mlist > li{break-inside:avoid}
+
+  code,pre{font-variant-ligatures:none}
+  .versus code{box-decoration-break:clone; -webkit-box-decoration-break:clone}
+  .mlist > li .mitem.sec .mn{color:var(--a)}
+  @media (max-width:600px){.brand span{display:none} #keysBtn{display:none}}
+
+  /* ---------- Small screens: let slides flow ---------- */
+  @media (max-width:900px){
+    .slide .inner{aspect-ratio:auto; max-height:none; overflow:visible; padding:26px 22px}
+    .part-grid,#cover .inner.hero{grid-template-columns:1fr}
+    .part-side{position:static}
+    .hero-art{max-height:240px; order:-1}
+    .versus{grid-template-columns:1fr} .vs-badge{justify-self:center}
+    .part-mark{display:none}
+  }
+  @media (max-width:600px){.slide{padding:16px 10px 20px}}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important; transition:none!important}
+    .help-popover-body{scroll-behavior:auto}
+  }
+</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<div id="progress"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <b>Amazon Bedrock Cross-Region Inference</b>
+    <span>· AWS Generative AI · Ch.06</span>
+  </div>
+  <div class="tools">
+    <button class="btn" id="menuBtn" aria-haspopup="true">☰ Contents</button>
+    <button class="btn icon" id="keysBtn" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">⌨</button>
+    <button class="btn icon" id="fsBtn" title="Fullscreen (F)" aria-label="Toggle fullscreen">⛶</button>
+    <button class="btn icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+  </div>
+</header>
+
+<main class="deck" id="deck">
+
+  <!-- Cover -->
+  <section class="slide divider" id="cover" data-accent="orange" data-title="Amazon Bedrock Cross-Region Inference" data-section="true">
+    <div class="inner hero">
+      <div class="hero-copy stagger">
+      <p class="num">Course 02 · Chapter 06</p>
+      <h1>Amazon Bedrock Cross-Region Inference</h1>
+      <p class="meta"><kbd>←</kbd> <kbd>→</kbd> or <kbd>Space</kbd> to navigate · Press <kbd>C</kbd> for contents · <kbd>T</kbd> for theme</p>
+      </div>
+      <svg class="hero-art" viewBox="0 0 520 400" aria-hidden="true" focusable="false">
+        <defs><radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--c-orange)" stop-opacity=".35"/><stop offset="1" stop-color="var(--c-orange)" stop-opacity="0"/></radialGradient></defs>
+        <circle cx="250" cy="200" r="120" fill="url(#rg)"/>
+        <path class="ln" d="M70 200 H204"/>
+        <path class="ln" d="M296 200 C360 200 360 70 410 70"/><path class="ln" d="M296 200 C360 200 360 157 410 157"/>
+        <path class="ln" d="M296 200 C360 200 360 243 410 243"/><path class="ln" d="M296 200 C360 200 360 330 410 330"/>
+        <path class="pulse" stroke="var(--c-orange)" d="M70 200 H204"/>
+        <g class="route" style="animation-delay:0s"><path class="pulse" stroke="var(--c-purple)" d="M296 200 C360 200 360 70 410 70"/><rect class="m" x="410" y="48" width="96" height="44" rx="12" stroke="var(--c-purple)"/><rect class="hb" x="426" y="63" width="50" height="5" rx="2.5" fill="var(--c-purple)"/><rect class="hb" x="426" y="74" width="32" height="5" rx="2.5" fill="var(--c-purple)"/></g>
+        <g class="route" style="animation-delay:1.6s"><path class="pulse" stroke="var(--c-teal)" d="M296 200 C360 200 360 157 410 157" style="animation-delay:.4s"/><rect class="m" x="410" y="135" width="96" height="44" rx="12" stroke="var(--c-teal)"/><rect class="hb" x="426" y="150" width="56" height="5" rx="2.5" fill="var(--c-teal)"/><rect class="hb" x="426" y="161" width="38" height="5" rx="2.5" fill="var(--c-teal)"/></g>
+        <g class="route" style="animation-delay:3.2s"><path class="pulse" stroke="var(--c-green)" d="M296 200 C360 200 360 243 410 243" style="animation-delay:.8s"/><rect class="m" x="410" y="221" width="96" height="44" rx="12" stroke="var(--c-green)"/><rect class="hb" x="426" y="236" width="44" height="5" rx="2.5" fill="var(--c-green)"/><rect class="hb" x="426" y="247" width="60" height="5" rx="2.5" fill="var(--c-green)"/></g>
+        <g class="route" style="animation-delay:4.8s"><path class="pulse" stroke="var(--c-blue)" d="M296 200 C360 200 360 330 410 330" style="animation-delay:1.2s"/><rect class="m" x="410" y="308" width="96" height="44" rx="12" stroke="var(--c-blue)"/><rect class="hb" x="426" y="323" width="52" height="5" rx="2.5" fill="var(--c-blue)"/><rect class="hb" x="426" y="334" width="30" height="5" rx="2.5" fill="var(--c-blue)"/></g>
+        <circle cx="52" cy="200" r="18" fill="var(--surface)" stroke="var(--c-orange)" stroke-width="2"/><circle cx="52" cy="200" r="6" fill="var(--c-orange)"/>
+        <circle class="router-ring" cx="250" cy="200" r="46"/>
+        <circle cx="250" cy="200" r="46" fill="var(--surface)" stroke="var(--c-orange)" stroke-width="2.5"/>
+        <path d="M232 188 h22 l-6 -6 M268 212 h-22 l6 6 M232 212 h10 M258 188 h10" stroke="var(--c-orange)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p class="src"><a href="https://www.meta.ai/prompt/2c899231-4d52-4c3e-a21b-13f47dab9d4c">https://www.meta.ai/prompt/2c899231-4d52-4c3e-a21b-13f47dab9d4c</a></p>
+    </div>
+  </section>
+
+  <!-- ===== PART 1: UNDERSTANDING CROSS-REGION INFERENCE ===== -->
+  <section class="slide divider" id="cri" data-accent="orange" data-title="Part 01 · Understanding Cross-Region Inference in Amazon Bedrock" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">01</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 01 · Understanding Cross-Region Inference in Amazon Bedrock</p>
+      <h3>1. The Production Problem We All Hit</h3>
+      <p>When you go live with GenAI, two things will break your application:</p>
+      <p><strong>Problem A: Model Availability Gap.</strong> Not every Foundation Model [FM] is available in every AWS Region. If your app runs in <code>ap-south-1 [Mumbai]</code> for data residency, you might find that Claude 3.5 Sonnet v2 or Llama 3.3 70B is not offered there.</p>
+      <p><strong>Problem B: Regional Resilience.</strong> Bedrock is regional. If that Region has a service disruption, or you get throttled with <code>TooManyRequestsException</code> during a traffic spike, your app goes down. For a production workload with a 99.9% availability target, that's not acceptable.</p>
+      <p>We used to solve this by building custom routing logic with Route 53, health checks, and retries. Cross-Region Inference replaces all of that.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cri-lead" aria-label="Open deep dive: 2. What is Cross-Region Inference? - Simple Explanation">?</button><span>2. What is Cross-Region Inference? - Simple Explanation</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cri-example" aria-label="Open deep dive: 3. Production Real-World Example">?</button><span>3. Production Real-World Example</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cri-benefits" aria-label="Open deep dive: 4. Key Benefits - Refined for Production">?</button><span>4. Key Benefits - Refined for Production</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="cri-checklist" aria-label="Open deep dive: 5. Architect's Checklist Before You Go Live">?</button><span>5. Architect's Checklist Before You Go Live</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 2: REGIONAL MODEL AVAILABILITY ===== -->
+  <section class="slide divider" id="avail" data-accent="teal" data-title="Part 02 · Assessing Amazon Bedrock Regional Model Availability" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">02</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 02 · Assessing Amazon Bedrock Regional Model Availability</p>
+      <p class="pull"><strong>In simple terms:</strong> Bedrock is not the same everywhere. A model you use in <code>us-east-1</code> may not exist in <code>ap-south-1</code>, may have different quota, different version, or may not be allowed to process your data due to compliance. You need to assess this <em>before</em> you go live.</p>
+      <p>I use a 4-pillar framework to assess this for every prod workload.</p>
+      <h3>Prod-Level Example We Will Use</h3>
+      <div class="note">
+        <p><strong>Company: ShopGlobal</strong> - A retail platform. Primary region is <code>ap-south-1 [Mumbai]</code> for India customers to meet DPDP Act. DR region is <code>ap-southeast-1 [Singapore]</code>. They also serve EU customers from <code>eu-west-1 [Ireland]</code>.</p>
+        <p><strong>Use Case:</strong> GenAI Contact Center - <code>Anthropic Claude 3.5 Sonnet</code> for reasoning + <code>Amazon Titan Embeddings v2</code> for RAG on product manuals.</p>
+      </div>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="avail-lead" aria-label="Open deep dive: Pillar 1: Regional Capacity Considerations">?</button><span>Pillar 1: Regional Capacity Considerations</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="avail-dist" aria-label="Open deep dive: Pillar 2: Model Distribution Patterns">?</button><span>Pillar 2: Model Distribution Patterns</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="avail-comp" aria-label="Open deep dive: Pillar 3: Compliance and Data Residency">?</button><span>Pillar 3: Compliance and Data Residency</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="avail-ver" aria-label="Open deep dive: Pillar 4: Model Version Consistency">?</button><span>Pillar 4: Model Version Consistency</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 3: SETTING UP CROSS-REGION INFERENCE ===== -->
+  <section class="slide divider" id="setup" data-accent="purple" data-title="Part 03 · Setting up Cross-Region Inference - The Right Way" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">03</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 03 · Setting up Cross-Region Inference - The Right Way</p>
+      <p class="pull"><strong>Core Idea in simple terms:</strong> You still call Bedrock from your primary Region like <code>ap-south-1</code>. Instead of calling a Model ID like <code>anthropic.claude-3-5-sonnet</code>, you call an <strong>Inference Profile ID</strong> like <code>apac.anthropic.claude-3-5-sonnet-20241022-v2:0</code>. That <code>apac.</code> prefix is the magic - it tells Bedrock "if Mumbai is throttled or down, automatically try Singapore and Tokyo". Same API, same code.</p>
+      <h3>Prod-Level Example We Will Use</h3>
+      <div class="note">
+        <p><strong>BharatFin - A Lending FinTech in Gurugram.</strong><br>Primary workload in <code>ap-south-1</code> for DPDP Act compliance. They run a Loan Underwriting Copilot using Bedrock Agents + Claude 3.5 Sonnet + Knowledge Bases.<br>SLO: 99.95% availability, p95 latency &lt; 2 seconds. During month-end, traffic is 10x.</p>
+      </div>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <p>Here is how we set it up for them in 4 steps:</p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="setup-lead" aria-label="Open deep dive: Step 1: Enable Model Access Everywhere [What the doc calls &quot;Turn on cross-region&quot;]">?</button><span>Step 1: Enable Model Access Everywhere [What the doc calls "Turn on cross-region"]</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="setup-geo" aria-label="Open deep dive: Step 2: Configure Region Preferences - Choose Your Geography">?</button><span>Step 2: Configure Region Preferences - Choose Your Geography</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="setup-route" aria-label="Open deep dive: Step 3: Implement Request Routing - Zero Custom Logic">?</button><span>Step 3: Implement Request Routing - Zero Custom Logic</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="setup-mon" aria-label="Open deep dive: Step 4: Configure Monitoring and Alerting - You Must Know When Failover Happens">?</button><span>Step 4: Configure Monitoring and Alerting - You Must Know When Failover Happens</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 4: PERFORMANCE AND COST ===== -->
+  <section class="slide divider" id="perf" data-accent="green" data-title="Part 04 · Performance and Cost Considerations for Cross-Region Inference" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">04</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 04 · Performance and Cost Considerations for Cross-Region Inference</p>
+      <p class="pull"><strong>The core trade-off:</strong> Resilience vs. Latency vs. Cost. You get resilience out of the box with a cross-region profile like <code>apac.anthropic.claude-3-5-sonnet</code>. What you need to architect is how to keep latency and cost flat.</p>
+      <div class="note tip"><p><strong>Important correction:</strong> There is <strong>no extra fee</strong> for cross-region routing itself. You don't pay for "data transfer" for the routing. You simply pay the standard Bedrock model price in the Region where the request <em>actually ran</em>. And there is no CDN/Edge that can cache a Bedrock LLM call - you need to cache at the application layer.</p></div>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="perf-lead" aria-label="Open deep dive: 1. Performance - Where Does Latency Come From?">?</button><span>1. Performance - Where Does Latency Come From?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="perf-cost" aria-label="Open deep dive: 2. Cost - Where Does Money Actually Go?">?</button><span>2. Cost - Where Does Money Actually Go?</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="perf-mon" aria-label="Open deep dive: 3. How We Monitor Both Together - Production Dashboard">?</button><span>3. How We Monitor Both Together - Production Dashboard</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PART 5: IMPLEMENTATION BEST PRACTICES ===== -->
+  <section class="slide divider" id="impl" data-accent="blue" data-title="Part 05 · Implementation Best Practices for Cross-Region Inference" data-section="true">
+    <div class="inner">
+      <div class="part-mark" aria-hidden="true">05</div>
+      <div class="part-grid">
+      <div class="part-main stagger">
+      <p class="num">Part 05 · Implementation Best Practices for Cross-Region Inference</p>
+      <p class="pull">We will use the same prod example: <strong>BharatFin</strong> - Loan Copilot running in <code>ap-south-1</code> primary with failover to <code>ap-southeast-1</code>, SLO 99.95%, p95 &lt; 2 sec.</p>
+      </div>
+      <aside class="part-side">
+      <p class="side-label" aria-hidden="true"><span>Deep dives</span><span class="cnt"></span></p>
+      <ul class="help-list">
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="impl-lead" aria-label="Open deep dive: 1. Testing Strategy - Don't Assume Failover Works, Prove It">?</button><span>1. Testing Strategy - Don't Assume Failover Works, Prove It</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="impl-mon" aria-label="Open deep dive: 2. Monitoring Setup - Make Failover Visible">?</button><span>2. Monitoring Setup - Make Failover Visible</span></li>
+        <li class="help-list-item"><button class="help-btn" type="button" data-help="impl-doc" aria-label="Open deep dive: 3. Documentation - What the 2 AM On-Call Needs">?</button><span>3. Documentation - What the 2 AM On-Call Needs</span></li>
+      </ul>
+      </aside>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Help popover: full-viewport overlay (kept outside the deck so it can't be clipped/trapped) -->
+<div class="help-popover" id="helpPop" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
+  <div class="pop-head">
+    <div class="pop-crumb"><span class="pop-part" id="popPart"></span><span class="pop-count" id="popCount"></span><span class="pop-pips" id="popPips" aria-hidden="true"></span></div>
+    <div class="pop-nav">
+      <button class="btn" id="popPrev" type="button" aria-label="Previous deep dive">← <span class="lbl">Prev</span></button>
+      <button class="btn" id="popNext" type="button" aria-label="Next deep dive"><span class="lbl">Next</span> →</button>
+    </div>
+    <button class="help-popover-close" id="helpClose" type="button" aria-label="Close deep dive">&times;</button>
+  </div>
+  <div class="pop-progress" aria-hidden="true"><i id="popProg"></i></div>
+  <div class="help-popover-body" id="helpBody" tabindex="-1"></div>
+</div>
+
+<!-- Deep-dive content (verbatim copies of the source sub-sections) -->
+
+
+  <!-- ===== PART 1 DIVES ===== -->
+  <template id="help-cri-lead">
+    <div class="inner">
+      <h2>2. What is Cross-Region Inference? - Simple Explanation</h2>
+      <p class="pull">Think of it as <strong>Multi-AZ for Foundation Models</strong>.</p>
+      <p>Instead of calling a specific model in a specific Region, you call an <strong>Inference Profile</strong>. An Inference Profile is a logical ID that represents the <em>same</em> FM in multiple Regions within a geography set.</p>
+      <p>You still make ONE API call from your primary Region. Bedrock's managed router then transparently routes that request to the healthiest Region where the model is available and has quota.</p>
+      <p>It is 100% transparent to your application. Your API interface - <code>Converse</code>, <code>InvokeModel</code>, <code>ConverseStream</code> - and your request/response JSON schema remain exactly the same.</p>
+      <div class="note tip"><p><strong>Geography Boundary is Key:</strong> AWS groups Regions into geographies - <code>us</code>, <code>eu</code>, <code>apac</code>, <code>global</code>. A profile with <code>us.</code> prefix will ONLY route within US Regions <code>us-east-1, us-west-2, etc.</code>. Your prompt data never leaves that geography unless you use a <code>global.</code> profile.</p></div>
+    </div>
+  </template>
+
+  <template id="help-cri-example">
+    <div class="inner">
+      <h2>3. Production Real-World Example</h2>
+      <p><strong>Customer:</strong> A FinTech unicorn in Gurugram building an AI Loan Underwriting Copilot.</p>
+      <p><strong>Workload:</strong> The app stack [EKS + Bedrock Agent + Knowledge Bases for KYC docs] runs in <code>ap-south-1</code> to meet RBI data residency. The core model is <code>anthropic.claude-3-5-sonnet-20241022-v2:0</code> because of its reasoning on financial documents.</p>
+      <p><strong>Production Incident Without Cross-Region:</strong><br>During month-end, loan applications spike 5x. Bedrock in <code>ap-south-1</code> throttles. Their customer-facing copilot returns 429 errors. Loan officers can't process loans. Business impact.</p>
+      <p><strong>Architecture With Cross-Region Inference:</strong></p>
+      <p class="quote" data-flow><code>[User -&gt; EKS in ap-south-1] -&gt; [Bedrock Runtime Client in ap-south-1] -&gt; calls Inference Profile ID: apac.anthropic.claude-3-5-sonnet-20241022-v2:0</code></p>
+      <p>What happens behind the scenes:</p>
+      <ol class="steps">
+        <li>Bedrock tries to serve from <code>ap-south-1</code>.</li>
+        <li>On throttling, it automatically fails over to <code>ap-southeast-1 [Singapore]</code> or <code>ap-northeast-1 [Tokyo]</code> where quota is available.</li>
+        <li>Response returns to your app in <code>ap-south-1</code> as if nothing happened.</li>
+      </ol>
+      <p>No custom failover code, no second endpoint to manage.</p>
+      <p><strong>Production Implementation - It's just one ID change:</strong></p>
+<pre><code>import boto3
+
+# You are still calling from your primary region
+bedrock_runtime = boto3.client('bedrock-runtime', region_name='ap-south-1')
+
+# BEFORE: Brittle - Direct Model ID
+# model_id = 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+
+# AFTER: Resilient - APAC Cross-Region System Inference Profile
+model_id = 'apac.anthropic.claude-3-5-sonnet-20241022-v2:0'
+
+response = bedrock_runtime.converse(
+    modelId=model_id, # Same parameter, now using a Profile
+    messages=[{"role": "user", "content": [{"text": "Analyze this KYC doc for risk"}]}],
+    inferenceConfig={"temperature": 0.2, "maxTokens": 1024}
+)</code></pre>
+      <p>You don't create this profile - AWS provides System-Defined Profiles like <code>us.*</code>, <code>eu.*</code>, <code>apac.*</code>. You just need to enable model access in all destination Regions.</p>
+    </div>
+  </template>
+
+  <template id="help-cri-benefits">
+    <div class="inner">
+      <h2>4. Key Benefits - Refined for Production</h2>
+      <div class="steps-p">
+        <p><strong>1. Model Availability:</strong> Access best-in-class models even if they don't exist in your primary Region. Build in Mumbai, infer from Singapore.</p>
+        <p><strong>2. Resilience: Automatic Failover:</strong> Handles both regional outages and throttling. This is how you meet business continuity and RTO requirements for GenAI apps.</p>
+        <p><strong>3. Simplified Architecture:</strong> One endpoint to manage. You eliminate custom routing, retry, and health-check Lambdas. Less code, less to operate.</p>
+        <p><strong>4. Consistent Interface:</strong> No payload change. Your Guardrails, Prompt Management, Agents all work the same way regardless of which Region actually runs the inference.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="help-cri-checklist">
+    <div class="inner">
+      <h2>5. Architect's Checklist Before You Go Live</h2>
+      <p>If you use this in prod, do this:</p>
+      <div class="param-grid">
+        <p><strong>a) Quotas:</strong> Increase <code>On-demand model invocation</code> quota for that FM in <em>all</em> Regions in your geography set, not just primary. Failover will fail if destination has no quota.</p>
+        <p><strong>b) Latency &amp; Cost:</strong> Failover to a farther Region adds 100-250ms latency. Cost is based on the Region that <em>serves</em> the request, not the Region you call from. There is no extra charge for routing itself.</p>
+        <p><strong>c) Data Residency:</strong> If regulation says data cannot leave India, you cannot use <code>apac.</code> profile. You must stay with a single-region profile in <code>ap-south-1</code>. Use <code>eu.</code> profiles for GDPR workloads.</p>
+        <p><strong>d) Observability:</strong> Enable Bedrock Invocation Logging and CloudWatch metric <code>Invocations</code> filtered by <code>InferenceProfileId</code> to see which underlying Region served the request and track failover rate.</p>
+      </div>
+      <p class="pull"><strong>Bottom Line:</strong> For any pilot, use direct model IDs. For any production workload where availability matters, use a Cross-Region Inference Profile. It's the difference between a demo and a service.</p>
+    </div>
+  </template>
+
+  <!-- ===== PART 2 DIVES ===== -->
+  <template id="help-avail-lead">
+    <div class="inner">
+      <h2>Pillar 1: Regional Capacity Considerations</h2>
+      <p><strong>What it means:</strong> Same model, same Region, different capacity. <code>us-east-1</code> and <code>ap-south-1</code> are high-demand regions. During peak events like Diwali Sale, you will hit <code>TooManyRequestsException</code> or higher latency even if the model is available.</p>
+      <p>On-Demand is shared capacity. Provisioned Throughput is reserved capacity.</p>
+      <div class="note"><p><strong>Prod Reality:</strong><br>ShopGlobal's contact center handled 200 TPS normally in Mumbai. On Diwali, it spiked to 1500 TPS. Bedrock in <code>ap-south-1</code> throttled, even though Claude was available. Chatbot went down.</p>
+        <div class="viz" aria-hidden="true">
+          <div class="viz-h"><span>Mumbai TPS</span></div>
+          <div class="viz-row"><span class="viz-lbl">Normal</span><div class="bar" style="--w:13.3%"><i style="--c:var(--c-teal)"></i><b>200 TPS</b></div></div>
+          <div class="viz-row"><span class="viz-lbl">Diwali</span><div class="bar full" style="--w:100%"><i style="--c:var(--c-red)"></i><b>1500 TPS</b></div></div>
+        </div>
+      </div>
+      <p><strong>Architect Action:</strong></p>
+      <ol class="steps">
+        <li>Never design for just availability, design for capacity. Check Service Quotas &gt; Amazon Bedrock in each target Region.</li>
+        <li>Use <strong>Cross-Region Inference Profile</strong> - e.g., <code>apac.anthropic.claude-3-5-sonnet-20241022-v2:0</code>. If Mumbai is throttled, Bedrock automatically fails over to Singapore or Tokyo within the <code>apac</code> geography.</li>
+        <li>For predictable peak, buy <strong>Provisioned Throughput</strong> in primary and at least one secondary Region.</li>
+      </ol>
+      <div class="note tip"><p>Tool: CloudWatch metric <code>Throttles</code> for Bedrock + console <code>aws bedrock list-foundation-models --region ap-south-1</code></p></div>
+    </div>
+  </template>
+
+  <template id="help-avail-dist">
+    <div class="inner">
+      <h2>Pillar 2: Model Distribution Patterns</h2>
+      <p><strong>What it means:</strong> Bedrock has ~100 serverless models from 7+ providers - Amazon Nova, Anthropic Claude, Meta Llama, Mistral, Cohere, AI21, Stability. But distribution is not uniform due to provider commercial agreements, GPU infrastructure, and regulations.</p>
+      <p>You cannot assume your favorite model is everywhere.</p>
+      <div class="note">
+        <p><strong>Prod Reality:</strong><br>ShopGlobal found Claude 3.5 Sonnet is not in <code>ap-south-1</code> on launch week. Titan Embeddings v2 is in <code>ap-south-1</code>, but Cohere Embed v3 is not.</p>
+        <p>If you hardcode <code>anthropic.claude-3-5-sonnet</code>, your Mumbai deployment fails at deploy time.</p>
+      </div>
+      <p><strong>Architect Action: Build a Capability Map, not a Model Map.</strong></p>
+      <div class="tbl"><table>
+        <tr><th>Capability Needed</th><th>Preferred Model</th><th>Region-Aware Alternative [Same Job]</th><th>When to Use</th></tr>
+        <tr><td>Complex Reasoning</td><td>Claude 3.5 Sonnet</td><td>Amazon Nova Premier, Llama 3.3 70B</td><td>If Claude not available in <code>ap-south-1</code></td></tr>
+        <tr><td>Embeddings for RAG</td><td>Titan Embed v2</td><td>Cohere Embed English v3</td><td>If you need multilingual</td></tr>
+        <tr><td>Fast Summarization</td><td>Nova Lite</td><td>Mistral Small</td><td>Cost/latency sensitive</td></tr>
+      </table></div>
+      <p>We always document this in our IaC. And we automate the check:</p>
+<pre><code>import boto3
+for region in ['ap-south-1', 'ap-southeast-1', 'eu-west-1']:
+    bedrock = boto3.client('bedrock', region_name=region)
+    models = [m['modelId'] for m in bedrock.list_foundation_models()['modelSummaries']]
+    print(f"{region} has Claude Sonnet: {'anthropic.claude-3-5-sonnet' in str(models)}")</code></pre>
+      <p>Review this mapping quarterly - AWS adds models to new Regions every month.</p>
+    </div>
+  </template>
+
+  <template id="help-avail-comp">
+    <div class="inner">
+      <h2>Pillar 3: Compliance and Data Residency</h2>
+      <p><strong>What it means:</strong> Cross-region routing is powerful, but it means your prompt - which may contain PII, KYC data - leaves your primary Region.</p>
+      <p>Some data <em>cannot</em> leave.</p>
+      <div class="note">
+        <p><strong>Prod Reality:</strong><br>ShopGlobal's India loan data cannot leave India per compliance. EU customer chat data cannot leave <code>eu-*</code> per GDPR.</p>
+        <p>If they used a <code>global.anthropic.claude...</code> profile from <code>ap-south-1</code>, that PII could be processed in <code>us-east-1</code>. That's a compliance violation.</p>
+      </div>
+      <p><strong>Architect Action:</strong></p>
+      <ol class="steps">
+        <li>Classify your data: Public / Internal / Restricted / PII.</li>
+        <li>Align profile to compliance:
+          <ul>
+            <li>India PII -&gt; Use ONLY single-region model ID in <code>ap-south-1</code> OR an <code>apac.</code> profile only after legal sign-off that <code>ap-southeast-1</code> is allowed.</li>
+            <li>EU PII -&gt; Use ONLY <code>eu.anthropic.claude...</code> profile. It guarantees routing stays inside <code>eu-west-1, eu-central-1, eu-north-1</code>.</li>
+          </ul>
+        </li>
+        <li>Document restrictions: "No cross-region for KYC RAG. OK for public product Q&amp;A."</li>
+      </ol>
+    </div>
+  </template>
+
+  <template id="help-avail-ver">
+    <div class="inner">
+      <h2>Pillar 4: Model Version Consistency</h2>
+      <p><strong>What it means:</strong> <code>Claude 3.5 Sonnet</code> is not one version. There is <code>20240620-v1</code> and <code>20241022-v2</code>. Different Regions can be on different versions for a few days/weeks during rollout. Responses will differ slightly.</p>
+      <p>Cross-region inference <em>tries</em> to route to equivalent versions, but it's not guaranteed during rollout.</p>
+      <div class="note"><p><strong>Prod Reality:</strong><br>ShopGlobal's prompt that was tuned for Sonnet v2 in <code>us-east-1</code> gave different JSON formatting in <code>ap-southeast-1</code> which was still on v1. Their downstream parser broke.</p></div>
+      <p><strong>Architect Action:</strong></p>
+      <ol class="steps">
+        <li>Always pin to full versioned ID: <code>anthropic.claude-3-5-sonnet-20241022-v2:0</code>, not <code>anthropic.claude-3-5-sonnet</code>.</li>
+        <li>When using cross-region profiles, pin to versioned profile: <code>apac.anthropic.claude-3-5-sonnet-20241022-v2:0</code></li>
+        <li>Add Model Evaluation in your CI/CD - run the same 50 golden prompts across primary and secondary Regions and compare for drift using Bedrock Model Evaluation.</li>
+      </ol>
+      <p><strong>Final Checklist for Production:</strong></p>
+      <p>Before you ship, answer this:</p>
+      <ol>
+        <li>Have I listed my models in all 3 Regions I care about?</li>
+        <li>Have I mapped an equivalent alternative for each?</li>
+        <li>Have I checked quotas and throttling in <em>all</em> failover Regions?</li>
+        <li>Does my cross-region profile geography align with data residency?</li>
+        <li>Am I pinned to a full versioned model ID?</li>
+      </ol>
+      <p class="pull">If yes, you are resilient. If not, your first regional outage will be your lesson.</p>
+    </div>
+  </template>
+
+  <!-- ===== PART 3 DIVES ===== -->
+  <template id="help-setup-lead">
+    <div class="inner">
+      <h2>Step 1: Enable Model Access Everywhere [What the doc calls "Turn on cross-region"]</h2>
+      <p>There is no global toggle. You need to do two things:</p>
+      <div class="param-grid">
+        <p>a) Enable model access in <strong>ALL Regions</strong> you want to failover to. Bedrock console &gt; Model access &gt; Enable Claude Sonnet in <code>ap-south-1</code>, <code>ap-southeast-1</code>, <code>ap-northeast-1</code>.</p>
+        <p>b) Start using the System-Defined Cross-Region Profile. You don't create it, AWS already created it.</p>
+      </div>
+<pre><code># List all cross-region profiles available to you
+aws bedrock list-inference-profiles --region ap-south-1 --query "inferenceProfileSummaries[?contains(inferenceProfileId, 'apac')]"
+# You will see: apac.anthropic.claude-3-5-sonnet-20241022-v2:0</code></pre>
+      <p>For BharatFin, we chose <code>apac.*</code> because it keeps data within APAC geography. For EU workloads we would choose <code>eu.*</code> to stay GDPR compliant.</p>
+    </div>
+  </template>
+
+  <template id="help-setup-geo">
+    <div class="inner">
+      <h2>Step 2: Configure Region Preferences - Choose Your Geography</h2>
+      <p>This is the most important architect decision. You are not picking primary/secondary manually. You are picking a geography set by the prefix.</p>
+      <div class="tbl tier-table"><table>
+        <tr><th>Prefix</th><th>Where it can route</th><th>When to use</th></tr>
+        <tr><td><code>ap-south-1</code> model ID</td><td>Only that Region</td><td>Strict data must not leave India</td></tr>
+        <tr><td><code>apac.</code> profile</td><td><code>ap-south-1, ap-southeast-1/2, ap-northeast-1/2/3</code></td><td>BharatFin - India + APAC resilience</td></tr>
+        <tr><td><code>eu.</code> profile</td><td><code>eu-west-1/3, eu-central-1/2, eu-north-1</code></td><td>GDPR workloads</td></tr>
+        <tr><td><code>us.</code> profile</td><td><code>us-east-1/2, us-west-2</code></td><td>US workloads</td></tr>
+        <tr><td><code>global.</code> profile</td><td>Anywhere</td><td>Non-sensitive, max resilience</td></tr>
+      </table></div>
+      <div class="note tip"><p><strong>BharatFin Decision:</strong> We used <code>apac.</code> profile. Primary is Mumbai for latency, failover is Singapore because it's closest to users [~70ms extra vs 250ms to Tokyo]. We documented that PII can be processed in Singapore after legal sign-off.</p></div>
+      <p>If you need a custom list of Regions [e.g., only Mumbai and Singapore, not Tokyo], you create an <strong>Application Inference Profile</strong> via console or CDK.</p>
+    </div>
+  </template>
+
+  <template id="help-setup-route">
+    <div class="inner">
+      <h2>Step 3: Implement Request Routing - Zero Custom Logic</h2>
+      <p>This is the beauty - you do NOT build routing logic. You use the standard Bedrock Runtime API.</p>
+      <p>BharatFin's code before :[brittle]</p>
+<pre><code>client = boto3.client('bedrock-runtime', region_name='ap-south-1')
+client.converse(modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',...) # Fails on throttling</code></pre>
+      <p>After [resilient - prod ready]:</p>
+<pre><code>import boto3
+from botocore.config import Config
+
+# Add retries - Bedrock will handle cross-region retry automatically
+config = Config(retries={'max_attempts': 3, 'mode': 'adaptive'})
+client = boto3.client('bedrock-runtime', region_name='ap-south-1', config=config)
+
+# Just change the modelId to the Inference Profile ID
+PROFILE_ID = 'apac.anthropic.claude-3-5-sonnet-20241022-v2:0'
+
+response = client.converse(
+    modelId=PROFILE_ID, # Same param
+    messages=[{"role": "user", "content": [{"text": "Assess loan risk for PAN: ABCDE1234F"}]}]
+)</code></pre>
+      <p>Test it like prod: We injected throttling in <code>ap-south-1</code> using fault injection and saw requests automatically succeed from <code>ap-southeast-1</code> with no code change. Latency increased from 1.2s to 1.35s, which was within SLO.</p>
+      <p>IAM permission needed is same: <code>bedrock:InvokeModel</code> and <code>bedrock:Converse</code> on the profile ARN, not just model ARN.</p>
+    </div>
+  </template>
+
+  <template id="help-setup-mon">
+    <div class="inner">
+      <h2>Step 4: Configure Monitoring and Alerting - You Must Know When Failover Happens</h2>
+      <p>Failover is silent by default. You must make it visible.</p>
+      <p>BharatFin setup:</p>
+      <ol class="steps">
+        <li><strong>Enable Model Invocation Logging:</strong> Bedrock &gt; Settings &gt; Model invocation logging &gt; S3. The log contains <code>inferenceProfileId</code> and <code>invokedRegion</code> - which tells you where it actually ran.</li>
+        <li><strong>CloudWatch Metrics:</strong><br>Metric: <code> AWS/Bedrock -&gt; ModelInvocationThrottles</code> and <code>ModelInvocationLatency</code> filtered by <code>inferenceProfileId</code>.</li>
+        <li><strong>Alert:</strong> We created an alarm: If more than 15% of invocations in 5 mins have <code>invokedRegion!= ap-south-1</code>, trigger PagerDuty. This means Mumbai is constantly throttling and we need to increase Provisioned Throughput quota.</li>
+      </ol>
+      <p>Sample CloudWatch Logs Insights query:</p>
+<pre><code>fields @timestamp, modelId, @message
+| filter inferenceProfileId like /apac/
+| stats count() by invokedRegion</code></pre>
+      <p><strong>Final Production Checklist:</strong></p>
+      <ol>
+        <li>Model access enabled in ALL regions in the geography?</li>
+        <li>Service Quota for On-Demand invocations increased in ALL failover regions?</li>
+        <li>Are you using version-pinned profile ID e.g. <code>...20241022-v2:0</code> not floating?</li>
+        <li>Does your geography <code>us/eu/apac/global</code> align with your compliance doc?</li>
+        <li>Do you have an alarm for continuous failover?</li>
+      </ol>
+      <p class="pull">If you do this, your GenAI app will survive a regional outage like any other well-architected workload.</p>
+    </div>
+  </template>
+
+  <!-- ===== PART 4 DIVES ===== -->
+  <template id="help-perf-lead">
+    <div class="inner">
+      <h2>1. Performance - Where Does Latency Come From?</h2>
+      <p><strong>What happens:</strong> Normal path: <code>App in ap-south-1 -&gt; Model in ap-south-1</code> = ~800ms p95.<br>Failover path: <code>App in ap-south-1 -&gt; Bedrock internal routing -&gt; Model in ap-southeast-1 [Singapore]</code> = ~800ms + network hop of 70-120ms + cold start = ~950-1100ms p95. If it fails over to Tokyo, add 180-250ms.</p>
+      <p>It's not huge, but for a streaming chatbot, user will feel it.</p>
+      <div class="note">
+        <p><strong>Prod Example: BharatFin's Underwriting Copilot</strong><br>We measured this in prod for 10M requests. 95% served from Mumbai: p95 1.1 sec. 5% that failed over to Singapore during month-end peak: p95 1.35 sec. Their SLA was 2 sec, so it was still within SLO, but their UX team noticed the streaming felt slower.</p>
+        <div class="viz" aria-hidden="true">
+          <div class="viz-h"><span>10M requests</span></div>
+          <div class="split"><span class="seg" style="--w:95%;--c:var(--c-green)"><b>95%</b> Mumbai</span><span class="seg" style="--w:5%;--c:var(--c-amber)"></span></div>
+          <div class="legend"><span style="--c:var(--c-green)">Mumbai · 95%</span><span style="--c:var(--c-amber)">Singapore · 5%</span></div>
+          <div class="viz-h" style="margin-top:18px"><span>p95 latency · SLA 2 sec</span></div>
+          <div class="viz-row"><span class="viz-lbl">Mumbai</span><div class="bar" style="--w:55%"><i style="--c:var(--c-green)"></i><b>1.1 sec</b></div></div>
+          <div class="viz-row"><span class="viz-lbl">Singapore</span><div class="bar" style="--w:67.5%"><i style="--c:var(--c-amber)"></i><b>1.35 sec</b></div></div>
+          <div class="viz-row"><span class="viz-lbl">SLA</span><div class="bar full" style="--w:100%"><i style="--c:var(--c-red)"></i><b>2 sec</b></div></div>
+        </div>
+      </div>
+      <p><strong>How we optimized performance:</strong></p>
+      <p><strong>a) Region Selection is Latency Selection:</strong> Don't pick secondary randomly. For <code>ap-south-1</code> primary, pick <code>ap-southeast-1</code> as secondary, not <code>ap-northeast-1</code>. It's 3x closer. For EU, pair <code>eu-west-1 [Ireland]</code> with <code>eu-central-1 [Frankfurt]</code> - 20ms apart, not with <code>eu-north-1</code>.</p>
+      <p><strong>b) Request Optimization - This is where you save the most:</strong></p>
+      <ul>
+        <li><strong>Prompt Caching [Bedrock feature]:</strong> For RAG, your system prompt + KYC docs are same for every request. Enable <code>prompt caching</code> - Bedrock caches it in the region that serves it. Saves 60-80% latency on cached tokens.</li>
+        <li><strong>Semantic Caching:</strong> 40% of support questions are repeated - "What is my loan status?". We added an ElastiCache Serverless semantic cache. If embedding similarity &gt;0.95, return cached answer without calling Bedrock at all. Failover = 0 for those requests.[Redis]</li>
+        <li><strong>Batch Embeddings:</strong> Don't call Titan Embed for 1 doc at a time. Batch 20 docs for Knowledge Base ingestion. Fewer cross-region calls.</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-perf-cost">
+    <div class="inner">
+      <h2>2. Cost - Where Does Money Actually Go?</h2>
+      <p>You don't pay extra for failover, but you do pay for these 4 cost leaks:</p>
+      <p><strong>Prod Example: Same BharatFin - 20M tokens/day</strong></p>
+      <div class="tbl"><table>
+        <tr><th>Cost Leak</th><th>What Happened</th><th>Architect Fix</th></tr>
+        <tr><td><strong>1. No caching</strong></td><td>Same 5-page loan policy sent in every request. 3,000 tokens wasted per call.</td><td>Prompt caching + semantic cache saved ~$1,200/month</td></tr>
+        <tr><td><strong>2. No capacity planning</strong></td><td>Primary quota was 100 TPS. They hit 300 TPS, 66% requests failed over. They paid Singapore price + primary still idle.</td><td>Increased quota + 100 TPS Provisioned Throughput in <code>ap-south-1</code>. Failover dropped from 66% to 3%.</td></tr>
+        <tr><td><strong>3. Wrong model for job</strong></td><td>Using Claude Sonnet for simple classification that Haiku could do.</td><td>Router pattern: Classifier Lambda -&gt; If simple -&gt; <code>apac.anthropic.claude-3-haiku</code>, If complex -&gt; Sonnet. 70% traffic moved to Haiku - 5x cheaper.</td></tr>
+        <tr><td><strong>4. No monitoring</strong></td><td>Team didn't know 30% traffic was going to secondary for a week.</td><td>Added monitoring - see below.</td></tr>
+      </table></div>
+      <div class="viz" aria-hidden="true">
+        <div class="viz-h"><span>Failover rate</span></div>
+        <div class="viz-row"><span class="viz-lbl">Before</span><div class="bar" style="--w:66%"><i style="--c:var(--c-red)"></i><b>66%</b></div></div>
+        <div class="viz-row"><span class="viz-lbl">After</span><div class="bar" style="--w:3%"><i style="--c:var(--c-green)"></i><b>3%</b></div></div>
+      </div>
+      <p><strong>Region Selection for Cost:</strong> Model price is not identical everywhere. <code>us-east-1</code> and <code>us-west-2</code> are cheapest. <code>ap-south-1</code> is typically 5-10% higher. If you use <code>global.</code> profile and it fails over from US to Asia, your per-token cost goes up slightly. For cost-sensitive workloads, stick to <code>us.</code> or <code>apac.</code> only, not <code>global.</code>.</p>
+    </div>
+  </template>
+
+  <template id="help-perf-mon">
+    <div class="inner">
+      <h2>3. How We Monitor Both Together - Production Dashboard</h2>
+      <p>We build one dashboard for ShopGlobal that tracks resilience, performance, and cost together:</p>
+      <p><strong>CloudWatch + Invocation Logs:</strong><br>Enable Bedrock Model Invocation Logging to S3. Each log has <code>invokedRegion</code> and <code>inferenceProfileId</code>.</p>
+      <p>Query in CloudWatch Logs Insights:</p>
+<pre><code>fields @timestamp, modelId, invokedRegion, inputTokens, outputTokens
+| filter inferenceProfileId like /apac/
+| stats avg(latency) as p95_latency, sum(inputTokens+outputTokens)/1000 as kTokens, count() by invokedRegion</code></pre>
+      <p><strong>Alarms we set:</strong></p>
+      <ol class="steps">
+        <li><strong>Performance:</strong> Alarm if p95 latency &gt; 1.8s for 5 mins</li>
+        <li><strong>Resilience:</strong> Alarm if <code>invokedRegion!= ap-south-1</code> &gt; 10% for 10 mins - means primary is under-provisioned</li>
+        <li><strong>Cost:</strong> Daily Cost Anomaly in Cost Explorer for Bedrock service, grouped by Region. If Singapore cost spikes 50% day-over-day, we know failover is high.</li>
+      </ol>
+      <p><strong>My Architect Checklist to Balance All Three:</strong></p>
+      <ol class="tiles">
+        <li><strong>Right-size primary:</strong> Buy Provisioned Throughput in primary for your baseline TPS. Use on-demand + cross-region only for burst. This reduces failover frequency to &lt;5% - best for latency and cost.</li>
+        <li><strong>Cache first, call second:</strong> Always implement semantic cache + Bedrock prompt caching before you worry about region selection. It saves both latency and cost instantly.[Redis]</li>
+        <li><strong>Choose secondary by latency, not just availability:</strong> For <code>ap-south-1</code>, <code>ap-southeast-1</code> &gt; <code>ap-northeast-1</code>. Document the extra p95 you will accept during failover.</li>
+        <li><strong>Don't use Global Accelerator or CloudFront to "fix" Bedrock latency.</strong> It doesn't. Global Accelerator helps your app layer if you are Active-Active. For model layer, your optimization is prompt caching and staying in-region.</li>
+      </ol>
+      <p class="pull">In short: Use cross-region profiles for availability - it's free resilience. Use caching and capacity planning to keep latency and cost from creeping up.</p>
+    </div>
+  </template>
+
+  <!-- ===== PART 5 DIVES ===== -->
+  <template id="help-impl-lead">
+    <div class="inner">
+      <h2>1. Testing Strategy - Don't Assume Failover Works, Prove It</h2>
+      <p class="pull"><strong>In simple terms:</strong> Bedrock will failover automatically on throttling and 5xx, but you have never seen it happen until you force it to happen. Test it like you test AZ failure for RDS.</p>
+      <p><strong>What we do for BharatFin - 3 levels of testing:</strong></p>
+      <div class="steps-p">
+        <p><strong>Level 1: Planned Failover Test</strong><br>We intentionally exhaust the quota in primary to force routing.<br>How: We have a test script that fires 500 TPS to <code>ap-south-1</code> for 2 minutes using a low quota IAM role. We verify all requests still succeed but <code>invokedRegion</code> in logs changes to <code>ap-southeast-1</code>. We measure latency impact - from 1.1s to 1.4s - and confirm it's within SLO.[Monthly]</p>
+        <p><strong>Level 2: Chaos Engineering with AWS FIS [Quarterly GameDay]</strong><br>We use AWS Fault Injection Simulator to inject throttling on the Bedrock data plane.<br>FIS Experiment: <code>aws:fis:inject-api-throttle</code> on <code>bedrock-runtime:Converse</code> in <code>ap-south-1</code> with 100% throttling for 10 minutes.<br>Expected behavior: App stays green, no customer impact. CloudWatch alarm <code>CrossRegionFailover-High</code> fires, on-call gets notified that failover is active, but no page for outage.</p>
+        <p><strong>Level 3: Model Capability Test</strong><br>Failover to another Region can mean a slightly different model version. We run 50 golden prompts - loan risk assessments with known good outputs - through primary and secondary. We use Bedrock Model Evaluation to compare for drift. If JSON schema breaks, we fix the prompt before prod does.</p>
+      </div>
+      <p><strong>Prod Test Checklist:</strong></p>
+      <ul>
+        <li>[ ] Can you prove 100% of requests succeed when primary is at 0 TPS quota?</li>
+        <li>[ ] Do you know your p95 latency during failover? Is it documented in your SLO?</li>
+        <li>[ ] Does your app handle streaming <code>ConverseStream</code> correctly during a mid-stream failover retry?</li>
+      </ul>
+    </div>
+  </template>
+
+  <template id="help-impl-mon">
+    <div class="inner">
+      <h2>2. Monitoring Setup - Make Failover Visible</h2>
+      <p class="pull"><strong>In simple terms:</strong> Failover is silent by default. If you don't monitor it, you will be paying for secondary Region for weeks without knowing primary is under-provisioned.</p>
+      <p><strong>What BharatFin monitors - 3 dashboards in one:</strong></p>
+      <p><strong>Dashboard 1: Routing Observability - Where did it run?</strong><br>Enable Bedrock Model Invocation Logging to S3. Each log line has <code>inferenceProfileId</code> and <code>invokedRegion</code>.</p>
+      <p>CloudWatch Logs Insights query we use in prod:</p>
+<pre><code>fields @timestamp, modelId, invokedRegion, latency
+| filter inferenceProfileId like /apac.anthropic/
+| stats count(*) as requests, avg(latency) as avg_lat, pct(latency, 95) as p95 by invokedRegion</code></pre>
+      <div class="viz" aria-hidden="true"><div class="split"><span class="seg" style="--w:92%;--c:var(--c-blue)"><b>92%</b> ap-south-1</span><span class="seg" style="--w:8%;--c:var(--c-amber)"><b>8%</b></span></div><div class="legend"><span style="--c:var(--c-blue)">ap-south-1 · 92%</span><span style="--c:var(--c-amber)">ap-southeast-1 · 8%</span></div></div>
+      <p>Visual: Pie chart - 92% ap-south-1, 8% ap-southeast-1. If that 8% becomes 40%, something is wrong.</p>
+      <p><strong>Dashboard 2: Performance &amp; Errors</strong><br>Metrics: <code> AWS/Bedrock -&gt; Invocations, InvocationLatency, InvocationThrottles, InvocationClientErrors</code> filtered by <code>InferenceProfileId</code>.</p>
+      <p>Alarms:</p>
+        <ul>
+          <li><code>Critical</code>: <code>Throttles &gt; 5%</code> in primary for 5 mins -&gt; Auto-scale Provisioned Throughput or increase quota.</li>
+          <li><code>Warning</code>: <code>p95 Latency &gt; 2 sec</code> for 10 mins -&gt; Check if traffic is failing over to far Region like Tokyo instead of Singapore.</li>
+        </ul>
+        <p><strong>Dashboard 3: Cost &amp; Usage</strong><br>In Cost Explorer, group by Region and filter Service = Bedrock. BharatFin had a surprise $2k spike in Singapore last month - because their primary quota was still at 100 TPS while traffic grew to 300 TPS. Failover was happening daily.</p>
+      <p>Alarm: CloudWatch Anomaly Detection on daily Bedrock cost per Region.</p>
+    </div>
+  </template>
+
+  <template id="help-impl-doc">
+    <div class="inner">
+      <h2>3. Documentation - What the 2 AM On-Call Needs</h2>
+      <p class="pull"><strong>In simple terms:</strong> If your runbook just says "Bedrock cross-region is enabled", your on-call will have no idea what to do when latency spikes.</p>
+      <p><strong>BharatFin's Runbook - 1 Page we maintain in Confluence:</strong></p>
+      <p><strong>a) Region Preferences Documented:</strong></p>
+      <div class="note">
+        <p>Primary: <code>ap-south-1</code> - for DPDP compliance, lowest latency for Indian users.<br>Secondary: <code>ap-southeast-1</code> - 80ms RTT, legally approved for DR only. Tertiary: <code>ap-northeast-1</code> - last resort.<br>Profile Used: <code>apac.anthropic.claude-3-5-sonnet-20241022-v2:0</code> [Version-pinned]<br>Data Classification: PII allowed to failover to Singapore for max 24 hours, after that need manual approval.[Mumbai][Singapore][Tokyo]</p>
+      </div>
+      <p><strong>b) Failover Procedures:</strong></p>
+      <div class="note">
+        <p>Scenario 1: Alarm <code>CrossRegionFailover-High</code> fires but app is green -&gt; Action: Check Service Quotas in <code>ap-south-1</code>. If throttling, request quota increase. No customer notification needed. This is expected behavior.<br>Scenario 2: Alarm <code>LatencyHighDuringFailover</code> fires -&gt; Action: Check if Singapore is also throttled and traffic went to Tokyo. If yes, temporarily shift 20% traffic to smaller model <code>apac.anthropic.claude-3-haiku</code> using weighted router to reduce load.</p>
+      </div>
+      <p><strong>c) Performance Baselines Documented:</strong></p>
+      <div class="note">
+        <p>Normal: p95 1.1 sec from Mumbai, 0% failover<br>Failover to Singapore: p95 1.4 sec, acceptable<br>Failover to Tokyo: p95 1.9 sec, borderline - page architect if sustained</p>
+        <div class="viz" aria-hidden="true">
+          <div class="viz-h"><span>p95 latency</span></div>
+          <div class="viz-row"><span class="viz-lbl">Mumbai</span><div class="bar" style="--w:57.9%"><i style="--c:var(--c-green)"></i><b>1.1 sec</b></div></div>
+          <div class="viz-row"><span class="viz-lbl">Singapore</span><div class="bar" style="--w:73.7%"><i style="--c:var(--c-amber)"></i><b>1.4 sec</b></div></div>
+          <div class="viz-row"><span class="viz-lbl">Tokyo</span><div class="bar full" style="--w:100%"><i style="--c:var(--c-red)"></i><b>1.9 sec</b></div></div>
+        </div>
+      </div>
+      <p><strong>d) Architecture Diagram + IaC:</strong><br>Link to CDK code where profile ID is defined, so on-call knows where to change it if they need to pin to <code>ap-south-1</code> only for compliance emergency.</p>
+      <p><strong>Final Architect Advice:</strong></p>
+      <p>Day 0 - Before launch: Enable logs, create 2 alarms, write 1-page runbook.<br>Day 1 - After launch: Run your first planned failover test. Document the latency numbers.<br>Day 2 - Ongoing: Monthly check of quotas and quarterly GameDay with FIS.</p>
+      <p class="pull">If you do these three, cross-region inference goes from a checkbox feature to a real production safety net.</p>
+    </div>
+  </template>
+
+
+
+<nav class="navbar">
+  <button class="btn" id="prevBtn" aria-label="Previous slide">← Prev</button>
+  <div class="counter"><b id="cur">1</b> / <span id="total">1</span></div>
+  <div class="dots-nav" id="dots" role="group" aria-label="Slides"></div>
+  <button class="btn" id="nextBtn" aria-label="Next slide">Next →</button>
+</nav>
+
+<div class="hint" id="hint">← → to move · C for contents · T for theme</div>
+
+<div class="keys" id="keys" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" hidden>
+  <div class="keys-card">
+    <h2>Keyboard shortcuts</h2>
+    <dl>
+      <dt><kbd>←</kbd> <kbd>→</kbd> <kbd>Space</kbd></dt><dd>Previous / next slide</dd>
+      <dt><kbd>Enter</kbd></dt><dd>Open the first deep dive</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>In a deep dive: previous / next dive</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Close deep dive or menu</dd>
+      <dt><kbd>C</kbd></dt><dd>Contents</dd>
+      <dt><kbd>T</kbd></dt><dd>Toggle theme</dd>
+      <dt><kbd>F</kbd></dt><dd>Fullscreen</dd>
+      <dt><kbd>?</kbd></dt><dd>This panel</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Diagram" hidden>
+  <button class="help-popover-close" id="lbClose" type="button" aria-label="Close diagram">&times;</button>
+  <img id="lbImg" alt="">
+</div>
+
+<div class="menu" id="menu" hidden>
+  <div class="mwrap">
+    <h2>Contents</h2>
+    <ul class="mlist" id="mlist"></ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var each = function(list, fn){ Array.prototype.forEach.call(list, fn); };
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var idx = 0;
+  var root = document.documentElement;
+  var deck = $('deck'), curEl = $('cur'), totalEl = $('total'), prog = $('progress');
+  var menu = $('menu'), mlist = $('mlist'), dotsEl = $('dots'), keys = $('keys');
+  totalEl.textContent = total;
+
+  var ARROW = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>';
+
+  // ---------- Content enhancements (presentation only; text is never rewritten) ----------
+  function renderFlow(p){
+    if(p.previousElementSibling && p.previousElementSibling.classList.contains('flow')) return;
+    var keyText = Array.prototype.map.call(p.querySelectorAll('strong'), function(s){ return s.textContent.trim(); });
+    var parts = p.textContent.split('->').map(function(t){ return t.trim(); }).filter(Boolean);
+    if(parts.length < 2) return;
+    var flow = document.createElement('div');
+    flow.className = 'flow'; flow.setAttribute('aria-hidden','true');
+    parts.forEach(function(t, i){
+      if(i){ var a = document.createElement('span'); a.className='flow-arrow'; a.style.setProperty('--i', i); a.innerHTML='<i></i>'; flow.appendChild(a); }
+      var n = document.createElement('span');
+      n.className = 'flow-node' + (keyText.indexOf(t) >= 0 ? ' key' : '');
+      n.style.setProperty('--i', i); n.textContent = t; flow.appendChild(n);
+    });
+    p.parentNode.insertBefore(flow, p);
+    p.classList.add('flow-caption');
+  }
+
+  function enhance(scope){
+    each(scope.querySelectorAll('[data-flow]'), renderFlow);
+    each(scope.querySelectorAll('p'), function(p){
+      var f = p.firstChild;
+      if(!f || f.nodeType !== 1 || f.tagName !== 'STRONG') return;
+      var t = f.textContent.trim();
+      if(/^The Problem:/.test(t)) p.classList.add('lbl-problem');
+      else if(/^(Static Routing Fails:|With Static Routing:|Static Approach:)/.test(t)) p.classList.add('lbl-static');
+      else if(/^(Dynamic Routing Solution:|Dynamic Approach)/.test(t)) p.classList.add('lbl-dynamic');
+      else if(/^(Result:|Total =)/.test(t)) p.classList.add('lbl-result');
+      else if(p.childNodes.length === 1 && /:$/.test(t) && !p.closest('.steps-p,.param-grid')) p.classList.add('eyebrow-p');
+    });
+    each(scope.querySelectorAll('.note'), function(n){
+      var tag = n.querySelector('.tag');
+      if(tag && /Technical Example/.test(tag.textContent)) n.classList.add('example');
+    });
+    each(scope.querySelectorAll('p.quote'), function(q){ if(/Router Analysis/.test(q.textContent)) q.classList.add('callout'); });
+    each(scope.querySelectorAll('pre'), function(pre){
+      if(pre.parentNode.classList.contains('code-wrap')) return;
+      var code = pre.querySelector('code'); if(!code) return;
+      var src = code.textContent;
+      var lang = /^\s*[\{\[]/.test(src) ? 'json' : 'python';
+      if(window.hljs){ try{ code.innerHTML = window.hljs.highlight(src, {language:lang, ignoreIllegals:true}).value; }catch(e){} }
+      var wrap = document.createElement('div'); wrap.className = 'code-wrap';
+      var bar = document.createElement('div'); bar.className = 'code-bar';
+      bar.innerHTML = '<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="lang">'+lang+'</span>';
+      var btn = document.createElement('button'); btn.type='button'; btn.className='copy-btn'; btn.textContent='Copy';
+      btn.addEventListener('click', function(){
+        var done = function(){ btn.textContent='Copied ✓'; btn.classList.add('ok'); setTimeout(function(){ btn.textContent='Copy'; btn.classList.remove('ok'); }, 1600); };
+        try{ navigator.clipboard.writeText(src).then(done, fallback); }catch(e){ fallback(); }
+        function fallback(){ var ta=document.createElement('textarea'); ta.value=src; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); done(); }catch(e){} ta.remove(); }
+      });
+      bar.appendChild(btn);
+      pre.parentNode.insertBefore(wrap, pre); wrap.appendChild(bar); wrap.appendChild(pre);
+    });
+  }
+
+  // Deep-dive cards on the Part slides
+  slides.forEach(function(s){
+    each(s.querySelectorAll('.stagger'), function(g){ each(g.children, function(el, i){ el.style.setProperty('--i', i); }); });
+    var items = s.querySelectorAll('.help-list-item');
+    each(items, function(li, i){
+      li.style.setProperty('--i', i + 2);
+      var btn = li.querySelector('.help-btn'), span = li.querySelector('span');
+      var disc = document.createElement('span'); disc.className = 'dd-disc';
+      var m = span.firstChild && span.firstChild.nodeType === 3 && span.firstChild.nodeValue.match(/^(\d+\.)\s*/);
+      if(m){ disc.textContent = m[1]; span.firstChild.nodeValue = span.firstChild.nodeValue.slice(m[0].length); }
+      else { disc.textContent = String(i + 1).padStart(2, '0'); disc.setAttribute('aria-hidden', 'true'); }
+      var body = document.createElement('span'); body.className = 'dd-body';
+      span.className = 'dd-title';
+      var meta = document.createElement('span'); meta.className = 'dd-meta'; meta.setAttribute('aria-hidden','true'); meta.textContent = 'Deep dive';
+      li.insertBefore(disc, li.firstChild); li.insertBefore(body, span); body.appendChild(span); body.appendChild(meta);
+      btn.innerHTML = ARROW;
+    });
+    var cnt = s.querySelector('.side-label .cnt'); if(cnt) cnt.textContent = items.length;
+  });
+  enhance(deck);
+
+  // ---------- Slide engine ----------
+  function setAccent(a){ root.setAttribute('data-accent', a); deck.setAttribute('data-accent', a); }
+  function render(){
+    slides.forEach(function(s,i){ s.hidden = (i!==idx); });
+    curEl.textContent = idx+1;
+    prog.style.width = (total > 1 ? idx/(total-1)*100 : 100)+'%';
+    var active = slides[idx];
+    if(active){ active.scrollTop = 0; var inr = active.querySelector('.inner'); if(inr) inr.scrollTop = 0; setAccent(active.dataset.accent || 'orange'); }
+    try{ history.replaceState(null,'','#'+slides[idx].id); }catch(e){}
+    each(mlist.querySelectorAll('.mitem[data-i]'), function(b){ b.classList.toggle('cur', +b.dataset.i === idx); });
+    each(dotsEl.children, function(d, i){ d.classList.toggle('cur', i === idx); d.setAttribute('aria-current', i === idx ? 'step' : 'false'); });
+  }
+  function go(i){ idx = Math.max(0, Math.min(total-1, i)); render(); }
+  function next(){ go(idx+1); }
+  function prev(){ go(idx-1); }
+  $('nextBtn').addEventListener('click', next);
+  $('prevBtn').addEventListener('click', prev);
+
+  // Dots + contents menu (with nested deep dives)
+  slides.forEach(function(s,i){
+    var d = document.createElement('button');
+    d.type = 'button'; d.className = 'dot-btn'; d.dataset.accent = s.dataset.accent || 'orange';
+    d.setAttribute('aria-label', 'Slide '+(i+1)+': '+(s.dataset.title || s.id));
+    d.title = s.dataset.title || s.id;
+    d.addEventListener('click', function(){ go(i); });
+    dotsEl.appendChild(d);
+
+    var li = document.createElement('li'); li.dataset.accent = s.dataset.accent || 'orange';
+    var b = document.createElement('button');
+    b.className = 'mitem' + (s.dataset.section==='true' ? ' sec' : '');
+    b.dataset.i = i;
+    b.innerHTML = '<span class="mn">'+String(i+1).padStart(2,'0')+'</span><span></span>';
+    b.lastChild.textContent = s.dataset.title || s.id;
+    b.addEventListener('click', function(){ closeMenu(); go(i); });
+    li.appendChild(b);
+    var dives = s.querySelectorAll('.help-btn');
+    if(dives.length){
+      var sub = document.createElement('ul'); sub.className = 'msub';
+      each(dives, function(hb){
+        var sl = document.createElement('li'), sb = document.createElement('button');
+        var card = hb.closest('li'), disc = card.querySelector('.dd-disc'), t = card.querySelector('.dd-title').textContent.trim();
+        sb.className = 'mitem'; sb.textContent = disc.hasAttribute('aria-hidden') ? t : disc.textContent + ' ' + t;
+        sb.addEventListener('click', function(){ closeMenu(); go(i); openHelp(hb); });
+        sl.appendChild(sb); sub.appendChild(sl);
+      });
+      li.appendChild(sub);
+    }
+    mlist.appendChild(li);
+  });
+
+  function openMenu(){ menu.hidden=false; var c = mlist.querySelector('.mitem.cur'); if(c) c.focus(); }
+  function closeMenu(){ menu.hidden=true; }
+  function toggleMenu(){ menu.hidden ? openMenu() : closeMenu(); }
+  $('menuBtn').addEventListener('click', toggleMenu);
+  menu.addEventListener('click', function(e){ if(e.target===menu) closeMenu(); });
+
+  // Theme
+  var themeBtn = $('themeBtn');
+  function currentTheme(){
+    var attr = root.getAttribute('data-theme'); if(attr) return attr;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  themeBtn.addEventListener('click', function(){
+    var t = currentTheme()==='dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', t);
+    try{ localStorage.setItem('poc-theme', t); }catch(e){}
+  });
+  try{ var saved = localStorage.getItem('poc-theme'); if(saved) root.setAttribute('data-theme', saved); }catch(e){}
+
+  // Fullscreen + keyboard overlay
+  var fsBtn = $('fsBtn');
+  function toggleFs(){
+    try{ if(document.fullscreenElement) document.exitFullscreen(); else root.requestFullscreen(); }catch(e){}
+  }
+  if(!root.requestFullscreen) fsBtn.hidden = true;
+  fsBtn.addEventListener('click', toggleFs);
+  function toggleKeys(){ keys.hidden = !keys.hidden; }
+  $('keysBtn').addEventListener('click', toggleKeys);
+  keys.addEventListener('click', function(e){ if(e.target===keys || e.target.closest('[data-close]')) keys.hidden = true; });
+
+  document.addEventListener('keydown', function(e){
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    if(e.key==='Escape'){ if(!menu.hidden){ closeMenu(); e.preventDefault(); } return; }
+    if(!menu.hidden) return;
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': case 'Spacebar': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp': prev(); e.preventDefault(); break;
+      case 'Home': go(0); e.preventDefault(); break;
+      case 'End': go(total-1); e.preventDefault(); break;
+      case 'c': case 'C': toggleMenu(); e.preventDefault(); break;
+      case 't': case 'T': themeBtn.click(); e.preventDefault(); break;
+      case 'f': case 'F': toggleFs(); e.preventDefault(); break;
+      case '?': toggleKeys(); e.preventDefault(); break;
+      case 'Enter': {
+        var first = slides[idx].querySelector('.help-btn');
+        if(first && document.activeElement === document.body){ openHelp(first); e.preventDefault(); }
+        break;
+      }
+    }
+  });
+
+  var sx=0, sy=0;
+  deck.addEventListener('touchstart', function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; }, {passive:true});
+  deck.addEventListener('touchend', function(e){
+    var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)){ dx<0 ? next() : prev(); }
+  }, {passive:true});
+
+  var h = (location.hash||'').replace('#','');
+  if(h){ var found = slides.findIndex(function(s){ return s.id===h; }); if(found>=0) idx=found; }
+  setTimeout(function(){ var el=$('hint'); if(el) el.style.opacity='0'; }, 4500);
+
+  // ---------- Deep-dive popover ----------
+  var helpPop = $('helpPop'), helpBody = $('helpBody');
+  var popPart = $('popPart'), popCount = $('popCount'), popPips = $('popPips'), popProg = $('popProg');
+  var popPrev = $('popPrev'), popNext = $('popNext');
+  var dives = [], diveIdx = 0;
+  function updProg(){
+    var max = helpBody.scrollHeight - helpBody.clientHeight;
+    popProg.style.width = (max > 0 ? Math.min(100, helpBody.scrollTop / max * 100) : 100) + '%';
+  }
+  helpBody.addEventListener('scroll', updProg, {passive:true});
+  function openHelp(btn){
+    var tpl = $('help-' + btn.dataset.help);
+    if(!tpl) return;
+    var slide = btn.closest('.slide');
+    dives = Array.prototype.slice.call(slide.querySelectorAll('.help-btn'));
+    diveIdx = dives.indexOf(btn);
+    helpBody.innerHTML = '';
+    helpBody.appendChild(tpl.content.cloneNode(true));
+    enhance(helpBody);
+    var h2 = helpBody.querySelector('h2'); if(h2) h2.id = 'helpTitle';
+    popPart.textContent = slide.dataset.title || '';
+    popCount.textContent = 'Deep dive ' + (diveIdx+1) + ' of ' + dives.length;
+    popPips.innerHTML = dives.map(function(_, i){ return '<i class="'+(i===diveIdx?'on':'')+'"></i>'; }).join('');
+    popPrev.disabled = diveIdx <= 0;
+    popNext.disabled = diveIdx >= dives.length-1;
+    helpPop.setAttribute('data-accent', slide.dataset.accent || 'orange');
+    helpPop.hidden = false;
+    helpBody.scrollTop = 0; updProg();
+    helpBody.focus({preventScroll:true});
+  }
+  function stepHelp(d){ var n = diveIdx + d; if(n >= 0 && n < dives.length) openHelp(dives[n]); }
+  function closeHelp(){
+    helpPop.hidden = true; helpBody.innerHTML = '';
+    var back = dives[diveIdx]; if(back) back.focus({preventScroll:true});
+  }
+  each(document.querySelectorAll('.help-btn'), function(b){
+    b.addEventListener('click', function(e){ e.preventDefault(); openHelp(b); });
+  });
+  popPrev.addEventListener('click', function(){ stepHelp(-1); });
+  popNext.addEventListener('click', function(){ stepHelp(1); });
+  $('helpClose').addEventListener('click', closeHelp);
+  helpPop.addEventListener('click', function(e){ if(e.target===helpPop) closeHelp(); });
+
+  // ---------- Image lightbox ----------
+  var lb = $('lightbox'), lbImg = $('lbImg'), lbFrom = null;
+  each(document.querySelectorAll('[data-zoom]'), function(b){
+    b.addEventListener('click', function(){ var img = b.querySelector('img'); lbImg.src = img.src; lbImg.alt = img.alt; lbFrom = b; lb.hidden = false; $('lbClose').focus(); });
+  });
+  function closeLb(){ lb.hidden = true; if(lbFrom) lbFrom.focus(); }
+  lb.addEventListener('click', closeLb);
+
+  function trap(e, box){
+    var f = Array.prototype.filter.call(box.querySelectorAll('button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])'), function(el){ return el.offsetParent !== null; });
+    if(!f.length) return;
+    var first = f[0], last = f[f.length-1];
+    if(e.shiftKey && (document.activeElement === first || !box.contains(document.activeElement))){ last.focus(); e.preventDefault(); }
+    else if(!e.shiftKey && document.activeElement === last){ first.focus(); e.preventDefault(); }
+  }
+  // Overlays own the keyboard while open, so the deck never navigates underneath them.
+  document.addEventListener('keydown', function(e){
+    if(!lb.hidden){
+      e.stopImmediatePropagation();
+      if(e.key==='Escape'){ closeLb(); e.preventDefault(); } else if(e.key!=='Tab'){ e.preventDefault(); }
+      return;
+    }
+    if(!keys.hidden){
+      e.stopImmediatePropagation();
+      if(e.key==='Escape' || e.key==='?'){ keys.hidden = true; e.preventDefault(); }
+      return;
+    }
+    if(helpPop.hidden) return;
+    e.stopImmediatePropagation();
+    if(e.key==='Escape'){ closeHelp(); e.preventDefault(); }
+    else if(e.key==='ArrowRight'){ stepHelp(1); e.preventDefault(); }
+    else if(e.key==='ArrowLeft'){ stepHelp(-1); e.preventDefault(); }
+    else if(e.key==='Tab'){ trap(e, helpPop); }
+  }, true);
+  deck.addEventListener('touchstart', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+  deck.addEventListener('touchend', function(e){ if(!helpPop.hidden) e.stopImmediatePropagation(); }, true);
+
+  render();
+})();
+</script>
+
+</body></html>
